@@ -1,0 +1,25 @@
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type DeveloperState = {
+  isDeveloper: boolean;
+  toggleDeveloper: () => void;
+};
+
+export const useDeveloperStore = create(
+  persist<DeveloperState>(
+    (set) => ({
+      isDeveloper: false,
+      toggleDeveloper: () => {
+        set((state) => ({
+          isDeveloper: !state.isDeveloper,
+        }));
+      },
+    }),
+    {
+      name: "developer-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);
