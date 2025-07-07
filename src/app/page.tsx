@@ -11,7 +11,7 @@ export default function Timetable() {
       <WeekSelectionCombobox />
       <SpecializationSelect />
 
-      <Timetable />
+      {/* <Timetable /> */}
     </div>
   );
 }
