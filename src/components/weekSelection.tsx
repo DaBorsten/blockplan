@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { fetchWeekIDsWithNames } from "@/utils/weeks";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -19,24 +20,27 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const frameworks = [
-  {
-    value: "11A KW 27_1",
-    label: "11A KW 27_1",
-  },
-  {
-    value: "11A KW 22_2",
-    label: "11A KW 22_2",
-  },
-  {
-    value: "11A KW 22_1",
-    label: "11A KW 22_1",
-  },
-];
+type Props = {
+  onChange?: (weekId: string | null) => void;
+  value?: string | null;
+};
 
-export function WeekSelectionCombobox() {
+export function WeekSelectionCombobox({ onChange, value }: Props) {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
+  const [weeks, setWeeks] = React.useState<
+    { label: string; value: string | null }[]
+  >([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchWeeks = async () => {
+      setLoading(true);
+      const result = await fetchWeekIDsWithNames();
+      setWeeks(result || []);
+      setLoading(false);
+    };
+    fetchWeeks();
+  }, []);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -48,7 +52,9 @@ export function WeekSelectionCombobox() {
           className="w-[200px] justify-between"
         >
           {value
-            ? frameworks.find((framework) => framework.value === value)?.label
+            ? weeks.find((w) => w.value === value)?.label
+            : loading
+            ? "Lade Wochen..."
             : "Woche wählen"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
@@ -59,20 +65,21 @@ export function WeekSelectionCombobox() {
           <CommandList>
             <CommandEmpty>Keine Woche gefunden.</CommandEmpty>
             <CommandGroup>
-              {frameworks.map((framework) => (
+              {weeks.map((week) => (
                 <CommandItem
-                  key={framework.value}
-                  value={framework.value}
+                  key={week.value ?? "none"}
+                  value={week.value ?? ""}
                   onSelect={(currentValue) => {
-                    setValue(currentValue === value ? "" : currentValue);
+                    const newValue = currentValue === value ? null : currentValue;
                     setOpen(false);
+                    if (onChange) onChange(newValue);
                   }}
                 >
-                  {framework.label}
+                  {week.label}
                   <Check
                     className={cn(
                       "ml-auto",
-                      value === framework.value ? "opacity-100" : "opacity-0",
+                      value === week.value ? "opacity-100" : "opacity-0",
                     )}
                   />
                 </CommandItem>

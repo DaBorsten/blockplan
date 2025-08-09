@@ -349,7 +349,7 @@ export async function getAllRelevantWeeksForNotesImport(
       `,
       [excludeWeekId, ...specializationIds],
     );
-    return result;
+    return result.rows;
   } catch (error) {
     console.error("Error getting relevant weeks for notes import:", error);
     return [];

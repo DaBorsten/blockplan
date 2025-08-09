@@ -1,5 +1,4 @@
 import * as React from "react";
-
 import {
   Select,
   SelectContent,
@@ -8,18 +7,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Specialization } from "@/store/useSpecializationStore";
 
-export function SpecializationSelect() {
+type Props = {
+  onChange?: (spec: Specialization) => void
+  value?: number;
+};
+
+const options = [
+  { label: "Alle", value: 1 },
+  { label: "AE", value: 2 },
+  { label: "FiSi", value: 3 },
+];
+
+export function SpecializationSelect({ onChange, value }: Props) {
+  const [internalValue, setInternalValue] = React.useState<number | null>(null);
+
   return (
-    <Select>
+    <Select
+      value={typeof value === "number" ? String(value) : undefined}
+      onValueChange={(val) => {
+        const num = val ? Number(val) : null;
+        if (onChange && num !== null) onChange(num);
+      }}
+    >
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="Fachrichtung wählen" />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectItem value="all">Alle</SelectItem>
-          <SelectItem value="ae">AE</SelectItem>
-          <SelectItem value="fisi">FiSi</SelectItem>
+          {options.map((opt) => (
+            <SelectItem key={opt.value} value={String(opt.value)}>
+              {opt.label}
+            </SelectItem>
+          ))}
         </SelectGroup>
       </SelectContent>
     </Select>
