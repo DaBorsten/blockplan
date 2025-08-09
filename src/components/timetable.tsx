@@ -15,7 +15,6 @@ import { Lesson } from "@/types/timetableData";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { useTeacherColorStore } from "@/store/useTeacherColorStore";
 import { getTimesForTimetable } from "@/utils/times";
-import { supabase } from "@/lib/supabaseClient";
 
 type TimetableProps = {
   dbInitialized: boolean;
@@ -74,7 +73,6 @@ export default function Timetable({
       if (!weekID) return;
 
       const response = await LoadSpecificTimetables(
-        supabase,
         /* db param fehlt hier ,*/ weekID,
         specialization,
       );
