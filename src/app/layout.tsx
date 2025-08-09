@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ModeToggle } from "@/components/theme-toggle";
+import { ThemeToaster } from "@/components/ThemeToaster";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,6 +45,7 @@ export default function RootLayout({
                 <SidebarTrigger />
                 <ModeToggle />
                 {children}
+                <ThemeToaster />
               </main>
             </SidebarProvider>
           </ThemeProvider>
