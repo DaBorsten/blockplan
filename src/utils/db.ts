@@ -207,7 +207,7 @@ export async function getAllWeekIdsWithNames() {
     const result = await turso.execute(
       `SELECT id as week_id, MIN(week_title) as week_title FROM timetable_week GROUP BY id;`,
     );
-    return result;
+    return result.rows;
   } catch (error) {
     console.error("Error loading data:", error);
     return [];
