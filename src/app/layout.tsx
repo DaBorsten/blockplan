@@ -47,27 +47,29 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <SidebarProvider>
-              <AppSidebar />
-              <main className="w-full min-h-svh">
-                <header className="flex justify-end items-center p-4 gap-4 h-16">
-                  <SignedOut>
-                    <SignInButton />
-                    <SignUpButton />
-                  </SignedOut>
-                  <SignedIn>
+            <SignedOut>
+              <header className="flex justify-end items-center p-4 gap-4 h-16">
+                <SignInButton />
+                <SignUpButton />
+              </header>
+            </SignedOut>
+            <SignedIn>
+              <SidebarProvider>
+                <AppSidebar />
+                <main className="w-full min-h-svh">
+                  <header className="flex justify-end items-center p-4 gap-4 h-16">
                     <UserButton />
-                  </SignedIn>
-                </header>
-                <div className="flex items-center justify-between w-full p-2 sticky top-0 z-10 bg-background">
-                  <SidebarTrigger />
-                  <div className="flex-1" />
-                  <ModeToggle />
-                </div>
-                {children}
-                <ThemeToaster />
-              </main>
-            </SidebarProvider>
+                  </header>
+                  <div className="flex items-center justify-between w-full p-2 sticky top-0 z-10 bg-background">
+                    <SidebarTrigger />
+                    <div className="flex-1" />
+                    <ModeToggle />
+                  </div>
+                  {children}
+                  <ThemeToaster />
+                </main>
+              </SidebarProvider>
+            </SignedIn>
           </ThemeProvider>
         </body>
       </html>
