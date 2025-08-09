@@ -12,6 +12,7 @@ const extractFileName = (fullName: string): string => {
 };
 
 import React, { useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import Dropzone from "@/components/Dropzone";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,11 +27,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { CreateTimetable } from "@/utils/db";
 
 type FileItem = {
   id: string;
   file: File;
-  name: string;
+  name: string; // Originaler Dateiname
+  displayName: string; // Extrahierter/benutzerdefinierter Name
 };
 
 function getId() {
@@ -41,6 +44,7 @@ export default function Import() {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = (fileList: FileList | null) => {
@@ -48,7 +52,12 @@ export default function Import() {
     const newFiles: FileItem[] = [];
     Array.from(fileList).forEach((file) => {
       if (file.type === "application/pdf") {
-        newFiles.push({ id: getId(), file, name: file.name });
+        newFiles.push({
+          id: getId(),
+          file,
+          name: file.name,
+          displayName: extractFileName(file.name),
+        });
       }
     });
     setFiles((prev) => [...prev, ...newFiles]);
@@ -68,14 +77,14 @@ export default function Import() {
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handleEdit = (id: string, name: string) => {
+  const handleEdit = (id: string, displayName: string) => {
     setEditId(id);
-    setEditName(extractFileName(name));
+    setEditName(displayName);
   };
 
   const handleEditSave = () => {
     setFiles((prev) =>
-      prev.map((f) => (f.id === editId ? { ...f, name: editName } : f)),
+      prev.map((f) => (f.id === editId ? { ...f, displayName: editName } : f)),
     );
     setEditId(null);
     setEditName("");
@@ -85,6 +94,37 @@ export default function Import() {
     fileInputRef.current?.click();
   };
 
+  async function uploadFile(selectedFile: File) {
+    console.log("Selected file:", selectedFile);
+    if (selectedFile) {
+      const formData = new FormData();
+
+      formData.append("file", selectedFile);
+
+      console.log(formData);
+
+      // const PYTHON_API_URL = process.env.PYTHON_API_URL;
+      const PYTHON_API_URL = "http://192.168.178.73:8000";
+
+      try {
+        const response = await fetch(PYTHON_API_URL + "/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        console.log(response);
+
+        const responseData = await response.json();
+        console.log(responseData);
+
+        return responseData;
+      } catch (err) {
+        console.log(err);
+        throw Error("Internet oder Server Fehler");
+      }
+    }
+  }
+
   return (
     <div
       className="grid min-h-svh w-full px-2"
@@ -92,88 +132,103 @@ export default function Import() {
     >
       <div className="flex flex-col items-center justify-center w-full">
         {/* Dropzone oder Dateiliste */}
-        {files.length === 0 ? (
-          <Dropzone
-            onFiles={handleFiles}
-            onClick={openFileDialog}
-            onDrop={handleDrop}
-            fileInputRef={fileInputRef}
-            text="PDF Dateien hierher ziehen oder klicken, um auszuwählen"
-            accept="application/pdf"
-          />
-        ) : (
-          <div
-            className="flex-1 w-full bg-muted/60 p-4 md:p-8 flex flex-col gap-3 min-h-[300px] min-w-0"
-            style={{ minHeight: 300 }}
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            {files.map((f) => (
-              <div
-                key={f.id}
-                className="flex items-center gap-2 border rounded-md px-3 py-2 bg-background transition-colors group hover:bg-primary/10"
-              >
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="truncate font-medium"
-                    title={extractFileName(f.name)}
-                  >
-                    {extractFileName(f.name)}
-                  </div>
-                  <div
-                    className="truncate text-xs text-muted-foreground"
-                    title={f.name}
-                  >
-                    {f.name}
-                  </div>
-                </div>
-                <Dialog
-                  open={editId === f.id}
-                  onOpenChange={(open) => !open && setEditId(null)}
+        <div className="relative w-full flex-1 flex flex-col items-center justify-center">
+          {files.length === 0 ? (
+            <Dropzone
+              onFiles={loading ? () => {} : handleFiles}
+              onClick={loading ? () => {} : openFileDialog}
+              onDrop={loading ? () => {} : handleDrop}
+              fileInputRef={fileInputRef}
+              text="PDF Dateien hierher ziehen oder klicken, um auszuwählen"
+              accept="application/pdf"
+            />
+          ) : (
+            <div
+              className={`flex-1 w-full bg-muted/60 p-4 md:p-8 flex flex-col gap-3 min-h-[300px] min-w-0 ${
+                loading ? "opacity-60 pointer-events-none" : ""
+              }`}
+              style={{ minHeight: 300 }}
+              onDrop={loading ? undefined : handleDrop}
+              onDragOver={loading ? undefined : (e) => e.preventDefault()}
+            >
+              {files.map((f) => (
+                <div
+                  key={f.id}
+                  className="flex items-center gap-2 border rounded-md px-3 py-2 bg-background transition-colors group hover:bg-primary/10"
                 >
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleEdit(f.id, f.name)}
-                      className="cursor-pointer"
-                      aria-label="Umbenennen"
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium" title={f.displayName}>
+                      {f.displayName}
+                    </div>
+                    <div
+                      className="truncate text-xs text-muted-foreground"
+                      title={f.name}
                     >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Dateiname ändern</DialogTitle>
-                    </DialogHeader>
-                    <Label htmlFor="editName">Neuer Name</Label>
-                    <Input
-                      id="editName"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      autoFocus
-                    />
-                    <DialogFooterUI>
-                      <Button onClick={handleEditSave}>Speichern</Button>
-                      <Button variant="outline" onClick={() => setEditId(null)}>
-                        Abbrechen
+                      {f.name}
+                    </div>
+                  </div>
+                  <Dialog
+                    open={editId === f.id}
+                    onOpenChange={(open) => !open && setEditId(null)}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(f.id, f.displayName)}
+                        className="cursor-pointer"
+                        aria-label="Umbenennen"
+                        disabled={loading}
+                      >
+                        <Pencil className="w-4 h-4" />
                       </Button>
-                    </DialogFooterUI>
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  onClick={() => handleDelete(f.id)}
-                  className="ml-1 cursor-pointer"
-                  aria-label="Löschen"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Dateiname ändern</DialogTitle>
+                      </DialogHeader>
+                      <Label htmlFor="editName">Neuer Name</Label>
+                      <Input
+                        id="editName"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        autoFocus
+                        disabled={loading}
+                      />
+                      <DialogFooterUI>
+                        <Button onClick={handleEditSave} disabled={loading}>
+                          Speichern
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditId(null)}
+                          disabled={loading}
+                        >
+                          Abbrechen
+                        </Button>
+                      </DialogFooterUI>
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => handleDelete(f.id)}
+                    className="ml-1 cursor-pointer"
+                    aria-label="Löschen"
+                    disabled={loading}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 rounded-2xl">
+              <Loader2 className="animate-spin w-16 h-16 text-primary" />
+            </div>
+          )}
+        </div>
       </div>
       {/* Footer mit Buttons, immer ganz unten im Grid */}
       <footer className="sticky bottom-0 w-full bg-background border-t flex flex-col sm:flex-row gap-3 px-4 py-4 max-w-full justify-center z-10">
@@ -187,18 +242,32 @@ export default function Import() {
           </Button>
           <Button
             className="flex-1"
-            disabled={files.length === 0}
-            onClick={() => {
+            disabled={files.length === 0 || loading}
+            onClick={async () => {
               if (files.length === 0) {
                 toast.error("Keine Dateien zum Importieren ausgewählt.");
                 return;
               }
-              if (files.length === 1) {
-                toast.info("Stundenplan wird analysiert …");
-              } else {
-                toast.info("Stundenpläne werden analysiert …");
+              setLoading(true);
+              try {
+                // Simuliere Import-Vorgang
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+
+                for (const { file, displayName } of files) {
+                  const response = await uploadFile(file);
+
+                  if (response) {
+                    await CreateTimetable(response, displayName);
+                  }
+                }
+
+                toast.success("Import abgeschlossen!");
+                setFiles([]);
+              } catch (e) {
+                toast.error("Fehler beim Importieren.");
+              } finally {
+                setLoading(false);
               }
-              // Hier könnte die eigentliche Import-Logik folgen
             }}
           >
             Importieren

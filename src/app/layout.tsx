@@ -41,9 +41,12 @@ export default function RootLayout({
           >
             <SidebarProvider>
               <AppSidebar />
-              <main>
-                <SidebarTrigger />
-                <ModeToggle />
+              <main className="w-full min-h-svh">
+                <div className="flex items-center justify-between w-full p-2 sticky top-0 z-10 bg-background">
+                  <SidebarTrigger />
+                  <div className="flex-1" />
+                  <ModeToggle />
+                </div>
                 {children}
                 <ThemeToaster />
               </main>

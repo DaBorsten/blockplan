@@ -10,8 +10,9 @@ import { turso } from "@/lib/tursoClient";
 import { randomUUID } from "crypto";
 import { getTimeForHour } from "./times";
 
-export async function InitializeDatabase(
-): Promise<{ dbInitialized: boolean }> {
+export async function InitializeDatabase(): Promise<{
+  dbInitialized: boolean;
+}> {
   try {
     await turso.execute(`
     CREATE TABLE IF NOT EXISTS timetable_week (
@@ -58,7 +59,7 @@ export async function CreateTimetable(
   week: string,
 ) {
   try {
-    const week_id = randomUUID.toString();
+    const week_id = randomUUID();
     const className = timetable.class;
     const timetableData = timetable.timetable;
 
@@ -91,7 +92,7 @@ export async function CreateTimetable(
 
         if (lessons) {
           for (const lesson of lessons) {
-            const lessonId = randomUUID().toString();
+            const lessonId = randomUUID();
 
             const timeSlot = getTimeForHour(hour, lesson, allLessonsForDay);
 
@@ -213,9 +214,7 @@ export async function getAllWeekIdsWithNames() {
   }
 }
 
-export async function DeleteImportsFromDatabase(
-  weekID: string,
-) {
+export async function DeleteImportsFromDatabase(weekID: string) {
   try {
     await turso.execute(`DELETE from timetable_week where id = ?;`, [weekID]);
   } catch (error) {
@@ -224,10 +223,7 @@ export async function DeleteImportsFromDatabase(
   }
 }
 
-export async function updateWeekName(
-  weekID: string,
-  newWeekName: string,
-) {
+export async function updateWeekName(weekID: string, newWeekName: string) {
   try {
     await turso.execute(
       `UPDATE timetable_week SET week_title = ? WHERE id = ?;`,
@@ -257,10 +253,7 @@ export async function getNotes(lessonID: string) {
   }
 }
 
-export async function updateNotes(
-  lessonID: string,
-  notes: string | null,
-) {
+export async function updateNotes(lessonID: string, notes: string | null) {
   try {
     console.log(lessonID);
     const trimmedNotes = notes?.trim() ?? null;

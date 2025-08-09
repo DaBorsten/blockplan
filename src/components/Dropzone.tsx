@@ -15,7 +15,6 @@ const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
     <div
       ref={ref}
       className="flex-1 w-full flex items-center justify-center cursor-pointer hover:bg-muted transition text-lg select-none min-h-[300px] min-w-0 border-2 border-dashed border-muted-foreground rounded-2xl"
-      style={{ minHeight: 300 }}
       onDrop={onDrop}
       onDragOver={(e) => e.preventDefault()}
       onClick={onClick}
