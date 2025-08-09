@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CreateTimetable } from "@/utils/db";
+import { CreateTimetable, InitializeDatabase } from "@/utils/db";
 
 type FileItem = {
   id: string;
@@ -233,6 +233,9 @@ export default function Import() {
       {/* Footer mit Buttons, immer ganz unten im Grid */}
       <footer className="sticky bottom-0 w-full bg-background border-t flex flex-col sm:flex-row gap-3 px-4 py-4 max-w-full justify-center z-10">
         <div className="w-full flex flex-col sm:flex-row gap-3">
+          <Button onClick={async () => await InitializeDatabase()}>
+            Datenbank initialisieren
+          </Button>
           <Button
             variant="secondary"
             className="flex-1"

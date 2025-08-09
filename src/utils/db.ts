@@ -7,8 +7,8 @@ import {
 } from "@/types/timetableData";
 import { TimetableDatabase } from "@/types/timetableDatabase";
 import { turso } from "@/lib/tursoClient";
-import { randomUUID } from "crypto";
 import { getTimeForHour } from "./times";
+import { v4 } from "uuid";
 
 export async function InitializeDatabase(): Promise<{
   dbInitialized: boolean;
@@ -59,7 +59,7 @@ export async function CreateTimetable(
   week: string,
 ) {
   try {
-    const week_id = randomUUID();
+    const week_id = v4();
     const className = timetable.class;
     const timetableData = timetable.timetable;
 
@@ -92,7 +92,7 @@ export async function CreateTimetable(
 
         if (lessons) {
           for (const lesson of lessons) {
-            const lessonId = randomUUID();
+            const lessonId = v4();
 
             const timeSlot = getTimeForHour(hour, lesson, allLessonsForDay);
 
@@ -117,7 +117,7 @@ export async function CreateTimetable(
             // Spezialisierungen in separate Tabelle
             const specialization = lesson.specialization;
 
-            const specializationId = randomUUID().toString();
+            const specializationId = v4();
 
             await turso.execute(
               `INSERT INTO timetable_specialization (id, timetable_id, specialization)
