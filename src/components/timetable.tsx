@@ -3,12 +3,10 @@ import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { Colors } from "@/constants/Colors";
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
-import useTheme from "@/hooks/useTheme";
 import {
   Specialization,
   useSpecializationStore,
 } from "@/store/useSpecializationStore";
-import { ColorScheme } from "@/types/color";
 import { isColorDark } from "@/utils/colorDark";
 import { LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
 import { getNotes, LoadSpecificTimetables } from "@/utils/db"; // Du musst hier anpassen, falls du DB anders nutzt
@@ -17,6 +15,7 @@ import { Lesson } from "@/types/timetableData";
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { useTeacherColorStore } from "@/store/useTeacherColorStore";
 import { getTimesForTimetable } from "@/utils/times";
+import { supabase } from "@/lib/supabaseClient";
 
 type TimetableProps = {
   dbInitialized: boolean;
@@ -44,7 +43,6 @@ export default function Timetable({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [cellWidth, setCellWidth] = useState(0);
-  //   const { colorScheme } = useTheme();
 
   const colorScheme = "dark";
 
@@ -75,8 +73,12 @@ export default function Timetable({
     async (specialization: Specialization) => {
       if (!weekID) return;
 
-      //   const response = await LoadSpecificTimetables(/* db param fehlt hier */, weekID, specialization);
-      //   setTimeTableData(response);
+      const response = await LoadSpecificTimetables(
+        supabase,
+        /* db param fehlt hier ,*/ weekID,
+        specialization,
+      );
+      setTimeTableData(response);
     },
     [weekID, setTimeTableData],
   );
@@ -297,8 +299,10 @@ export default function Timetable({
                         <button
                           key={idx}
                           onClick={async () => {
-                            /*const savedNotes = await getNotes( Hier musst du DB anpassen , lesson.id);*/
-                            // setActiveNotes(savedNotes);
+                            const savedNotes = await getNotes(
+                              /* Hier musst du DB anpassen  ,*/ lesson.id,
+                            );
+                            setActiveNotes(savedNotes);
                             setActiveClickedLesson(lesson);
                             setIsEditNotesModalOpen(true);
                           }}
@@ -339,7 +343,7 @@ export default function Timetable({
                               </span>
                             )}
                           </div>
-                          {lesson.notes?.length > 0 && (
+                          {lesson.notes && lesson.notes?.length > 0 && (
                             <LucideNotebookText color={textColor} />
                           )}
                         </button>

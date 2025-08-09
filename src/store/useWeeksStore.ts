@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type WeeksState = {
   weeksUpdate: number;
@@ -19,7 +18,7 @@ export const useWeeksStore = create(
     }),
     {
       name: "week-id-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => localStorage),
     },
   ),
 );

@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type ThemeState = {
   theme: "light" | "dark" | "system";
@@ -15,7 +14,7 @@ export const useThemeStore = create(
     }),
     {
       name: "theme-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
           console.error("Fehler beim Rehydrieren des Theme-Speichers:", error);

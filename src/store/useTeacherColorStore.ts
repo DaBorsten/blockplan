@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { teacherColors as defaultTeacherColors } from "@/constants/teacherColors";
-import uuid from "react-native-uuid";
 import { TeacherColorsType } from "@/types/teacherColors";
 
 type teacherColor = {
@@ -36,7 +34,7 @@ export const useTeacherColorStore = create(
         set((state) => {
           const teacherColors = state.teacherColors ?? [];
           teacherColors.push({
-            id: uuid.v4().toString(),
+            id: crypto.randomUUID(),
             teacher: null,
             color: null,
           });
@@ -103,7 +101,7 @@ export const useTeacherColorStore = create(
     }),
     {
       name: "teacher-color-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => localStorage),
     },
   ),
 );

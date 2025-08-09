@@ -1,5 +1,4 @@
 import { getAllWeekIdsWithNames } from "./db";
-import * as SQLite from "expo-sqlite";
 
 export const sortWeeksByName = (weeks) => {
   return weeks
@@ -12,8 +11,8 @@ export const sortWeeksByName = (weeks) => {
     });
 };
 
-export const fetchWeekIDsWithNames = async (db: SQLite.SQLiteDatabase) => {
-  const result = await getAllWeekIdsWithNames(db);
+export const fetchWeekIDsWithNames = async () => {
+  const result = await getAllWeekIdsWithNames();
   if (result.length > 0) {
     const sortedWeeks = sortWeeksByName(result);
     return [

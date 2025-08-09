@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type Specialization = 1 | 2 | 3;
 
@@ -18,7 +17,7 @@ export const useSpecializationStore = create(
     }),
     {
       name: "specialization-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => localStorage),
     },
   ),
 );

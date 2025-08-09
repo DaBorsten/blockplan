@@ -5,57 +5,11 @@ import {
   TimetableForClassForImport,
   TimetableForImport,
 } from "@/types/timetableData";
-import { TimetableDatabase } from "@/types/timetableDatabase";
-import * as SQLite from "expo-sqlite";
 import { randomUUID } from "crypto";
 import { getTimeForHour } from "./times";
-
-export async function InitializeDatabase(
-  db: SQLite.SQLiteDatabase,
-): Promise<{ dbInitialized: boolean }> {
-  try {
-    await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS timetable_week (
-      id TEXT PRIMARY KEY NOT NULL,
-      week_title TEXT NOT NULL,
-      class TEXT NOT NULL
-    );`);
-
-    await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS timetable (
-          id TEXT PRIMARY KEY NOT NULL, 
-          week_id TEXT NOT NULL,
-          day TEXT NOT NULL,
-          hour INT NOT NULL,
-          startTime TEXT NOT NULL,
-          endTime TEXT NOT NULL,
-          subject TEXT NOT NULL,
-          teacher TEXT NOT NULL,
-          room TEXT NOT NULL,
-          notes TEXT,
-          FOREIGN KEY (week_id) REFERENCES timetable_week(id) ON DELETE CASCADE
-        );`);
-
-    await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS timetable_specialization (
-          id TEXT PRIMARY KEY NOT NULL,
-          timetable_id TEXT NOT NULL,
-          specialization INTEGER NOT NULL,
-          FOREIGN KEY (timetable_id) REFERENCES timetable(id) ON DELETE CASCADE,
-          UNIQUE(timetable_id, specialization)
-        );`);
-
-    await db.execAsync("PRAGMA foreign_keys = ON");
-
-    return { dbInitialized: true };
-  } catch (error) {
-    console.error("Error initializing database:", error);
-    return { dbInitialized: false };
-  }
-}
+import { supabase } from "@/lib/supabaseClient";
 
 export async function CreateTimetable(
-  db: SQLite.SQLiteDatabase,
   timetable: TimetableForImport,
   week: string,
 ) {
@@ -64,10 +18,11 @@ export async function CreateTimetable(
     const className = timetable.class;
     const timetableData = timetable.timetable;
 
-    await db.runAsync(
-      `INSERT INTO timetable_week (id, week_title, class) VALUES (?, ?, ?)`,
-      [week_id, week, className],
-    );
+    await supabase.from("timetable_week").insert({
+      id: week_id,
+      week_title: week,
+      class: className,
+    });
 
     for (const day in timetableData) {
       const daySchedule =
@@ -97,34 +52,29 @@ export async function CreateTimetable(
 
             const timeSlot = getTimeForHour(hour, lesson, allLessonsForDay);
 
-            // Haupteintrag in timetable Tabelle
-            await db.runAsync(
-              `INSERT INTO timetable (id, week_id, day, hour, startTime, endTime, subject, teacher, room, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
-              [
-                lessonId,
-                week_id,
-                day,
-                hour,
-                timeSlot.start,
-                timeSlot.end,
-                lesson.subject,
-                lesson.teacher,
-                lesson.room,
-                null,
-              ],
-            );
+            await supabase.from("timetable").insert({
+              id: lessonId,
+              week_id,
+              day,
+              hour,
+              startTime: timeSlot.start,
+              endTime: timeSlot.end,
+              subject: lesson.subject,
+              teacher: lesson.teacher,
+              room: lesson.room,
+              notes: null,
+            });
 
             // Spezialisierungen in separate Tabelle
             const specialization = lesson.specialization;
 
             const specializationId = randomUUID.toString();
 
-            await db.runAsync(
-              `INSERT INTO timetable_specialization (id, timetable_id, specialization)
-                 VALUES (?, ?, ?);`,
-              [specializationId, lessonId, specialization],
-            );
+            await supabase.from("timetable_specialization").insert({
+              id: specializationId,
+              timetable_id: lessonId,
+              specialization,
+            });
           }
         }
       }
@@ -134,13 +84,11 @@ export async function CreateTimetable(
   }
 }
 
-export async function LoadDB(db: SQLite.SQLiteDatabase) {
+export async function LoadDB() {
   try {
-    const result = await db.getAllAsync(`SELECT * FROM timetable;`);
-    const result2 = await db.getAllAsync(
-      `SELECT * FROM timetable_specialization;`,
-    );
-    const result3 = await db.getAllAsync(`SELECT * FROM timetable_week;`);
+    const result = await supabase.from("timetable").select("*");
+    const result2 = await supabase.from("timetable_specialization").select("*");
+    const result3 = await supabase.from("timetable_week").select("*");
     return [result, result2, result3];
   } catch (error) {
     console.error("Error loading data:", error);
@@ -149,7 +97,6 @@ export async function LoadDB(db: SQLite.SQLiteDatabase) {
 }
 
 export async function LoadSpecificTimetables(
-  db: SQLite.SQLiteDatabase,
   WeekID: string,
   specialization: Specialization,
 ) {
@@ -166,49 +113,56 @@ export async function LoadSpecificTimetables(
       specializationIds = [specialization];
     }
 
-    const placeholders = specializationIds.map(() => "?").join(",");
+    // const placeholders = specializationIds.map(() => "?").join(",");
 
-    const result: TimetableDatabase[] = await db.getAllAsync(
+    /* const result: TimetableDatabase[] = await db.getAllAsync(
       `SELECT timetable.*, timetable_specialization.specialization
        FROM timetable 
        JOIN timetable_specialization ON timetable.id = timetable_specialization.timetable_id 
        WHERE timetable.week_id = ? AND timetable_specialization.specialization IN (${placeholders});`,
       [WeekID, ...specializationIds],
-    );
-    return result;
+    ); */
+
+    const { data, error } = await supabase
+      .from("timetable")
+      .select(
+        `
+    *,
+    timetable_specialization (
+      specialization
+    )
+  `,
+      )
+      .eq("week_id", WeekID)
+      .in("timetable_specialization.specialization", specializationIds);
+
+    return data;
   } catch (error) {
     console.error("Error loading data:", error);
     return [];
   }
 }
 
-export async function DeleteTimetablesInDB(db: SQLite.SQLiteDatabase) {
+export async function DeleteTimetablesInDB() {
   try {
-    await db.runAsync(`DELETE FROM timetable;`);
-    await db.runAsync(`DELETE FROM timetable_specialization;`);
-    await db.runAsync(`DELETE FROM timetable_week;`);
+    await supabase.from("timetable").delete().neq("id", "");
+    await supabase.from("timetable_specialization").delete().neq("id", "");
+    await supabase.from("timetable_week").delete().neq("id", "");
     console.log("All timetables deleted successfully.");
   } catch (error) {
     console.error("Error deleting timetables:", error);
   }
 }
 
-export async function DeleteTimetableDB(db: SQLite.SQLiteDatabase) {
+export async function getAllWeekIdsWithNames() {
   try {
-    await db.runAsync(`DROP TABLE IF EXISTS timetable;`);
-    await db.runAsync(`DROP TABLE IF EXISTS timetable_specialization;`);
-    await db.runAsync(`DROP TABLE IF EXISTS timetable_week;`);
-    console.log("timetable table deleted successfully.");
-  } catch (error) {
-    console.error("Error deleting timetable table:", error);
-  }
-}
-
-export async function getAllWeekIdsWithNames(db: SQLite.SQLiteDatabase) {
-  try {
-    const result = await db.getAllAsync(
+    const result = await supabase
+      .from("timetable_week")
+      .select("id, week_title")
+      .order("id", { ascending: true });
+    /* const result = await db.getAllAsync(
       `SELECT id as week_id, MIN(week_title) as week_title FROM timetable_week GROUP BY id;`,
-    );
+    ); */
     return result;
   } catch (error) {
     console.error("Error loading data:", error);
@@ -216,45 +170,39 @@ export async function getAllWeekIdsWithNames(db: SQLite.SQLiteDatabase) {
   }
 }
 
-export async function DeleteImportsFromDatabase(
-  db: SQLite.SQLiteDatabase,
-  weekID: string,
-) {
+export async function DeleteImportsFromDatabase(weekID: string) {
   try {
-    await db.runAsync(`DELETE from timetable_week where id = ?;`, [weekID]);
+    await supabase.from("timetable_week").delete().eq("id", weekID);
   } catch (error) {
     console.error("Error loading data:", error);
     return [];
   }
 }
 
-export async function updateWeekName(
-  db: SQLite.SQLiteDatabase,
-  weekID: string,
-  newWeekName: string,
-) {
+export async function updateWeekName(weekID: string, newWeekName: string) {
   try {
-    await db.runAsync(
-      `UPDATE timetable_week SET week_title = ? WHERE id = ?;`,
-      [newWeekName, weekID],
-    );
+    await supabase
+      .from("timetable_week")
+      .update({ week_title: newWeekName })
+      .eq("id", weekID);
   } catch (error) {
     console.error("Error updating week name:", error);
     return [];
   }
 }
 
-export async function getNotes(db: SQLite.SQLiteDatabase, lessonID: string) {
+export async function getNotes(lessonID: string) {
   try {
-    const result: { notes: string | null } | null = await db.getFirstAsync(
-      `SELECT notes from timetable WHERE id = ?;`,
-      [lessonID],
-    );
+    const result = await await supabase
+      .from("timetable")
+      .select("notes")
+      .eq("id", lessonID)
+      .single();
 
     if (!result) {
       return null;
     } else {
-      return result.notes || null;
+      return result.data?.notes || null;
     }
   } catch (error) {
     console.error("Error selecting notes:", error);
@@ -262,19 +210,15 @@ export async function getNotes(db: SQLite.SQLiteDatabase, lessonID: string) {
   }
 }
 
-export async function updateNotes(
-  db: SQLite.SQLiteDatabase,
-  lessonID: string,
-  notes: string | null,
-) {
+export async function updateNotes(lessonID: string, notes: string | null) {
   try {
     console.log(lessonID);
     const trimmedNotes = notes?.trim() ?? null;
     const changedNotes = trimmedNotes === "" ? null : trimmedNotes;
-    await db.runAsync(`UPDATE timetable SET notes = ? WHERE id = ?;`, [
-      changedNotes,
-      lessonID,
-    ]);
+    await supabase
+      .from("timetable")
+      .update({ notes: changedNotes })
+      .eq("id", lessonID);
   } catch (error) {
     console.error("Error updating notes:", error);
     return [];
@@ -282,7 +226,6 @@ export async function updateNotes(
 }
 
 export async function getWeekNotes(
-  db: SQLite.SQLiteDatabase,
   week_id: string,
   specialization: Specialization,
 ) {
@@ -299,15 +242,41 @@ export async function getWeekNotes(
       specializationIds = [specialization];
     }
 
-    const placeholders = specializationIds.map(() => "?").join(",");
+    // const placeholders = specializationIds.map(() => "?").join(",");
 
-    const result = await db.getAllAsync(
-      `SELECT timetable.day, timetable.hour, timetable.subject, timetable.teacher, timetable.notes, timetable_specialization.specialization
-       FROM timetable 
-       JOIN timetable_specialization ON timetable.id = timetable_specialization.timetable_id 
-       WHERE timetable.week_id = ? AND timetable_specialization.specialization IN (${placeholders}) AND timetable.notes IS NOT NULL AND TRIM(timetable.notes) != '';`,
-      [week_id, ...specializationIds],
-    );
+    const { data, error } = await supabase
+      .from("timetable")
+      .select(
+        `
+        day,
+        hour,
+        subject,
+        teacher,
+        notes,
+        timetable_specialization:specialization (
+        specialization
+        )
+      `,
+      )
+      .eq("week_id", week_id)
+      .in("timetable_specialization.specialization", specializationIds)
+      .not("notes", "is", null)
+      .not("notes", "eq", "");
+
+    if (error) {
+      throw error;
+    }
+    const result =
+      data?.map((row) => ({
+        day: row.day,
+        hour: row.hour,
+        subject: row.subject,
+        teacher: row.teacher,
+        notes: row.notes,
+        specialization: Array.isArray(row.timetable_specialization)
+          ? row.timetable_specialization[0]?.specialization
+          : row.timetable_specialization?.specialization,
+      })) ?? [];
     return result;
   } catch (error) {
     console.error("Error loading week notes:", error);
@@ -316,7 +285,6 @@ export async function getWeekNotes(
 }
 
 export async function getAllRelevantWeeksForNotesImport(
-  db: SQLite.SQLiteDatabase,
   excludeWeekId: string,
   specialization: Specialization,
 ) {
@@ -372,14 +340,33 @@ export async function getAllRelevantWeeksForNotesImport(
 }
 
 export async function copyNotesToCurrentWeek(
-  db: SQLite.SQLiteDatabase,
   currentWeekId: string,
   specialization: Specialization,
   selectedWeekID: string,
 ): Promise<number> {
   try {
     // 1. Einträge mit Notes aus der ausgewählten Woche + Spezialisierung laden
-    const sourceNotes = await db.getAllAsync<
+
+    const sourceNotes = await supabase
+      .from("timetable")
+      .select(
+        `
+        *,
+        timetable_specialization:specialization (
+          specialization
+        ),
+        timetable_week (
+          class
+        )
+      `,
+      )
+      .eq("week_id", selectedWeekID)
+      .eq("timetable_specialization.specialization", specialization)
+      .not("notes", "is", null)
+      .not("notes", "eq", "")
+      .order("day, hour");
+
+    /* const sourceNotes = await db.getAllAsync<
       TimetableDatabase & { class: string }
     >(
       `
@@ -393,7 +380,7 @@ export async function copyNotesToCurrentWeek(
         NULLIF(TRIM(t.notes), '') IS NOT NULL
       `,
       [selectedWeekID, specialization],
-    );
+    ); */
 
     let updatedCount = 0;
 
@@ -401,7 +388,31 @@ export async function copyNotesToCurrentWeek(
 
     for (const entry of sourceNotes) {
       // 2. Entsprechenden Eintrag in der aktuellen Woche suchen
-      const matchingEntry = await db.getFirstAsync<
+
+      const { data: matchingEntry, error } = await supabase
+        .from("timetable")
+        .select(
+          `
+    id,
+    timetable_specialization!inner(specialization),
+    timetable_week!inner(class)
+  `,
+        )
+        .eq("week_id", currentWeekId)
+        .eq("day", entry.day)
+        .eq("hour", entry.hour)
+        .eq("subject", entry.subject)
+        .eq("teacher", entry.teacher)
+        .eq("timetable_specialization.specialization", specialization)
+        .eq("timetable_week.class", entry.class)
+        .or("notes.is.null,notes.eq.''") // NULL oder leer
+        .maybeSingle(); // gibt `null` zurück statt Fehler, wenn kein Eintrag gefunden
+
+      if (error) {
+        console.error("Fehler bei der Abfrage:", error);
+      }
+
+      /* const matchingEntry = await db.getFirstAsync<
         TimetableDatabase & { id: string }
       >(
         `
@@ -428,18 +439,14 @@ export async function copyNotesToCurrentWeek(
           entry.subject,
           entry.teacher,
         ],
-      );
+      ); */
 
       // 3. Wenn Eintrag vorhanden, Notes übernehmen
       if (matchingEntry) {
-        await db.runAsync(
-          `
-          UPDATE timetable
-          SET notes = ?
-          WHERE id = ?
-          `,
-          [entry.notes, matchingEntry.id],
-        );
+        await supabase
+          .from("timetable")
+          .update({ notes: entry.notes })
+          .eq("id", matchingEntry.id);
         updatedCount++;
       }
     }

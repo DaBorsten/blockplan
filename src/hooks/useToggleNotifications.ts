@@ -1,7 +1,6 @@
 // useToggleNotifications.ts
 import { useNotificationStore } from "@/store/useNotificationStore";
 import { requestPermissionsAndSetupChannel } from "@/utils/notifications";
-import { Linking } from "react-native";
 
 export function useToggleNotifications() {
   const { notificationConfig, setNotificationConfig } = useNotificationStore();
@@ -11,7 +10,6 @@ export function useToggleNotifications() {
       const hasPermission = await requestPermissionsAndSetupChannel();
 
       if (!hasPermission) {
-        await Linking.openSettings();
         return;
       } else {
         setNotificationConfig({
