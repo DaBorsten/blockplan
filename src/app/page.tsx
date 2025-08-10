@@ -3,7 +3,7 @@
 import { SpecializationSelect } from "@/components/specializationSelection";
 import { WeekSelectionCombobox } from "@/components/weekSelection";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Timetable from "@/components/timetable";
 import {
   Dialog,
@@ -15,39 +15,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Lesson } from "@/types/timetableData";
+import { useWeeksStore } from "@/store/useWeeksStore";
+import { useWeekIDStore } from "@/store/useWeekIDStore";
+import {
+  Specialization,
+  useSpecializationStore,
+} from "@/store/useSpecializationStore";
 
 export default function TimetablePage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
   const [selectedSpec, setSelectedSpec] = useState<number>(1);
   const [relevantWeeks, setRelevantWeeks] = useState<any[]>([]);
 
+  const { weekID, setWeekID } = useWeekIDStore();
+  const { specialization, setSpecialization } = useSpecializationStore();
+
   // Initial aus URL lesen
   useEffect(() => {
     const week = searchParams.get("week") || null;
     const spec = searchParams.get("spec");
-    setSelectedWeek(week);
-    setSelectedSpec(spec ? Number(spec) : 1);
-  }, [searchParams]);
 
-  // Bei Änderung Auswahl → URL aktualisieren
-  const updateUrl = (week: string | null, spec: number) => {
-    const params = new URLSearchParams();
-    if (week) params.set("week", week);
-    if (spec && spec !== 1) params.set("spec", String(spec));
-    router.replace("?" + params.toString(), { scroll: false });
-  };
-
-  const handleWeekChange = (weekId: string | null) => {
-    setSelectedWeek(weekId);
-    updateUrl(weekId, selectedSpec);
-  };
-
-  const handleSpecChange = (spec: number) => {
-    setSelectedSpec(spec);
-    updateUrl(selectedWeek, spec);
-  };
+    setWeekID(week);
+    setSpecialization(spec ? (Number(spec) as Specialization) : 1);
+  }, [searchParams, weekID, specialization]);
 
   // Trigger fetch wenn beide ausgewählt
   useEffect(() => {
@@ -115,8 +106,8 @@ export default function TimetablePage() {
 
   return (
     <div className="flex flex-col">
-      <WeekSelectionCombobox onChange={handleWeekChange} value={selectedWeek} />
-      <SpecializationSelect onChange={handleSpecChange} value={selectedSpec} />
+      <WeekSelectionCombobox />
+      <SpecializationSelect />
       <Timetable
         setActiveClickedLesson={setActiveClickedLesson}
         setActiveNotes={setActiveNotes}

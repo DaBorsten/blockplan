@@ -11,6 +11,9 @@ import {
   Specialization,
   useSpecializationStore,
 } from "@/store/useSpecializationStore";
+import { updateUrl } from "@/utils/updateTimetableURL";
+import { useWeekIDStore } from "@/store/useWeekIDStore";
+import { useRouter } from "next/navigation";
 
 type Props = {
   onChange?: (spec: Specialization) => void;
@@ -24,17 +27,23 @@ const options = [
 ];
 
 export function SpecializationSelect({ onChange, value }: Props) {
+  const { weekID } = useWeekIDStore();
   const { specialization, setSpecialization } = useSpecializationStore();
+  const router = useRouter();
 
-  const [internalValue, setInternalValue] = React.useState<number | null>(null);
+  const handleSpecChange = (spec: Specialization) => {
+    setSpecialization(spec);
+    updateUrl(router, weekID, spec);
+  };
 
   return (
     <Select
-      value={typeof value === "number" ? String(value) : undefined}
+      value={
+        typeof specialization === "number" ? String(specialization) : undefined
+      }
       onValueChange={(val) => {
         const num = val ? Number(val) : null;
-        if (onChange && num !== null) onChange(num);
-        setSpecialization(num as Specialization);
+        handleSpecChange(num as Specialization);
       }}
     >
       <SelectTrigger className="w-[180px]">

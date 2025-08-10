@@ -20,14 +20,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useWeekIDStore } from "@/store/useWeekIDStore";
+import { useSpecializationStore } from "@/store/useSpecializationStore";
+import { updateUrl } from "@/utils/updateTimetableURL";
+import { useRouter } from "next/navigation";
 
-type Props = {
-  onChange?: (weekId: string | null) => void;
-  value?: string | null;
-};
-
-export function WeekSelectionCombobox({ onChange, value }: Props) {
+export function WeekSelectionCombobox() {
   const { weekID, setWeekID } = useWeekIDStore();
+  const { specialization } = useSpecializationStore();
   const [open, setOpen] = React.useState(false);
   const [weeks, setWeeks] = React.useState<
     { label: string; value: string | null }[]
@@ -44,6 +43,13 @@ export function WeekSelectionCombobox({ onChange, value }: Props) {
     fetchWeeks();
   }, []);
 
+  const router = useRouter();
+
+  const handleWeekChange = (weekId: string | null) => {
+    setWeekID(weekId);
+    updateUrl(router, weekId, specialization);
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -53,8 +59,8 @@ export function WeekSelectionCombobox({ onChange, value }: Props) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {value
-            ? weeks.find((w) => w.value === value)?.label
+          {weekID
+            ? weeks.find((w) => w.value === weekID)?.label
             : loading
             ? "Lade Wochen..."
             : "Woche wählen"}
@@ -73,17 +79,16 @@ export function WeekSelectionCombobox({ onChange, value }: Props) {
                   value={week.value ?? ""}
                   onSelect={(currentValue) => {
                     const newValue =
-                      currentValue === value ? null : currentValue;
+                      currentValue === weekID ? null : currentValue;
                     setOpen(false);
-                    if (onChange) onChange(newValue);
-                    setWeekID(newValue);
+                    handleWeekChange(newValue);
                   }}
                 >
                   {week.label}
                   <Check
                     className={cn(
                       "ml-auto",
-                      value === week.value ? "opacity-100" : "opacity-0",
+                      weekID === week.value ? "opacity-100" : "opacity-0",
                     )}
                   />
                 </CommandItem>
