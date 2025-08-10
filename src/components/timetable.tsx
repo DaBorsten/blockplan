@@ -123,15 +123,22 @@ export default function Timetable({
         {/* Stunden Spalte */}
         <div
           className="border-r border-solid rounded-tl-xl bg-[var(--sidebar-bg)]"
-          style={{
-            width: 80,
-            // Dynamische Farbe als CSS-Variable setzen
-            '--sidebar-bg': Colors[colorScheme].secondary,
-            '--sidebar-border': Colors[colorScheme].textInputDisabled,
-          } as React.CSSProperties}
+          style={
+            {
+              width: 80,
+              // Dynamische Farbe als CSS-Variable setzen
+              "--sidebar-bg": Colors[colorScheme].secondary,
+              "--sidebar-border": Colors[colorScheme].textInputDisabled,
+            } as React.CSSProperties
+          }
         >
-          <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--sidebar-text)]"
-            style={{ '--sidebar-text': Colors[colorScheme].text } as React.CSSProperties }
+          <div
+            className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--sidebar-text)]"
+            style={
+              {
+                "--sidebar-text": Colors[colorScheme].text,
+              } as React.CSSProperties
+            }
           >
             Stunde
           </div>
@@ -142,21 +149,27 @@ export default function Timetable({
               currentDayIndex,
               hour,
             );
-            const rowHeight = 64;
             return (
               <div
                 key={hour}
-                className={`flex flex-col justify-center text-center box-border p-1 ${isLast ? '' : 'border-b'} h-16 min-h-16 text-[var(--hour-text)] border-b-[var(--hour-border)]`}
-                style={{
-                  '--hour-border': Colors[colorScheme].textInputPlaceholder,
-                  '--hour-text': Colors[colorScheme].text,
-                } as React.CSSProperties}
+                className={`flex flex-col justify-center text-center box-border p-1 ${
+                  isLast ? "" : "border-b"
+                } h-16 min-h-16 text-[var(--hour-text)] border-b-[var(--hour-border)]`}
+                style={
+                  {
+                    "--hour-border": Colors[colorScheme].textInputPlaceholder,
+                    "--hour-text": Colors[colorScheme].text,
+                  } as React.CSSProperties
+                }
               >
                 <div className="text-xs text-gray-500">
                   {startTime ||
                     hourToTimeMap[hour as keyof typeof hourToTimeMap]?.start}
                 </div>
-                <div className="font-bold text-base" style={{ color: Colors[colorScheme].text }}>
+                <div
+                  className="font-bold text-base"
+                  style={{ color: Colors[colorScheme].text }}
+                >
                   {hour}
                 </div>
                 <div className="text-xs text-gray-500">
@@ -173,25 +186,33 @@ export default function Timetable({
           ref={scrollRef}
           onScroll={handleScroll}
           className="flex overflow-x-auto h-full w-full flex-1 min-h-0 min-w-0 rounded-tr-xl bg-[var(--tt-bg)]"
-          style={{
-            scrollSnapType: "x mandatory",
-            '--tt-bg': Colors[colorScheme].timetableBackground,
-          } as React.CSSProperties}
+          style={
+            {
+              scrollSnapType: "x mandatory",
+              "--tt-bg": Colors[colorScheme].timetableBackground,
+            } as React.CSSProperties
+          }
         >
           {allDays.map((day, index) => (
             <section
               key={day}
               className="min-w-0 min-h-0 h-full border-l border-solid border-l-[var(--day-border)]"
-              style={{
-                scrollSnapAlign: "start",
-                flex: `0 0 ${cellWidth}px`,
-                width: cellWidth,
-                '--day-border': Colors[colorScheme].textInputDisabled,
-              } as React.CSSProperties}
+              style={
+                {
+                  scrollSnapAlign: "start",
+                  flex: `0 0 ${cellWidth}px`,
+                  width: cellWidth,
+                  "--day-border": Colors[colorScheme].textInputDisabled,
+                } as React.CSSProperties
+              }
             >
               <div
                 className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--day-text)]"
-                style={{ '--day-text': Colors[colorScheme].text } as React.CSSProperties }
+                style={
+                  {
+                    "--day-text": Colors[colorScheme].text,
+                  } as React.CSSProperties
+                }
               >
                 {day}
               </div>
@@ -199,16 +220,21 @@ export default function Timetable({
               {groupedByDay[index].hours.map((hourData, hourIndex) => {
                 const isLast =
                   hourIndex === groupedByDay[index].hours.length - 1;
-                const rowHeight = 64;
                 if (hourData.lessons.length === 0) {
                   return (
                     <div
                       key={`${day}-${hourIndex}`}
-                      className={`flex gap-1 justify-center items-center box-border p-1 ${isLast ? '' : 'border-b'} h-16 min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
-                      style={{
-                        '--empty-border': Colors[colorScheme].textInputDisabled,
-                        '--empty-text': Colors[colorScheme].textInputPlaceholder,
-                      } as React.CSSProperties}
+                      className={`flex gap-1 justify-center items-center box-border p-1 ${
+                        isLast ? "" : "border-b"
+                      } h-16 min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
+                      style={
+                        {
+                          "--empty-border":
+                            Colors[colorScheme].textInputDisabled,
+                          "--empty-text":
+                            Colors[colorScheme].textInputPlaceholder,
+                        } as React.CSSProperties
+                      }
                     >
                       -
                     </div>
@@ -218,17 +244,26 @@ export default function Timetable({
                 return (
                   <div
                     key={`${day}-${hourIndex}`}
-                    className={`flex gap-1 flex-nowrap box-border p-1 items-stretch ${isLast ? '' : 'border-b'} h-16 min-h-16 border-b-[var(--cell-border)]`}
-                    style={{
-                      '--cell-border': Colors[colorScheme].textInputDisabled,
-                    } as React.CSSProperties}
+                    className={`flex gap-1 flex-nowrap box-border p-1 items-stretch ${
+                      isLast ? "" : "border-b"
+                    } h-16 min-h-16 border-b-[var(--cell-border)]`}
+                    style={
+                      {
+                        "--cell-border": Colors[colorScheme].textInputDisabled,
+                      } as React.CSSProperties
+                    }
                   >
                     {specialization === 1 &&
                       hourData.lessons.length === 1 &&
                       hourData.lessons[0].specialization === 3 && (
                         <div
                           className="flex-1 flex items-center justify-center m-1 p-1 text-[var(--spec3-text)]"
-                          style={{ '--spec3-text': Colors[colorScheme].textInputPlaceholder } as React.CSSProperties }
+                          style={
+                            {
+                              "--spec3-text":
+                                Colors[colorScheme].textInputPlaceholder,
+                            } as React.CSSProperties
+                          }
                         >
                           -
                         </div>
@@ -256,10 +291,12 @@ export default function Timetable({
                             setIsEditNotesModalOpen(true);
                           }}
                           className="flex flex-1 rounded px-2 py-1 items-center justify-between cursor-pointer border-0"
-                          style={{
-                            background: bgColor,
-                            color: textColor,
-                          } as React.CSSProperties}
+                          style={
+                            {
+                              background: bgColor,
+                              color: textColor,
+                            } as React.CSSProperties
+                          }
                         >
                           <div className="flex flex-col justify-between">
                             <span className="font-bold text-sm">
@@ -273,7 +310,10 @@ export default function Timetable({
                             )}
                           </div>
                           {lesson.notes && lesson.notes?.length > 0 && (
-                            <LucideNotebookText color={textColor} className="self-center" />
+                            <LucideNotebookText
+                              color={textColor}
+                              className="self-center"
+                            />
                           )}
                         </button>
                       );
@@ -284,7 +324,12 @@ export default function Timetable({
                       hourData.lessons[0].specialization === 2 && (
                         <div
                           className="flex-1 flex items-center justify-center p-1 text-[var(--spec2-text)]"
-                          style={{ '--spec2-text': Colors[colorScheme].textInputPlaceholder } as React.CSSProperties }
+                          style={
+                            {
+                              "--spec2-text":
+                                Colors[colorScheme].textInputPlaceholder,
+                            } as React.CSSProperties
+                          }
                         >
                           -
                         </div>
