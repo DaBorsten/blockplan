@@ -91,20 +91,17 @@ export default function Import() {
   async function uploadFile(selectedFile: File) {
     if (selectedFile) {
       const formData = new FormData();
-
       formData.append("file", selectedFile);
-
-      // const PYTHON_API_URL = process.env.PYTHON_API_URL;
-      const PYTHON_API_URL = "http://192.168.178.73:8000";
-
       try {
-        const response = await fetch(PYTHON_API_URL + "/upload", {
+        const response = await fetch("/api/import/upload", {
           method: "POST",
           body: formData,
         });
-
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Fehler beim Upload");
+        }
         const responseData = await response.json();
-
         return responseData;
       } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));

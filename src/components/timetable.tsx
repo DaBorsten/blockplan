@@ -118,47 +118,20 @@ export default function Timetable({
   };
 
   return (
-    <div
-      style={{
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flex: 1,
-        minHeight: 0,
-        minWidth: 0,
-        overflow: "auto",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          overflow: "hidden",
-          height: "100%",
-          width: "100%",
-          flex: 1,
-          minHeight: 0,
-          minWidth: 0,
-        }}
-      >
+    <div className="h-full w-full flex flex-1 min-h-0 min-w-0 overflow-auto">
+      <div className="flex flex-row overflow-hidden h-full w-full flex-1 min-h-0 min-w-0">
         {/* Stunden Spalte */}
         <div
+          className="border-r border-solid rounded-tl-xl bg-[var(--sidebar-bg)]"
           style={{
             width: 80,
-            backgroundColor: Colors[colorScheme].secondary,
-            borderRight: `1px solid ${Colors[colorScheme].textInputDisabled}`,
-            borderTopLeftRadius: 12,
-          }}
+            // Dynamische Farbe als CSS-Variable setzen
+            '--sidebar-bg': Colors[colorScheme].secondary,
+            '--sidebar-border': Colors[colorScheme].textInputDisabled,
+          } as React.CSSProperties}
         >
-          <div
-            style={{
-              padding: 10,
-              textAlign: "center",
-              fontWeight: "bold",
-              fontSize: 16,
-              borderBottom: "1px solid #ddd",
-              color: Colors[colorScheme].text,
-            }}
+          <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--sidebar-text)]"
+            style={{ '--sidebar-text': Colors[colorScheme].text } as React.CSSProperties }
           >
             Stunde
           </div>
@@ -169,39 +142,24 @@ export default function Timetable({
               currentDayIndex,
               hour,
             );
-            // Einheitliche Zeilenhöhe für Stunden und Tageszellen
             const rowHeight = 64;
             return (
               <div
                 key={hour}
+                className={`flex flex-col justify-center text-center box-border p-1 ${isLast ? '' : 'border-b'} h-16 min-h-16 text-[var(--hour-text)] border-b-[var(--hour-border)]`}
                 style={{
-                  minHeight: rowHeight,
-                  height: rowHeight,
-                  padding: 4,
-                  textAlign: "center",
-                  borderBottom: isLast
-                    ? "none"
-                    : `1px solid ${Colors[colorScheme].textInputPlaceholder}`,
-                  boxSizing: "border-box",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                }}
+                  '--hour-border': Colors[colorScheme].textInputPlaceholder,
+                  '--hour-text': Colors[colorScheme].text,
+                } as React.CSSProperties}
               >
-                <div style={{ fontSize: 12, color: "#7f8c8d" }}>
+                <div className="text-xs text-gray-500">
                   {startTime ||
                     hourToTimeMap[hour as keyof typeof hourToTimeMap]?.start}
                 </div>
-                <div
-                  style={{
-                    fontWeight: "bold",
-                    fontSize: 16,
-                    color: Colors[colorScheme].text,
-                  }}
-                >
+                <div className="font-bold text-base" style={{ color: Colors[colorScheme].text }}>
                   {hour}
                 </div>
-                <div style={{ fontSize: 12, color: "#7f8c8d" }}>
+                <div className="text-xs text-gray-500">
                   {endTime ||
                     hourToTimeMap[hour as keyof typeof hourToTimeMap]?.end}
                 </div>
@@ -214,41 +172,26 @@ export default function Timetable({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
+          className="flex overflow-x-auto h-full w-full flex-1 min-h-0 min-w-0 rounded-tr-xl bg-[var(--tt-bg)]"
           style={{
-            overflowX: "auto",
-            display: "flex",
             scrollSnapType: "x mandatory",
-            width: "100%",
-            height: "100%",
-            backgroundColor: Colors[colorScheme].timetableBackground,
-            borderTopRightRadius: 12,
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-          }}
+            '--tt-bg': Colors[colorScheme].timetableBackground,
+          } as React.CSSProperties}
         >
           {allDays.map((day, index) => (
             <section
               key={day}
+              className="min-w-0 min-h-0 h-full border-l border-solid border-l-[var(--day-border)]"
               style={{
                 scrollSnapAlign: "start",
                 flex: `0 0 ${cellWidth}px`,
                 width: cellWidth,
-                borderLeft: `1px solid ${Colors[colorScheme].textInputDisabled}`,
-                minWidth: 0,
-                minHeight: 0,
-                height: "100%",
-              }}
+                '--day-border': Colors[colorScheme].textInputDisabled,
+              } as React.CSSProperties}
             >
               <div
-                style={{
-                  padding: 10,
-                  textAlign: "center",
-                  fontWeight: "bold",
-                  fontSize: 16,
-                  borderBottom: "1px solid #ddd",
-                  color: Colors[colorScheme].text,
-                }}
+                className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--day-text)]"
+                style={{ '--day-text': Colors[colorScheme].text } as React.CSSProperties }
               >
                 {day}
               </div>
@@ -261,20 +204,11 @@ export default function Timetable({
                   return (
                     <div
                       key={`${day}-${hourIndex}`}
+                      className={`flex gap-1 justify-center items-center box-border p-1 ${isLast ? '' : 'border-b'} h-16 min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
                       style={{
-                        minHeight: rowHeight,
-                        height: rowHeight,
-                        borderBottom: isLast
-                          ? "none"
-                          : `1px solid ${Colors[colorScheme].textInputDisabled}`,
-                        padding: 4,
-                        display: "flex",
-                        gap: 4,
-                        justifyContent: "center",
-                        alignItems: "center",
-                        color: Colors[colorScheme].textInputPlaceholder,
-                        boxSizing: "border-box",
-                      }}
+                        '--empty-border': Colors[colorScheme].textInputDisabled,
+                        '--empty-text': Colors[colorScheme].textInputPlaceholder,
+                      } as React.CSSProperties}
                     >
                       -
                     </div>
@@ -284,33 +218,17 @@ export default function Timetable({
                 return (
                   <div
                     key={`${day}-${hourIndex}`}
+                    className={`flex gap-1 flex-nowrap box-border p-1 items-stretch ${isLast ? '' : 'border-b'} h-16 min-h-16 border-b-[var(--cell-border)]`}
                     style={{
-                      minHeight: rowHeight,
-                      height: rowHeight,
-                      borderBottom: isLast
-                        ? "none"
-                        : `1px solid ${Colors[colorScheme].textInputDisabled}`,
-                      padding: 4,
-                      display: "flex",
-                      gap: 4,
-                      flexWrap: "nowrap",
-                      boxSizing: "border-box",
-                      alignItems: "stretch",
-                    }}
+                      '--cell-border': Colors[colorScheme].textInputDisabled,
+                    } as React.CSSProperties}
                   >
                     {specialization === 1 &&
                       hourData.lessons.length === 1 &&
                       hourData.lessons[0].specialization === 3 && (
                         <div
-                          style={{
-                            margin: 4,
-                            padding: 4,
-                            flex: 1,
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            color: Colors[colorScheme].textInputPlaceholder,
-                          }}
+                          className="flex-1 flex items-center justify-center m-1 p-1 text-[var(--spec3-text)]"
+                          style={{ '--spec3-text': Colors[colorScheme].textInputPlaceholder } as React.CSSProperties }
                         >
                           -
                         </div>
@@ -337,48 +255,25 @@ export default function Timetable({
                             setActiveClickedLesson(lesson);
                             setIsEditNotesModalOpen(true);
                           }}
+                          className="flex flex-1 rounded px-2 py-1 items-center justify-between cursor-pointer border-0"
                           style={{
-                            backgroundColor: bgColor,
+                            background: bgColor,
                             color: textColor,
-                            flex: 1,
-                            borderRadius: 4,
-                            padding: "4px 8px",
-                            display: "flex",
-                            flexDirection: "row",
-                            justifyContent: "space-between",
-                            cursor: "pointer",
-                            border: "none",
-                          }}
+                          } as React.CSSProperties}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <span style={{ fontWeight: "bold", fontSize: 14 }}>
+                          <div className="flex flex-col justify-between">
+                            <span className="font-bold text-sm">
                               {lesson.subject} / {lesson.teacher}
                             </span>
                             {lesson.room && (
-                              <span
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                  fontSize: 12,
-                                }}
-                              >
+                              <span className="flex items-center gap-1 text-xs">
                                 <MapPin size={12} color={textColor} />
                                 {lesson.room}
                               </span>
                             )}
                           </div>
                           {lesson.notes && lesson.notes?.length > 0 && (
-                            <LucideNotebookText
-                              color={textColor}
-                              style={{ alignSelf: "center" }}
-                            />
+                            <LucideNotebookText color={textColor} className="self-center" />
                           )}
                         </button>
                       );
@@ -388,14 +283,8 @@ export default function Timetable({
                       hourData.lessons.length === 1 &&
                       hourData.lessons[0].specialization === 2 && (
                         <div
-                          style={{
-                            padding: 4,
-                            flex: 1,
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            color: Colors[colorScheme].textInputPlaceholder,
-                          }}
+                          className="flex-1 flex items-center justify-center p-1 text-[var(--spec2-text)]"
+                          style={{ '--spec2-text': Colors[colorScheme].textInputPlaceholder } as React.CSSProperties }
                         >
                           -
                         </div>

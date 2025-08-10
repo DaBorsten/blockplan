@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { InitializeDatabase } from "@/utils/db";
 
 export default function Dev() {
   return (
@@ -16,7 +15,11 @@ export default function Dev() {
         </p>
       </div>
 
-      <Button onClick={async () => await InitializeDatabase()}>
+      <Button
+        onClick={async () => {
+          await fetch("/api/initialize", { method: "POST" });
+        }}
+      >
         Datenbank initialisieren
       </Button>
     </div>
