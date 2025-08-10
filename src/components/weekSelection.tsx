@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useWeekIDStore } from "@/store/useWeekIDStore";
 
 type Props = {
   onChange?: (weekId: string | null) => void;
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export function WeekSelectionCombobox({ onChange, value }: Props) {
+  const { weekID, setWeekID } = useWeekIDStore();
   const [open, setOpen] = React.useState(false);
   const [weeks, setWeeks] = React.useState<
     { label: string; value: string | null }[]
@@ -70,9 +72,11 @@ export function WeekSelectionCombobox({ onChange, value }: Props) {
                   key={week.value ?? "none"}
                   value={week.value ?? ""}
                   onSelect={(currentValue) => {
-                    const newValue = currentValue === value ? null : currentValue;
+                    const newValue =
+                      currentValue === value ? null : currentValue;
                     setOpen(false);
                     if (onChange) onChange(newValue);
+                    setWeekID(newValue);
                   }}
                 >
                   {week.label}

@@ -12,7 +12,7 @@ const extractFileName = (fullName: string): string => {
 };
 
 import React, { useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import Dropzone from "@/components/Dropzone";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -126,10 +126,16 @@ export default function Import() {
   }
 
   return (
-    <div
-      className="grid min-h-svh w-full px-2"
-      style={{ gridTemplateRows: "1fr auto" }}
-    >
+    <div className="w-full mx-auto p-4">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+          Importieren
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400">
+          Laden Sie Ihre Stundenplan-Dateien hoch
+        </p>
+      </div>
+
       <div className="flex flex-col items-center justify-center w-full">
         {/* Dropzone oder Dateiliste */}
         <div className="relative w-full flex-1 flex flex-col items-center justify-center">
@@ -139,7 +145,8 @@ export default function Import() {
               onClick={loading ? () => {} : openFileDialog}
               onDrop={loading ? () => {} : handleDrop}
               fileInputRef={fileInputRef}
-              text="PDF Dateien hierher ziehen oder klicken, um auszuwählen"
+              text="Dateien hierher ziehen zum Hochladen"
+              supportedFiles="PDF"
               accept="application/pdf"
             />
           ) : (
@@ -236,12 +243,9 @@ export default function Import() {
           <Button onClick={async () => await InitializeDatabase()}>
             Datenbank initialisieren
           </Button>
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={openFileDialog}
-          >
-            Weitere Dateien auswählen
+          <Button variant="default" className="flex-1" onClick={openFileDialog}>
+            <Upload className="w-4 h-4" />
+            <span>Dateien auswählen</span>
           </Button>
           <Button
             className="flex-1"

@@ -9,6 +9,7 @@ import { TimetableDatabase } from "@/types/timetableDatabase";
 import { turso } from "@/lib/tursoClient";
 import { getTimeForHour } from "./times";
 import { v4 } from "uuid";
+import { ResultSet } from "@libsql/client";
 
 export async function InitializeDatabase(): Promise<{
   dbInitialized: boolean;
@@ -143,94 +144,6 @@ export async function LoadDB() {
     return [result, result2, result3];
   } catch (error) {
     console.error("Error loading data:", error);
-    return [];
-  }
-}
-
-export async function LoadSpecificTimetables(
-  WeekID: string,
-  specialization: Specialization,
-) {
-  try {
-    // Bestimme welche Spezialisierungen geladen werden sollen
-    let specializationIds: number[];
-    if (specialization === 1) {
-      specializationIds = [1, 2, 3];
-    } else if (specialization === 2) {
-      specializationIds = [1, 2];
-    } else if (specialization === 3) {
-      specializationIds = [1, 3];
-    } else {
-      specializationIds = [specialization];
-    }
-
-    const placeholders = specializationIds.map(() => "?").join(",");
-
-    const result: TimetableDatabase[] = await turso.execute(
-      `SELECT timetable.*, timetable_specialization.specialization
-       FROM timetable 
-       JOIN timetable_specialization ON timetable.id = timetable_specialization.timetable_id 
-       WHERE timetable.week_id = ? AND timetable_specialization.specialization IN (${placeholders});`,
-      [WeekID, ...specializationIds],
-    );
-    return result;
-  } catch (error) {
-    console.error("Error loading data:", error);
-    return [];
-  }
-}
-
-export async function DeleteTimetablesInDB() {
-  try {
-    await turso.execute(`DELETE FROM timetable;`);
-    await turso.execute(`DELETE FROM timetable_specialization;`);
-    await turso.execute(`DELETE FROM timetable_week;`);
-    console.log("All timetables deleted successfully.");
-  } catch (error) {
-    console.error("Error deleting timetables:", error);
-  }
-}
-
-export async function DeleteTimetableDB() {
-  try {
-    await turso.execute(`DROP TABLE IF EXISTS timetable;`);
-    await turso.execute(`DROP TABLE IF EXISTS timetable_specialization;`);
-    await turso.execute(`DROP TABLE IF EXISTS timetable_week;`);
-    console.log("timetable table deleted successfully.");
-  } catch (error) {
-    console.error("Error deleting timetable table:", error);
-  }
-}
-
-export async function getAllWeekIdsWithNames() {
-  try {
-    const result = await turso.execute(
-      `SELECT id as week_id, MIN(week_title) as week_title FROM timetable_week GROUP BY id;`,
-    );
-    return result.rows;
-  } catch (error) {
-    console.error("Error loading data:", error);
-    return [];
-  }
-}
-
-export async function DeleteImportsFromDatabase(weekID: string) {
-  try {
-    await turso.execute(`DELETE from timetable_week where id = ?;`, [weekID]);
-  } catch (error) {
-    console.error("Error loading data:", error);
-    return [];
-  }
-}
-
-export async function updateWeekName(weekID: string, newWeekName: string) {
-  try {
-    await turso.execute(
-      `UPDATE timetable_week SET week_title = ? WHERE id = ?;`,
-      [newWeekName, weekID],
-    );
-  } catch (error) {
-    console.error("Error updating week name:", error);
     return [];
   }
 }
@@ -433,4 +346,10 @@ export async function copyNotesToCurrentWeek(
     console.error("Fehler beim Kopieren der Notizen:", error);
     return 0;
   }
+}
+
+export function mapRows(result: ResultSet) {
+  return result.rows.map((row) =>
+    Object.fromEntries(result.columns.map((col, i) => [col, row[i]])),
+  );
 }

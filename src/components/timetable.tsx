@@ -9,17 +9,12 @@ import {
 } from "@/store/useSpecializationStore";
 import { isColorDark } from "@/utils/colorDark";
 import { LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
-import { getNotes, LoadSpecificTimetables } from "@/utils/db"; // Du musst hier anpassen, falls du DB anders nutzt
 import { useWeekIDStore } from "@/store/useWeekIDStore";
 import { Lesson } from "@/types/timetableData";
-import { useNotificationStore } from "@/store/useNotificationStore";
 import { useTeacherColorStore } from "@/store/useTeacherColorStore";
 import { getTimesForTimetable } from "@/utils/times";
 
 type TimetableProps = {
-  dbInitialized: boolean;
-  timeTableData: any[];
-  setTimeTableData: (data: any[]) => void;
   setActiveClickedLesson: (lesson: Lesson | null) => void;
   setActiveNotes: (notes: string | null) => void;
   setIsEditNotesModalOpen: (open: boolean) => void;
@@ -27,9 +22,6 @@ type TimetableProps = {
 };
 
 export default function Timetable({
-  dbInitialized,
-  timeTableData,
-  setTimeTableData,
   setActiveClickedLesson,
   setActiveNotes,
   setIsEditNotesModalOpen,
@@ -42,13 +34,22 @@ export default function Timetable({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [cellWidth, setCellWidth] = useState(0);
+  const [timeTableData, setTimeTableData] = useState<any[]>([]);
 
   const colorScheme = "dark";
 
   // Für responsive cellWidth
   useEffect(() => {
     const updateWidth = () => {
-      setCellWidth(window.innerWidth - 80);
+      // Mache die Tage schmaler, z.B. max 320px oder 1/2 der Breite
+      const maxDayWidth = 320;
+      const minDayWidth = 180;
+      const available = window.innerWidth - 80;
+      const dayWidth = Math.max(
+        minDayWidth,
+        Math.min(maxDayWidth, Math.floor(available / allDays.length)),
+      );
+      setCellWidth(dayWidth);
     };
     updateWidth();
     window.addEventListener("resize", updateWidth);
@@ -68,24 +69,26 @@ export default function Timetable({
   }, [cellWidth]);
 
   // Lade Stundenplan-Daten (hier musst du DB-Logik anpassen!)
-  const setTimetableData = useCallback(
+  const setTimetableData2 = useCallback(
     async (specialization: Specialization) => {
       if (!weekID) return;
 
-      const response = await LoadSpecificTimetables(
-        /* db param fehlt hier ,*/ weekID,
-        specialization,
+      const res = await fetch(
+        `/api/timetable/week?weekId=${weekID}&specialization=${specialization}`,
       );
+      const data = await res.json();
+      const response = data.data;
+
       setTimeTableData(response);
     },
     [weekID, setTimeTableData],
   );
 
   useEffect(() => {
-    if (dbInitialized && weekID && specialization) {
-      setTimetableData(specialization);
+    if (weekID && specialization) {
+      setTimetableData2(specialization);
     }
-  }, [dbInitialized, specialization, weekID, notesUpdated, setTimetableData]);
+  }, [specialization, weekID, notesUpdated, setTimetableData2]);
 
   const groupedByDay = allDays.map((day) => {
     const dayData = timeTableData.filter(
@@ -114,24 +117,28 @@ export default function Timetable({
     }
   };
 
-  // Notification config update
-  const { notificationConfig, setNotificationConfig } = useNotificationStore();
-  useEffect(() => {
-    setNotificationConfig({
-      ...notificationConfig,
-      specialization,
-      weekId: weekID,
-    });
-  }, [specialization, weekID]);
-
   return (
-    <div style={{ paddingBottom: 84, flex: 1 }}>
+    <div
+      style={{
+        height: "100%",
+        width: "100%",
+        display: "flex",
+        flex: 1,
+        minHeight: 0,
+        minWidth: 0,
+        overflow: "auto",
+      }}
+    >
       <div
         style={{
           display: "flex",
           flexDirection: "row",
           overflow: "hidden",
           height: "100%",
+          width: "100%",
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
         }}
       >
         {/* Stunden Spalte */}
@@ -162,20 +169,28 @@ export default function Timetable({
               currentDayIndex,
               hour,
             );
+            // Einheitliche Zeilenhöhe für Stunden und Tageszellen
+            const rowHeight = 64;
             return (
               <div
                 key={hour}
                 style={{
-                  minHeight: 64,
+                  minHeight: rowHeight,
+                  height: rowHeight,
                   padding: 4,
                   textAlign: "center",
                   borderBottom: isLast
                     ? "none"
                     : `1px solid ${Colors[colorScheme].textInputPlaceholder}`,
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
                 }}
               >
                 <div style={{ fontSize: 12, color: "#7f8c8d" }}>
-                  {startTime || hourToTimeMap[hour]?.start}
+                  {startTime ||
+                    hourToTimeMap[hour as keyof typeof hourToTimeMap]?.start}
                 </div>
                 <div
                   style={{
@@ -187,7 +202,8 @@ export default function Timetable({
                   {hour}
                 </div>
                 <div style={{ fontSize: 12, color: "#7f8c8d" }}>
-                  {endTime || hourToTimeMap[hour]?.end}
+                  {endTime ||
+                    hourToTimeMap[hour as keyof typeof hourToTimeMap]?.end}
                 </div>
               </div>
             );
@@ -202,9 +218,13 @@ export default function Timetable({
             overflowX: "auto",
             display: "flex",
             scrollSnapType: "x mandatory",
-            width: cellWidth,
+            width: "100%",
+            height: "100%",
             backgroundColor: Colors[colorScheme].timetableBackground,
             borderTopRightRadius: 12,
+            flex: 1,
+            minHeight: 0,
+            minWidth: 0,
           }}
         >
           {allDays.map((day, index) => (
@@ -212,9 +232,12 @@ export default function Timetable({
               key={day}
               style={{
                 scrollSnapAlign: "start",
-                flex: "0 0 auto",
+                flex: `0 0 ${cellWidth}px`,
                 width: cellWidth,
                 borderLeft: `1px solid ${Colors[colorScheme].textInputDisabled}`,
+                minWidth: 0,
+                minHeight: 0,
+                height: "100%",
               }}
             >
               <div
@@ -233,19 +256,24 @@ export default function Timetable({
               {groupedByDay[index].hours.map((hourData, hourIndex) => {
                 const isLast =
                   hourIndex === groupedByDay[index].hours.length - 1;
+                const rowHeight = 64;
                 if (hourData.lessons.length === 0) {
                   return (
                     <div
                       key={`${day}-${hourIndex}`}
                       style={{
-                        minHeight: 64,
+                        minHeight: rowHeight,
+                        height: rowHeight,
                         borderBottom: isLast
                           ? "none"
                           : `1px solid ${Colors[colorScheme].textInputDisabled}`,
+                        padding: 4,
                         display: "flex",
+                        gap: 4,
                         justifyContent: "center",
                         alignItems: "center",
                         color: Colors[colorScheme].textInputPlaceholder,
+                        boxSizing: "border-box",
                       }}
                     >
                       -
@@ -257,7 +285,8 @@ export default function Timetable({
                   <div
                     key={`${day}-${hourIndex}`}
                     style={{
-                      minHeight: 64,
+                      minHeight: rowHeight,
+                      height: rowHeight,
                       borderBottom: isLast
                         ? "none"
                         : `1px solid ${Colors[colorScheme].textInputDisabled}`,
@@ -265,6 +294,8 @@ export default function Timetable({
                       display: "flex",
                       gap: 4,
                       flexWrap: "nowrap",
+                      boxSizing: "border-box",
+                      alignItems: "stretch",
                     }}
                   >
                     {specialization === 1 &&
@@ -297,9 +328,11 @@ export default function Timetable({
                         <button
                           key={idx}
                           onClick={async () => {
-                            const savedNotes = await getNotes(
-                              /* Hier musst du DB anpassen  ,*/ lesson.id,
+                            const res = await fetch(
+                              `/api/week/notes?lessonId=${lesson.id}`,
                             );
+                            const data = await res.json();
+                            const savedNotes = data.notes;
                             setActiveNotes(savedNotes);
                             setActiveClickedLesson(lesson);
                             setIsEditNotesModalOpen(true);
@@ -342,7 +375,10 @@ export default function Timetable({
                             )}
                           </div>
                           {lesson.notes && lesson.notes?.length > 0 && (
-                            <LucideNotebookText color={textColor} />
+                            <LucideNotebookText
+                              color={textColor}
+                              style={{ alignSelf: "center" }}
+                            />
                           )}
                         </button>
                       );

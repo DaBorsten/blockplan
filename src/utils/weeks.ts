@@ -1,4 +1,3 @@
-import { getAllWeekIdsWithNames } from "./db";
 
 export const sortWeeksByName = (weeks) => {
   return weeks
@@ -12,11 +11,12 @@ export const sortWeeksByName = (weeks) => {
 };
 
 export const fetchWeekIDsWithNames = async () => {
-  const res = await fetch("/api/weeks");
+  const res = await fetch("/api/week/weeks");
   if (!res.ok) return [];
   const data = await res.json();
-  if (data.weeks && data.weeks.length > 0) {
-    const sortedWeeks = sortWeeksByName(data.weeks);
+  const result = data.data || [];
+  if (result && result.length > 0) {
+    const sortedWeeks = sortWeeksByName(result);
     return [
       {
         label: "Keine Woche",

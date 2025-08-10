@@ -1,7 +1,6 @@
-"use client"
+"use client";
 
 import React, { useEffect, useState } from "react";
-import { getAllWeekIdsWithNames, updateWeekName, DeleteImportsFromDatabase } from "@/utils/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -18,7 +17,10 @@ export default function Manage() {
 
   const fetchWeeks = async () => {
     setLoading(true);
-    const result = await getAllWeekIdsWithNames();
+    const res = await fetch("/api/week/weeks");
+    const data = await res.json();
+    const result = data.data || [];
+
     setWeeks(result || []);
     setLoading(false);
   };
@@ -34,7 +36,11 @@ export default function Manage() {
 
   const handleEditSave = async () => {
     if (editId) {
-      await updateWeekName(editId, editName);
+      await fetch("/api/week/weekName", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weekID: editId, newWeekName: editName }),
+      });
       setEditId(null);
       setEditName("");
       fetchWeeks();
@@ -42,7 +48,7 @@ export default function Manage() {
   };
 
   const handleDelete = async (id: string) => {
-    await DeleteImportsFromDatabase(id);
+    await fetch(`/api/timetable/week?weekId=${id}`, { method: "DELETE" });
     fetchWeeks();
   };
 
@@ -56,7 +62,10 @@ export default function Manage() {
       ) : (
         <ul className="space-y-2">
           {weeks.map((week) => (
-            <li key={week.week_id} className="flex items-center gap-2 border rounded px-3 py-2 bg-background">
+            <li
+              key={week.week_id}
+              className="flex items-center gap-2 border rounded px-3 py-2 bg-background"
+            >
               {editId === week.week_id ? (
                 <>
                   <Input
@@ -64,14 +73,35 @@ export default function Manage() {
                     onChange={(e) => setEditName(e.target.value)}
                     className="flex-1"
                   />
-                  <Button onClick={handleEditSave} size="sm">Speichern</Button>
-                  <Button variant="outline" onClick={() => setEditId(null)} size="sm">Abbrechen</Button>
+                  <Button onClick={handleEditSave} size="sm">
+                    Speichern
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditId(null)}
+                    size="sm"
+                  >
+                    Abbrechen
+                  </Button>
                 </>
               ) : (
                 <>
-                  <span className="flex-1 truncate" title={week.week_title}>{week.week_title}</span>
-                  <Button onClick={() => handleEdit(week.week_id, week.week_title)} size="sm">Edit</Button>
-                  <Button variant="destructive" onClick={() => handleDelete(week.week_id)} size="sm">Löschen</Button>
+                  <span className="flex-1 truncate" title={week.week_title}>
+                    {week.week_title}
+                  </span>
+                  <Button
+                    onClick={() => handleEdit(week.week_id, week.week_title)}
+                    size="sm"
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleDelete(week.week_id)}
+                    size="sm"
+                  >
+                    Löschen
+                  </Button>
                 </>
               )}
             </li>
