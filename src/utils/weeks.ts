@@ -12,9 +12,11 @@ export const sortWeeksByName = (weeks) => {
 };
 
 export const fetchWeekIDsWithNames = async () => {
-  const result = await getAllWeekIdsWithNames();
-  if (result.length > 0) {
-    const sortedWeeks = sortWeeksByName(result);
+  const res = await fetch("/api/weeks");
+  if (!res.ok) return [];
+  const data = await res.json();
+  if (data.weeks && data.weeks.length > 0) {
+    const sortedWeeks = sortWeeksByName(data.weeks);
     return [
       {
         label: "Keine Woche",
@@ -23,4 +25,5 @@ export const fetchWeekIDsWithNames = async () => {
       ...sortedWeeks,
     ];
   }
+  return [];
 };

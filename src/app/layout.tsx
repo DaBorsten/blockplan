@@ -57,14 +57,12 @@ export default function RootLayout({
               <SidebarProvider>
                 <AppSidebar />
                 <main className="w-full min-h-svh">
-                  <header className="flex justify-end items-center p-4 gap-4 h-16">
-                    <UserButton />
-                  </header>
-                  <div className="flex items-center justify-between w-full p-2 sticky top-0 z-10 bg-background">
-                    <SidebarTrigger />
+                  <header className="flex items-center justify-between w-full p-2 sticky top-0 z-10 bg-background gap-4">
+                    <SidebarTrigger className="cursor-pointer" />
                     <div className="flex-1" />
                     <ModeToggle />
-                  </div>
+                    <UserButton />
+                  </header>
                   {children}
                   <ThemeToaster />
                 </main>
