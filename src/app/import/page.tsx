@@ -27,7 +27,6 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { InitializeDatabase } from "@/utils/db";
 
 type FileItem = {
   id: string;
@@ -115,7 +114,7 @@ export default function Import() {
   }
 
   return (
-    <div className="w-full mx-auto p-4">
+    <div className="px-6">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Importieren
@@ -226,59 +225,53 @@ export default function Import() {
           )}
         </div>
       </div>
-      {/* Footer mit Buttons, immer ganz unten im Grid */}
-      <footer className="sticky bottom-0 w-full bg-background border-t flex flex-col sm:flex-row gap-3 px-4 py-4 max-w-full justify-center z-10">
-        <div className="w-full flex flex-col sm:flex-row gap-3">
-          <Button onClick={async () => await InitializeDatabase()}>
-            Datenbank initialisieren
-          </Button>
-          <Button variant="default" className="flex-1" onClick={openFileDialog}>
-            <Upload className="w-4 h-4" />
-            <span>Dateien auswählen</span>
-          </Button>
-          <Button
-            className="flex-1"
-            disabled={files.length === 0 || loading}
-            onClick={async () => {
-              if (files.length === 0) {
-                toast.error("Keine Dateien zum Importieren ausgewählt.");
-                return;
-              }
-              setLoading(true);
-              try {
-                // Simuliere Import-Vorgang
-                await new Promise((resolve) => setTimeout(resolve, 2000));
+      <div className="w-full flex flex-col sm:flex-row gap-3 mt-4">
+        <Button variant="default" className="flex-1" onClick={openFileDialog}>
+          <Upload className="w-4 h-4" />
+          <span>Dateien auswählen</span>
+        </Button>
+        <Button
+          className="flex-1"
+          disabled={files.length === 0 || loading}
+          onClick={async () => {
+            if (files.length === 0) {
+              toast.error("Keine Dateien zum Importieren ausgewählt.");
+              return;
+            }
+            setLoading(true);
+            try {
+              // Simuliere Import-Vorgang
+              await new Promise((resolve) => setTimeout(resolve, 2000));
 
-                for (const { file, displayName } of files) {
-                  const response = await uploadFile(file);
+              for (const { file, displayName } of files) {
+                const response = await uploadFile(file);
 
-                  if (response) {
-                    await fetch("/api/week", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        timetable: response,
-                        week: displayName,
-                      }),
-                    });
-                  }
+                if (response) {
+                  await fetch("/api/week", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      timetable: response,
+                      week: displayName,
+                    }),
+                  });
                 }
-
-                toast.success("Import abgeschlossen!");
-                setFiles([]);
-              } catch (error: unknown) {
-                const err =
-                  error instanceof Error ? error : new Error(String(error));
-                toast.error(`Fehler beim Importieren. ${err.message}`);
-              } finally {
-                setLoading(false);
               }
-            }}
-          >
-            Importieren
-          </Button>
-        </div>
-      </footer>
+
+              toast.success("Import abgeschlossen!");
+              setFiles([]);
+            } catch (error: unknown) {
+              const err =
+                error instanceof Error ? error : new Error(String(error));
+              toast.error(`Fehler beim Importieren. ${err.message}`);
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          Importieren
+        </Button>
+      </div>
     </div>
   );
 }

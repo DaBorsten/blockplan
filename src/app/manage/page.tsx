@@ -53,8 +53,15 @@ export default function Manage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-8">
-      <h2 className="text-2xl font-bold mb-4">Importierte Wochen</h2>
+    <div className="px-6">
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+          Verwalten
+        </h2>
+        <p className="text-slate-600 dark:text-slate-400">
+          Verwalten Sie Ihre importierten Wochen
+        </p>
+      </div>
       {loading ? (
         <div>Lade...</div>
       ) : weeks.length === 0 ? (

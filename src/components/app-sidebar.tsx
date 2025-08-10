@@ -62,7 +62,16 @@ export function AppSidebar() {
   const pathname = usePathname();
   return (
     <Sidebar>
-      <SidebarHeader />
+      <SidebarHeader>
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
+            <Calendar className="w-4 h-4 text-white" />
+          </div>
+          <h1 className=" font-bold text-slate-800 dark:text-white">
+            Blockplan
+          </h1>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Blockplan</SidebarGroupLabel>
