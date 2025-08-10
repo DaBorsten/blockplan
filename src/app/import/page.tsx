@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CreateTimetable, InitializeDatabase } from "@/utils/db";
+import { InitializeDatabase } from "@/utils/db";
 
 type FileItem = {
   id: string;
@@ -90,13 +90,10 @@ export default function Import() {
   };
 
   async function uploadFile(selectedFile: File) {
-    console.log("Selected file:", selectedFile);
     if (selectedFile) {
       const formData = new FormData();
 
       formData.append("file", selectedFile);
-
-      console.log(formData);
 
       // const PYTHON_API_URL = process.env.PYTHON_API_URL;
       const PYTHON_API_URL = "http://192.168.178.73:8000";
@@ -107,15 +104,12 @@ export default function Import() {
           body: formData,
         });
 
-        console.log(response);
-
         const responseData = await response.json();
-        console.log(responseData);
 
         return responseData;
-      } catch (err) {
-        console.log(err);
-        throw Error("Internet oder Server Fehler");
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        throw Error("Internet oder Server Fehler", { cause: err });
       }
     }
   }
@@ -259,7 +253,14 @@ export default function Import() {
                   const response = await uploadFile(file);
 
                   if (response) {
-                    await CreateTimetable(response, displayName);
+                    await fetch("/api/week", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        timetable: response,
+                        week: displayName,
+                      }),
+                    });
                   }
                 }
 

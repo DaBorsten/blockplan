@@ -79,8 +79,6 @@ export default function Timetable({
       const data = await res.json();
       const response = data.data;
 
-      console.log(response);
-
       setTimeTableData(response);
     },
     [weekID, setTimeTableData],
