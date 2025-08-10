@@ -13,7 +13,8 @@ export async function PUT(req: NextRequest) {
       [newWeekName, weekID],
     );
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Error updating week name" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json({ error: "Error updating week name", details: err.message }, { status: 500 });
   }
 }

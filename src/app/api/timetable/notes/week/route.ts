@@ -6,7 +6,10 @@ export async function GET(req: NextRequest) {
   const week_id = req.nextUrl.searchParams.get("week_id");
   const specialization = Number(req.nextUrl.searchParams.get("specialization"));
   if (!week_id || !specialization) {
-    return NextResponse.json({ error: "week_id and specialization are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "week_id and specialization are required" },
+      { status: 400 },
+    );
   }
   let specializationIds: number[];
   if (specialization === 1) {
@@ -28,7 +31,11 @@ export async function GET(req: NextRequest) {
       [week_id, ...specializationIds],
     );
     return NextResponse.json({ data: result });
-  } catch (error) {
-    return NextResponse.json({ error: "Error loading week notes" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json(
+      { error: "Error loading week notes", details: err.message },
+      { status: 500 },
+    );
   }
 }

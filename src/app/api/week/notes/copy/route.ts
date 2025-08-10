@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
       }
     }
     return NextResponse.json({ updatedCount });
-  } catch (error) {
-    return NextResponse.json({ error: "Fehler beim Kopieren der Notizen" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json({ error: "Fehler beim Kopieren der Notizen", details: err.message }, { status: 500 });
   }
 }

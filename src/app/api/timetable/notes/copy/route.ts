@@ -5,7 +5,12 @@ import { turso } from "@/lib/tursoClient";
 export async function POST(req: NextRequest) {
   const { currentWeekId, specialization, selectedWeekID } = await req.json();
   if (!currentWeekId || !specialization || !selectedWeekID) {
-    return NextResponse.json({ error: "currentWeekId, specialization, and selectedWeekID are required" }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: "currentWeekId, specialization, and selectedWeekID are required",
+      },
+      { status: 400 },
+    );
   }
   try {
     // 1. Einträge mit Notes aus der ausgewählten Woche + Spezialisierung laden
@@ -58,7 +63,11 @@ export async function POST(req: NextRequest) {
       }
     }
     return NextResponse.json({ updatedCount });
-  } catch (error) {
-    return NextResponse.json({ error: "Fehler beim Kopieren der Notizen" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json(
+      { error: "Fehler beim Kopieren der Notizen", details: err.message },
+      { status: 500 },
+    );
   }
 }

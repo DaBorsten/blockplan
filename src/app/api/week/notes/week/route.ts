@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
       [week_id, ...specializationIds],
     );
     return NextResponse.json({ data: result });
-  } catch (error) {
-    return NextResponse.json({ error: "Error loading week notes" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json({ error: "Error loading week notes", details: err.message }, { status: 500 });
   }
 }

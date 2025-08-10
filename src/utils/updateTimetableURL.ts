@@ -1,5 +1,4 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { useRouter } from "next/navigation";
 
 // Bei Änderung Auswahl → URL aktualisieren
 export const updateUrl = (router: AppRouterInstance, week: string | null, spec: number) => {

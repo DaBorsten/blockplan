@@ -2,7 +2,6 @@ import { Specialization } from "@/store/useSpecializationStore";
 
 export type Lesson = {
   id: string;
-  class: string;
   subject: string;
   teacher: string;
   room: string;
@@ -11,6 +10,8 @@ export type Lesson = {
   startTime: string;
   endTime: string;
   specialization: Specialization;
+  week_id: string;
+  day: string;
 };
 
 export type LessonForImport = {

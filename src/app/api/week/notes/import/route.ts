@@ -48,7 +48,8 @@ export async function GET(req: NextRequest) {
       [excludeWeekId, ...specializationIds],
     );
     return NextResponse.json({ data: result.rows });
-  } catch (error) {
-    return NextResponse.json({ error: "Error getting relevant weeks for notes import" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json({ error: "Error getting relevant weeks for notes import", details: err.message }, { status: 500 });
   }
 }

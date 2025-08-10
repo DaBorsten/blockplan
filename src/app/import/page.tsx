@@ -68,11 +68,6 @@ export default function Import() {
     handleFiles(e.dataTransfer.files);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFiles(e.target.files);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
   const handleDelete = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
@@ -270,8 +265,10 @@ export default function Import() {
 
                 toast.success("Import abgeschlossen!");
                 setFiles([]);
-              } catch (e) {
-                toast.error("Fehler beim Importieren.");
+              } catch (error: unknown) {
+                const err =
+                  error instanceof Error ? error : new Error(String(error));
+                toast.error(`Fehler beim Importieren. ${err.message}`);
               } finally {
                 setLoading(false);
               }

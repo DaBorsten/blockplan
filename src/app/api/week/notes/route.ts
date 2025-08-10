@@ -15,14 +15,15 @@ export async function GET(req: NextRequest) {
       `SELECT notes from timetable WHERE id = ?;`,
       [lessonID],
     );
-    
+
     if (!result) {
       return NextResponse.json({ notes: null });
     }
     return NextResponse.json({ notes: result.rows[0].notes || null });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
-      { error: "Error selecting notes" },
+      { error: "Error selecting notes", details: err.message },
       { status: 500 },
     );
   }
@@ -45,9 +46,10 @@ export async function PUT(req: NextRequest) {
       lessonID,
     ]);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
-      { error: "Error updating notes" },
+      { error: "Error updating notes", details: err.message },
       { status: 500 },
     );
   }

@@ -34,7 +34,7 @@ export default function Timetable({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [cellWidth, setCellWidth] = useState(0);
-  const [timeTableData, setTimeTableData] = useState<any[]>([]);
+  const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
 
   const colorScheme = "dark";
 
@@ -78,6 +78,8 @@ export default function Timetable({
       );
       const data = await res.json();
       const response = data.data;
+
+      console.log(response);
 
       setTimeTableData(response);
     },

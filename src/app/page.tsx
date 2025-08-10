@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Lesson } from "@/types/timetableData";
-import { useWeeksStore } from "@/store/useWeeksStore";
 import { useWeekIDStore } from "@/store/useWeekIDStore";
 import {
   Specialization,
@@ -24,9 +23,6 @@ import {
 
 export default function TimetablePage() {
   const searchParams = useSearchParams();
-  const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
-  const [selectedSpec, setSelectedSpec] = useState<number>(1);
-  const [relevantWeeks, setRelevantWeeks] = useState<any[]>([]);
 
   const { weekID, setWeekID } = useWeekIDStore();
   const { specialization, setSpecialization } = useSpecializationStore();
@@ -38,33 +34,14 @@ export default function TimetablePage() {
 
     setWeekID(week);
     setSpecialization(spec ? (Number(spec) as Specialization) : 1);
-  }, [searchParams, weekID, specialization]);
+  }, [searchParams, weekID, specialization, setSpecialization, setWeekID]);
 
-  // Trigger fetch wenn beide ausgewählt
-  useEffect(() => {
-    const fetchRelevant = async () => {
-      if (selectedWeek && selectedSpec) {
-        const res = await fetch(
-          `/api/timetable/week?weekId=${selectedWeek}&specialization=${selectedSpec}`,
-        );
-        const data = await res.json();
-        const result = data.data;
-        setRelevantWeeks(result || []);
-      } else {
-        setRelevantWeeks([]);
-      }
-    };
-    fetchRelevant();
-  }, [selectedWeek, selectedSpec]);
-
-  const [timeTableData, setTimeTableData] = useState<any[]>([]);
   const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(
     null,
   );
   const [activeNotes, setActiveNotes] = useState<string | null>(null);
   const [isEditNotesModalOpen, setIsEditNotesModalOpen] = useState(false);
   const [notesUpdated, setNotesUpdated] = useState(false);
-  const [dbInitialized, setDbInitialized] = useState(true);
 
   // Notizen per API laden, wenn Lesson angeklickt wird
   useEffect(() => {
@@ -105,9 +82,23 @@ export default function TimetablePage() {
   };
 
   return (
-    <div className="flex flex-col">
-      <WeekSelectionCombobox />
-      <SpecializationSelect />
+    <div className="flex flex-col px-6">
+      <div className="flex flex-row justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
+            Stundenplan
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400">
+            Verwalten Sie Ihren Stundenplan effizient
+          </p>
+        </div>
+
+        <div className="flex space-x-4">
+          <WeekSelectionCombobox />
+          <SpecializationSelect />
+        </div>
+      </div>
+
       <Timetable
         setActiveClickedLesson={setActiveClickedLesson}
         setActiveNotes={setActiveNotes}

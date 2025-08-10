@@ -1,5 +1,6 @@
+import { weekIDWithTitle } from "@/types/weekIDWithTitle";
 
-export const sortWeeksByName = (weeks) => {
+export const sortWeeksByName = (weeks: weekIDWithTitle[]) => {
   return weeks
     .map((item) => ({
       label: item.week_title,

@@ -33,9 +33,10 @@ export async function GET(req: NextRequest) {
     );
     const mappedRows = mapRows(result);
     return NextResponse.json({ data: mappedRows });
-  } catch (error) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
-      { error: "Error loading timetable" },
+      { error: "Error loading timetable", details: err.message },
       { status: 500 },
     );
   }
@@ -50,7 +51,11 @@ export async function DELETE(req: NextRequest) {
   try {
     await turso.execute(`DELETE from timetable_week where id = ?;`, [weekID]);
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: "Error deleting week" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json(
+      { error: "Error deleting week", details: err.message },
+      { status: 500 },
+    );
   }
 }

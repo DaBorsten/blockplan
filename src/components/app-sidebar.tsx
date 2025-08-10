@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +20,7 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 
 import {
+  Bug,
   Calendar,
   ChevronUp,
   CloudDownload,
@@ -25,6 +28,7 @@ import {
   Settings,
   User2,
 } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 const items = [
   {
@@ -47,9 +51,15 @@ const items = [
     url: "/settings",
     icon: Settings,
   },
+  {
+    title: "DEV",
+    url: "/dev",
+    icon: Bug,
+  },
 ];
 
 export function AppSidebar() {
+  const pathname = usePathname();
   return (
     <Sidebar>
       <SidebarHeader />
@@ -60,7 +70,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={pathname === item.url}>
                     <a href={item.url}>
                       <item.icon />
                       <span>{item.title}</span>

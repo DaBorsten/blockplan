@@ -8,7 +8,8 @@ export async function GET() {
       `SELECT id as week_id, MIN(week_title) as week_title FROM timetable_week GROUP BY id;`,
     );
     return NextResponse.json({ data: result.rows });
-  } catch (error) {
-    return NextResponse.json({ error: "Error loading week ids" }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    return NextResponse.json({ error: "Error loading week ids", details: err.message }, { status: 500 });
   }
 }

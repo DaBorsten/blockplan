@@ -15,18 +15,13 @@ import { updateUrl } from "@/utils/updateTimetableURL";
 import { useWeekIDStore } from "@/store/useWeekIDStore";
 import { useRouter } from "next/navigation";
 
-type Props = {
-  onChange?: (spec: Specialization) => void;
-  value?: number;
-};
-
 const options = [
   { label: "Alle", value: 1 },
   { label: "AE", value: 2 },
   { label: "FiSi", value: 3 },
 ];
 
-export function SpecializationSelect({ onChange, value }: Props) {
+export function SpecializationSelect() {
   const { weekID } = useWeekIDStore();
   const { specialization, setSpecialization } = useSpecializationStore();
   const router = useRouter();
