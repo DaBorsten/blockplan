@@ -53,7 +53,7 @@ export default function Manage() {
   };
 
   return (
-    <div className="px-6">
+    <div className="px-2 md:px-6">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Verwalten

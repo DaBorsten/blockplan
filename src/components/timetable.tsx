@@ -33,28 +33,12 @@ export default function Timetable({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const [cellWidth, setCellWidth] = useState(0);
+  // cellWidth entfällt, Flexbox übernimmt die Breitenverteilung
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
 
   const colorScheme = "dark";
 
-  // Für responsive cellWidth
-  useEffect(() => {
-    const updateWidth = () => {
-      // Mache die Tage schmaler, z.B. max 320px oder 1/2 der Breite
-      const maxDayWidth = 320;
-      const minDayWidth = 180;
-      const available = window.innerWidth - 80;
-      const dayWidth = Math.max(
-        minDayWidth,
-        Math.min(maxDayWidth, Math.floor(available / allDays.length)),
-      );
-      setCellWidth(dayWidth);
-    };
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
-  }, []);
+  // cellWidth-Logik entfernt, Flexbox übernimmt die Breitenverteilung
 
   // Setze aktuellen Tag (wie in React Native)
   useEffect(() => {
@@ -62,11 +46,8 @@ export default function Timetable({
     const dayIndex = today === 0 ? 6 : today - 1;
     const adjustedDayIndex = dayIndex >= 5 ? 0 : dayIndex;
     setCurrentDayIndex(adjustedDayIndex);
-
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft = adjustedDayIndex * cellWidth;
-    }
-  }, [cellWidth]);
+    // Optional: automatisches Scrollen auf den aktuellen Tag kann entfallen oder angepasst werden
+  }, []);
 
   // Lade Stundenplan-Daten (hier musst du DB-Logik anpassen!)
   const setTimetableData2 = useCallback(
@@ -105,27 +86,17 @@ export default function Timetable({
     };
   });
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const scrollLeft = e.currentTarget.scrollLeft;
-    const newIndex = Math.round(scrollLeft / cellWidth);
-    if (
-      newIndex !== currentDayIndex &&
-      newIndex >= 0 &&
-      newIndex < allDays.length
-    ) {
-      setCurrentDayIndex(newIndex);
-    }
-  };
+  // handleScroll kann ggf. entfernt werden, da die Breite nicht mehr dynamisch ist
+  const handleScroll = () => {};
 
   return (
     <div className="h-full w-full flex flex-1 min-h-0 min-w-0 overflow-auto">
       <div className="flex flex-row overflow-hidden h-full w-full flex-1 min-h-0 min-w-0">
         {/* Stunden Spalte */}
         <div
-          className="border-r border-solid rounded-tl-xl bg-[var(--sidebar-bg)]"
+          className="border-r border-solid rounded-tl-xl bg-[var(--sidebar-bg)] w-20"
           style={
             {
-              width: 80,
               // Dynamische Farbe als CSS-Variable setzen
               "--sidebar-bg": Colors[colorScheme].secondary,
               "--sidebar-border": Colors[colorScheme].textInputDisabled,
@@ -196,12 +167,10 @@ export default function Timetable({
           {allDays.map((day, index) => (
             <section
               key={day}
-              className="min-w-0 min-h-0 h-full border-l border-solid border-l-[var(--day-border)]"
+              className="min-h-0 h-full border-l border-solid border-l-[var(--day-border)] flex-1 min-w-[250px]"
               style={
                 {
                   scrollSnapAlign: "start",
-                  flex: `0 0 ${cellWidth}px`,
-                  width: cellWidth,
                   "--day-border": Colors[colorScheme].textInputDisabled,
                 } as React.CSSProperties
               }

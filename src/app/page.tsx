@@ -82,7 +82,7 @@ export default function TimetablePage() {
   };
 
   return (
-    <div className="flex flex-col px-6">
+  <div className="flex flex-col px-2 md:px-6 h-full">
       <div className="flex flex-row justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
