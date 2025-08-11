@@ -12,22 +12,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@radix-ui/react-dropdown-menu";
 
-import {
-  Bug,
-  Calendar,
-  ChevronUp,
-  CloudDownload,
-  Inbox,
-  Settings,
-  User2,
-} from "lucide-react";
+import { Bug, Calendar, CloudDownload, Inbox, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const items = [
