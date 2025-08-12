@@ -94,7 +94,7 @@ export default function Timetable({
       <div className="flex flex-row overflow-hidden h-full w-full flex-1 min-h-0 min-w-0">
         {/* Stunden Spalte */}
         <div
-          className="border-r border-solid rounded-tl-xl bg-[var(--sidebar-bg)] w-20"
+          className="border-r border-solid rounded-tl-sm bg-[var(--sidebar-bg)] w-20"
           style={
             {
               // Dynamische Farbe als CSS-Variable setzen
@@ -156,7 +156,7 @@ export default function Timetable({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto h-full w-full flex-1 min-h-0 min-w-0 rounded-tr-xl bg-[var(--tt-bg)]"
+          className="flex overflow-x-auto h-full w-full flex-1 min-h-0 min-w-0 rounded-tr-sm bg-[var(--tt-bg)]"
           style={
             {
               scrollSnapType: "x mandatory",

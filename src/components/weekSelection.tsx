@@ -78,10 +78,12 @@ export function WeekSelectionCombobox() {
                   key={week.value ?? "none"}
                   value={week.value ?? ""}
                   onSelect={(currentValue) => {
-                    const newValue =
-                      currentValue === weekID ? null : currentValue;
+                    if (currentValue === weekID) {
+                      setOpen(false);
+                      return;
+                    }
                     setOpen(false);
-                    handleWeekChange(newValue);
+                    handleWeekChange(currentValue);
                   }}
                 >
                   {week.label}
