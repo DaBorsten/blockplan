@@ -111,8 +111,8 @@ export default function Import() {
   }
 
   return (
-    <div className="px-4 md:px-6">
-      <div className="mb-8">
+    <div className="flex flex-col h-full px-4 md:px-6 pb-4 md:pb-6">
+      <div className="mb-8 flex-shrink-0">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Importieren
         </h2>
@@ -121,9 +121,9 @@ export default function Import() {
         </p>
       </div>
 
-      <div className="flex flex-col items-center justify-center w-full">
+      <div className="flex flex-1 min-h-0 flex-col items-center justify-center w-full">
         {/* Dropzone oder Dateiliste */}
-        <div className="relative w-full flex-1 flex flex-col items-center justify-center">
+        <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center">
           {files.length === 0 ? (
             <Dropzone
               onFiles={loading ? () => {} : handleFiles}
@@ -136,10 +136,9 @@ export default function Import() {
             />
           ) : (
             <div
-              className={`flex-1 w-full bg-muted/60 p-4 md:p-8 flex flex-col gap-3 min-h-[300px] min-w-0 ${
+              className={`flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed border-border rounded-2xl overflow-y-auto ${
                 loading ? "opacity-60 pointer-events-none" : ""
               }`}
-              style={{ minHeight: 300 }}
               onDrop={loading ? undefined : handleDrop}
               onDragOver={loading ? undefined : (e) => e.preventDefault()}
             >
@@ -222,7 +221,7 @@ export default function Import() {
           )}
         </div>
       </div>
-      <div className="w-full flex flex-col sm:flex-row gap-3 mt-4">
+      <div className="w-full flex flex-col sm:flex-row gap-3 mt-4 flex-shrink-0">
         <Button variant="default" className="flex-1" onClick={openFileDialog}>
           <Upload className="w-4 h-4" />
           <span>Dateien auswählen</span>

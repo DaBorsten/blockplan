@@ -123,7 +123,7 @@ export default function Manage() {
   };
 
   return (
-    <div className="px-4 md:px-6">
+    <div className="px-4 md:px-6 pb-4 md:pb-6">
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Verwalten
@@ -153,7 +153,7 @@ export default function Manage() {
                           title={week.week_title}
                           aria-hidden
                         >
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-card text-card-foreground dark:bg-card dark:text-card-foreground">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border dark:bg-sidebar-accent dark:text-sidebar-accent-foreground">
                             {week.week_title
                               ? week.week_title.split(" ")[0]
                               : "W"}
@@ -201,13 +201,16 @@ export default function Manage() {
         </div>
       )}
 
-      <Dialog open={editOpen} onOpenChange={(o) => {
-        setEditOpen(o);
-        if (!o) {
-          setEditId(null);
-          setEditName("");
-        }
-      }}>
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          setEditOpen(o);
+          if (!o) {
+            setEditId(null);
+            setEditName("");
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Woche umbenennen</DialogTitle>
@@ -232,10 +235,7 @@ export default function Manage() {
               <X className="w-4 h-4" />
               Abbrechen
             </Button>
-            <Button
-              onClick={handleEditSave}
-              size="sm"
-            >
+            <Button onClick={handleEditSave} size="sm">
               <Check className="w-4 h-4" />
               Speichern
             </Button>

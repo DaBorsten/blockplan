@@ -8,10 +8,13 @@ import {
 } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ModeToggle } from "@/components/theme-toggle";
 import { ThemeToaster } from "@/components/ThemeToaster";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 
@@ -56,16 +59,17 @@ export default function RootLayout({
             <SignedIn>
               <SidebarProvider>
                 <AppSidebar />
-                <main className="min-h-svh flex-1 flex flex-col">
-                  <header className="flex items-center justify-between p-2 sticky top-0 z-10 bg-background gap-4">
+                <SidebarInset className="flex flex-col h-screen">
+                  <header className="flex shrink-0 items-center justify-between px-4 md:px-6 sticky top-0 z-10 bg-background gap-4 h-16">
                     <SidebarTrigger className="cursor-pointer" />
                     <div className="flex-1" />
-                    <ModeToggle />
                     <ClerkUserButton />
                   </header>
-                  {children}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {children}
+                  </div>
                   <ThemeToaster />
-                </main>
+                </SidebarInset>
               </SidebarProvider>
             </SignedIn>
           </ThemeProvider>

@@ -91,7 +91,7 @@ export default function Timetable({
 
   return (
     <div
-      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto"
+      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto border-1 border-solid border-gray-300 rounded-lg"
       style={{
         minWidth: "100%",
         display: "flex",
@@ -101,24 +101,8 @@ export default function Timetable({
     >
       <div className="flex flex-row h-full flex-1 min-h-0 min-w-0">
         {/* Stunden Spalte */}
-        <div
-          className="border-r border-solid rounded-tl-sm bg-[var(--sidebar-bg)] w-20"
-          style={
-            {
-              // Dynamische Farbe als CSS-Variable setzen
-              "--sidebar-bg": Colors[colorScheme].secondary,
-              "--sidebar-border": Colors[colorScheme].textInputDisabled,
-            } as React.CSSProperties
-          }
-        >
-          <div
-            className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--sidebar-text)]"
-            style={
-              {
-                "--sidebar-text": Colors[colorScheme].text,
-              } as React.CSSProperties
-            }
-          >
+        <div className="border-r border-solid bg-secondary w-20">
+          <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300">
             Stunde
           </div>
           {allHours.map((hour, idx) => {
@@ -133,25 +117,19 @@ export default function Timetable({
                 key={hour}
                 className={`flex flex-col justify-center text-center box-border p-1 ${
                   isLast ? "" : "border-b"
-                } h-16 min-h-16 text-[var(--hour-text)] border-b-[var(--hour-border)]`}
+                } h-16 min-h-16 text-base border-b-[var(--hour-border)]`}
                 style={
                   {
                     "--hour-border": Colors[colorScheme].textInputPlaceholder,
-                    "--hour-text": Colors[colorScheme].text,
                   } as React.CSSProperties
                 }
               >
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-tertiary">
                   {startTime ||
                     hourToTimeMap[hour as keyof typeof hourToTimeMap]?.start}
                 </div>
-                <div
-                  className="font-bold text-base"
-                  style={{ color: Colors[colorScheme].text }}
-                >
-                  {hour}
-                </div>
-                <div className="text-xs text-gray-500">
+                <div className="font-bold text-base">{hour}</div>
+                <div className="text-xs text-tertiary">
                   {endTime ||
                     hourToTimeMap[hour as keyof typeof hourToTimeMap]?.end}
                 </div>
@@ -164,11 +142,10 @@ export default function Timetable({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex h-full flex-1 min-h-0 min-w-0 rounded-tr-sm bg-[var(--tt-bg)] overflow-x-auto"
+          className="flex h-full flex-1 min-h-0 min-w-0 bg-background overflow-x-auto"
           style={
             {
               scrollSnapType: "x mandatory",
-              "--tt-bg": Colors[colorScheme].timetableBackground,
             } as React.CSSProperties
           }
         >
@@ -183,14 +160,7 @@ export default function Timetable({
                 } as React.CSSProperties
               }
             >
-              <div
-                className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300 text-[var(--day-text)]"
-                style={
-                  {
-                    "--day-text": Colors[colorScheme].text,
-                  } as React.CSSProperties
-                }
-              >
+              <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300">
                 {day}
               </div>
 
