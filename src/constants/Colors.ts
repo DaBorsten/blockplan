@@ -37,13 +37,6 @@ export const Colors = {
 
     switchBackgroundColor: "#e9e9eb",
 
-    AE: "#3c40af",
-    AE_background: "#dbeafe",
-    FISI: "",
-    FISI_background: "",
-    ALL: "",
-    ALL_background: "",
-
     // timetable
     timetableBackground: "#ffffffaa",
   },
@@ -78,13 +71,6 @@ export const Colors = {
     warning: "#df3535",
 
     switchBackgroundColor: "#39393d",
-
-    AE: "#72AF89",
-    AE_background: "#00402C",
-    FISI: "#5EA3AC",
-    FISI_background: "#003940",
-    ALL: "#AB63B2",
-    ALL_background: "#3A0040",
 
     // timetable
     timetableBackground: "#2d2d2daa",

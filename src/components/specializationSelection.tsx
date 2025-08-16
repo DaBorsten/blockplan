@@ -17,8 +17,8 @@ import { useRouter } from "next/navigation";
 
 const options = [
   { label: "Alle", value: 1 },
-  { label: "AE", value: 2 },
-  { label: "FiSi", value: 3 },
+  { label: "Gruppe A", value: 2 },
+  { label: "Gruppe B", value: 3 },
 ];
 
 export function SpecializationSelect() {
