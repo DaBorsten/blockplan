@@ -82,7 +82,7 @@ export default function TimetablePage() {
   };
 
   return (
-  <div className="flex flex-col px-2 md:px-6 h-full">
+    <div className="flex flex-col px-2 md:px-6 flex-1 min-h-0">
       <div className="flex flex-row justify-between items-center mb-8">
         <div>
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
@@ -93,7 +93,7 @@ export default function TimetablePage() {
           </p>
         </div>
 
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-4">
           <WeekSelectionCombobox />
           <SpecializationSelect />
         </div>

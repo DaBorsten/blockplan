@@ -90,8 +90,16 @@ export default function Timetable({
   const handleScroll = () => {};
 
   return (
-    <div className="h-full w-full flex flex-1 min-h-0 min-w-0 overflow-auto">
-      <div className="flex flex-row overflow-hidden h-full w-full flex-1 min-h-0 min-w-0">
+    <div
+      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto"
+      style={{
+        minWidth: "100%",
+        display: "flex",
+        overflowX: "scroll",
+        width: 330,
+      }}
+    >
+      <div className="flex flex-row h-full flex-1 min-h-0 min-w-0">
         {/* Stunden Spalte */}
         <div
           className="border-r border-solid rounded-tl-sm bg-[var(--sidebar-bg)] w-20"
@@ -156,7 +164,7 @@ export default function Timetable({
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex overflow-x-auto h-full w-full flex-1 min-h-0 min-w-0 rounded-tr-sm bg-[var(--tt-bg)]"
+          className="flex h-full flex-1 min-h-0 min-w-0 rounded-tr-sm bg-[var(--tt-bg)] overflow-x-auto"
           style={
             {
               scrollSnapType: "x mandatory",
