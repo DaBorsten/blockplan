@@ -122,3 +122,27 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Prevent overscroll/rubber-band on mobile while allowing inner scroll containers to work
+   - `overscroll-behavior: none` stops scroll chaining and rubber-band gestures on supporting browsers
+   - keep `-webkit-overflow-scrolling: touch` on scrollable elements for smooth native scrolling on iOS
+*/
+html, body, #__next {
+  overscroll-behavior: none;
+}
+
+/* Ensure scrollable elements use native momentum scrolling on iOS and don't trigger body overscroll */
+.scrollable, .overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/*
+Optional JS fallback for older iOS versions (use only if you still see rubber-band):
+document.addEventListener('touchmove', function(e) {
+  // if the target is not an inner scrollable element, prevent the default to stop rubber-band
+  if (!e.target.closest('.scrollable, .overflow-y-auto, .overflow-auto')) {
+    e.preventDefault();
+  }
+}, { passive: false });
+*/

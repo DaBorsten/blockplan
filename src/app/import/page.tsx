@@ -136,7 +136,7 @@ export default function Import() {
             />
           ) : (
             <div
-              className={`flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed border-border rounded-2xl overflow-y-auto ${
+              className={`scrollable flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed border-border rounded-2xl overflow-y-auto ${
                 loading ? "opacity-60 pointer-events-none" : ""
               }`}
               onDrop={loading ? undefined : handleDrop}
