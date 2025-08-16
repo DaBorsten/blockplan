@@ -91,7 +91,7 @@ export default function Timetable({
 
   return (
     <div
-      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto border-1 border-solid border-gray-300 rounded-lg"
+      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto border-1 border-solid border-border rounded-lg"
       style={{
         minWidth: "100%",
         display: "flex",
