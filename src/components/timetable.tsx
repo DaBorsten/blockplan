@@ -103,7 +103,8 @@ export default function Timetable({
     const daysArea = Math.max(0, fullW - TIME_COL_PX);
     const visibleCount = Math.max(1, Math.floor(daysArea / MIN_DAY_COL_PX));
     const width = Math.max(MIN_DAY_COL_PX, Math.floor(daysArea / visibleCount));
-    setDayColWidth(width);
+    // Avoid state churn if width hasn't meaningfully changed
+    setDayColWidth((prev) => (Math.abs(prev - width) >= 1 ? width : prev));
   }, []);
 
   useEffect(() => {
@@ -118,36 +119,41 @@ export default function Timetable({
     if (!vp) return;
     viewportRef.current = vp;
 
+    // Simple debounce to reduce update frequency during sidebar animation/resizes
+    const debounce = (fn: () => void, wait: number) => {
+      let t: number | undefined;
+      return () => {
+        if (t) window.clearTimeout(t);
+        t = window.setTimeout(() => fn(), wait);
+      };
+    };
+
     // Observe height for row sizing
     const roHeight = new ResizeObserver(() => recomputeRowHeight());
     roHeight.observe(vp);
 
+    // Throttled observers to limit update frequency
+  const recomputeRowHeightDebounced = debounce(recomputeRowHeight, 200);
+    const recomputeDayWidthDebounced = debounce(() => {
+      recomputeDayColumnWidth();
+      // row heights can change when header wraps; debounce as well
+      recomputeRowHeightDebounced();
+  }, 200);
+
     // Observe width for column sizing
     const roWidth = new ResizeObserver(() => {
-      recomputeDayColumnWidth();
-      // Header may reflow on width changes; update row heights too
-      recomputeRowHeight();
+      recomputeDayWidthDebounced();
     });
     roWidth.observe(vp);
 
-    // Snap handler: when scroll stops, snap to nearest day column
-    let snapTimer: number | null = null;
-    const onScroll = () => {
-      if (snapTimer) window.clearTimeout(snapTimer);
-      snapTimer = window.setTimeout(() => {
-        const el = viewportRef.current;
-        if (!el) return;
-        const x = el.scrollLeft;
-        const target = Math.round(x / dayColWidth) * dayColWidth;
-        el.scrollTo({ left: target, behavior: "smooth" });
-      }, 120);
-    };
-    vp.addEventListener("scroll", onScroll, { passive: true });
+    // Enable CSS-based snapping without JS handlers
+    vp.style.scrollSnapType = "x mandatory";
+    vp.style.scrollPaddingLeft = `${TIME_COL_PX}px`;
 
     // Fallback: Window-Resize triggers both recomputations
     const onResize = () => {
-      recomputeRowHeight();
-      recomputeDayColumnWidth();
+      recomputeDayWidthDebounced();
+      recomputeRowHeightDebounced();
     };
     window.addEventListener("resize", onResize);
 
@@ -163,12 +169,8 @@ export default function Timetable({
         const today = new Date().getDay();
         const dow = today === 0 ? 6 : today - 1; // 0..6 => Mon=0..Sun=6
         const initialIndex = dow >= 5 ? 0 : dow; // weekend -> Monday
-        // Compute the same width used by recomputeDayColumnWidth to avoid waiting for state update
-        const fullW = el.clientWidth;
-        const daysArea = Math.max(0, fullW - TIME_COL_PX);
-        const visibleCount = Math.max(1, Math.floor(daysArea / MIN_DAY_COL_PX));
-        const width = Math.max(MIN_DAY_COL_PX, Math.floor(daysArea / visibleCount));
-        const targetLeft = width * initialIndex;
+        // Use the current computed column width for accurate alignment
+        const targetLeft = dayColWidth * initialIndex;
         el.scrollTo({ left: targetLeft, behavior: "auto" });
       }
     }
@@ -176,7 +178,6 @@ export default function Timetable({
     return () => {
       roHeight.disconnect();
       roWidth.disconnect();
-      vp.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
   }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
@@ -198,12 +199,15 @@ export default function Timetable({
 
   return (
     <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
-      <ScrollArea ref={containerRef} className="h-full">
+  <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         <table className="h-full border-collapse bg-background w-full table-fixed">
           <colgroup>
             <col style={{ width: TIME_COL_PX }} />
             {allDays.map((_, i) => (
-              <col key={`day-col-${i}`} style={{ width: dayColWidth }} />
+      <col
+        key={`day-col-${i}`}
+        style={{ width: dayColWidth, transition: "width 200ms ease" }}
+      />
             ))}
           </colgroup>
           <thead ref={theadRef}>
@@ -219,8 +223,13 @@ export default function Timetable({
               {allDays.map((day) => (
                 <th
                   key={day}
-                  className="px-1 py-2 text-center font-bold text-sm sticky top-0 z-20 bg-background w-[250px]"
+                  className="px-1 py-2 text-center font-bold text-sm sticky top-0 z-20 bg-background"
                   style={{
+                    scrollSnapAlign: "start",
+                    scrollSnapStop: "always",
+                    width: dayColWidth,
+                    transition: "width 200ms ease",
+                    willChange: "width",
                     boxShadow: `inset 0 -1px ${Colors[colorScheme].textInputDisabled}`,
                   }}
                 >
