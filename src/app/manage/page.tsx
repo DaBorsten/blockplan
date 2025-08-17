@@ -175,7 +175,7 @@ export default function Manage() {
                             handleEdit(week.week_id, week.week_title)
                           }
                           size="sm"
-                          className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3"
+                          className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
                           aria-label="Bearbeiten"
                         >
                           <Pencil className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function Manage() {
                           variant="destructive"
                           onClick={() => handleDelete(week.week_id)}
                           size="sm"
-                          className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3"
+                          className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
                           aria-label="Löschen"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -231,11 +231,16 @@ export default function Manage() {
               variant="outline"
               onClick={() => setEditOpen(false)}
               size="sm"
+              className="cursor-pointer"
             >
               <X className="w-4 h-4" />
               Abbrechen
             </Button>
-            <Button onClick={handleEditSave} size="sm">
+            <Button
+              onClick={handleEditSave}
+              size="sm"
+              className="cursor-pointer"
+            >
               <Check className="w-4 h-4" />
               Speichern
             </Button>

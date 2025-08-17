@@ -19,6 +19,7 @@ export default function Dev() {
         onClick={async () => {
           await fetch("/api/initialize", { method: "POST" });
         }}
+        className="cursor-pointer"
       >
         Datenbank initialisieren
       </Button>

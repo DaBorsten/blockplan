@@ -187,15 +187,20 @@ export default function Import() {
                         disabled={loading}
                       />
                       <DialogFooterUI>
-                        <Button onClick={handleEditSave} disabled={loading}>
-                          Speichern
-                        </Button>
                         <Button
                           variant="outline"
                           onClick={() => setEditId(null)}
                           disabled={loading}
+                          className="cursor-pointer"
                         >
                           Abbrechen
+                        </Button>
+                        <Button
+                          onClick={handleEditSave}
+                          disabled={loading}
+                          className="cursor-pointer"
+                        >
+                          Speichern
                         </Button>
                       </DialogFooterUI>
                     </DialogContent>
@@ -222,12 +227,16 @@ export default function Import() {
         </div>
       </div>
       <div className="w-full flex flex-col sm:flex-row gap-3 mt-4 flex-shrink-0">
-        <Button variant="default" className="flex-1" onClick={openFileDialog}>
+        <Button
+          variant="default"
+          className="flex-1 cursor-pointer"
+          onClick={openFileDialog}
+        >
           <Upload className="w-4 h-4" />
           <span>Dateien auswählen</span>
         </Button>
         <Button
-          className="flex-1"
+          className="flex-1 cursor-pointer"
           disabled={files.length === 0 || loading}
           onClick={async () => {
             if (files.length === 0) {
