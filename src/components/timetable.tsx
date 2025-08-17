@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { Colors } from "@/constants/Colors";
@@ -31,22 +31,20 @@ export default function Timetable({
   const { specialization } = useSpecializationStore();
   const { getColor } = useTeacherColorStore();
 
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  // cellWidth entfällt, Flexbox übernimmt die Breitenverteilung
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [rowHeight, setRowHeight] = useState<number>(64); // px
 
   const colorScheme = "dark";
 
-  // cellWidth-Logik entfernt, Flexbox übernimmt die Breitenverteilung
-
-  // Setze aktuellen Tag (wie in React Native)
+  // Setze aktuellen Tag
   useEffect(() => {
     const today = new Date().getDay();
     const dayIndex = today === 0 ? 6 : today - 1;
     const adjustedDayIndex = dayIndex >= 5 ? 0 : dayIndex;
     setCurrentDayIndex(adjustedDayIndex);
-    // Optional: automatisches Scrollen auf den aktuellen Tag kann entfallen oder angepasst werden
   }, []);
 
   // Lade Stundenplan-Daten (hier musst du DB-Logik anpassen!)
@@ -71,6 +69,41 @@ export default function Timetable({
     }
   }, [specialization, weekID, notesUpdated, setTimetableData2]);
 
+  // Dynamische Zeilenhöhe: alle Zeilen gleich hoch und füllen den Container
+  const recomputeRowHeight = useCallback(() => {
+    const container = containerRef.current;
+    const thead = theadRef.current;
+    if (!container || !thead) return;
+
+    // Verfügbare Höhe ist Containerhöhe minus Kopfzeile
+    const containerH = container.clientHeight;
+    const theadH = thead.getBoundingClientRect().height;
+    const available = Math.max(0, containerH - theadH);
+    const rows = allHours.length || 1;
+    const minRow = 64; // entspricht min-h-16
+    const equalRow = Math.floor(available / rows);
+    setRowHeight(Math.max(minRow, equalRow));
+  }, []);
+
+  useEffect(() => {
+    recomputeRowHeight();
+  }, [recomputeRowHeight, timeTableData, currentDayIndex]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // Beobachte Größenänderungen (auch Zoom triggert oft Resize)
+    const ro = new ResizeObserver(() => recomputeRowHeight());
+    ro.observe(container);
+    // Fallback: Window-Resize
+    const onResize = () => recomputeRowHeight();
+    window.addEventListener("resize", onResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
+  }, [recomputeRowHeight]);
+
   const groupedByDay = allDays.map((day) => {
     const dayData = timeTableData.filter(
       (item) => item.day === day && item.week_id === weekID,
@@ -86,207 +119,208 @@ export default function Timetable({
     };
   });
 
-  // handleScroll kann ggf. entfernt werden, da die Breite nicht mehr dynamisch ist
-  const handleScroll = () => {};
-
   return (
-    <div
-      className="h-full flex min-h-0 min-w-0 overflow-x-hidden overflow-y-auto border-1 border-solid border-border rounded-lg"
-      style={{
-        minWidth: "100%",
-        display: "flex",
-        overflowX: "scroll",
-        width: 330,
-      }}
-    >
-      <div className="flex flex-row h-full flex-1 min-h-0 min-w-0">
-        {/* Stunden Spalte */}
-        <div className="border-r border-solid bg-secondary w-20">
-          <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300">
-            Stunde
-          </div>
-          {allHours.map((hour, idx) => {
-            const isLast = idx === allHours.length - 1;
-            const { startTime, endTime } = getTimesForTimetable(
-              groupedByDay,
-              currentDayIndex,
-              hour,
-            );
-            return (
-              <div
-                key={hour}
-                className={`flex flex-col justify-center text-center box-border p-1 ${
-                  isLast ? "" : "border-b"
-                } h-16 min-h-16 text-base border-b-[var(--hour-border)]`}
-                style={
-                  {
-                    "--hour-border": Colors[colorScheme].textInputPlaceholder,
-                  } as React.CSSProperties
-                }
+    <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
+      <div ref={containerRef} className="h-full overflow-auto">
+        <table className="h-full border-collapse bg-background w-full table-fixed">
+          <colgroup>
+            <col style={{ width: 64 }} />
+            {allDays.map((_, i) => (
+              <col key={`day-col-${i}`} style={{ width: 250 }} />
+            ))}
+          </colgroup>
+          <thead ref={theadRef}>
+            <tr>
+              <th
+                className="bg-secondary w-16 px-1 py-2 text-center font-bold text-sm sticky left-0 top-0 z-30"
+                style={{
+                  boxShadow: `inset -1px 0 ${Colors[colorScheme].textInputDisabled}, inset 0 -1px ${Colors[colorScheme].textInputDisabled}`,
+                }}
               >
-                <div className="text-xs text-tertiary">
-                  {startTime ||
-                    hourToTimeMap[hour as keyof typeof hourToTimeMap]?.start}
-                </div>
-                <div className="font-bold text-base">{hour}</div>
-                <div className="text-xs text-tertiary">
-                  {endTime ||
-                    hourToTimeMap[hour as keyof typeof hourToTimeMap]?.end}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Scrollbarer Bereich für Tage */}
-        <div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex h-full flex-1 min-h-0 min-w-0 bg-background overflow-x-auto"
-          style={
-            {
-              scrollSnapType: "x mandatory",
-            } as React.CSSProperties
-          }
-        >
-          {allDays.map((day, index) => (
-            <section
-              key={day}
-              className="min-h-0 h-full border-l border-solid border-l-[var(--day-border)] flex-1 min-w-[250px]"
-              style={
-                {
-                  scrollSnapAlign: "start",
-                  "--day-border": Colors[colorScheme].textInputDisabled,
-                } as React.CSSProperties
-              }
-            >
-              <div className="px-2.5 py-2 text-center font-bold text-base border-b border-gray-300">
-                {day}
-              </div>
-
-              {groupedByDay[index].hours.map((hourData, hourIndex) => {
-                const isLast =
-                  hourIndex === groupedByDay[index].hours.length - 1;
-                if (hourData.lessons.length === 0) {
-                  return (
-                    <div
-                      key={`${day}-${hourIndex}`}
-                      className={`flex gap-1 justify-center items-center box-border p-1 ${
-                        isLast ? "" : "border-b"
-                      } h-16 min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
-                      style={
-                        {
-                          "--empty-border":
-                            Colors[colorScheme].textInputDisabled,
-                          "--empty-text":
-                            Colors[colorScheme].textInputPlaceholder,
-                        } as React.CSSProperties
-                      }
-                    >
-                      -
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={`${day}-${hourIndex}`}
-                    className={`flex gap-1 flex-nowrap box-border p-1 items-stretch ${
+                Stunde
+              </th>
+              {allDays.map((day) => (
+                <th
+                  key={day}
+                  className="px-1 py-2 text-center font-bold text-sm sticky top-0 z-20 bg-background w-[250px]"
+                  style={{
+                    boxShadow: `inset 0 -1px ${Colors[colorScheme].textInputDisabled}`,
+                  }}
+                >
+                  {day}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {allHours.map((hour, hourIndex) => {
+              const isLast = hourIndex === allHours.length - 1;
+              const { startTime, endTime } = getTimesForTimetable(
+                groupedByDay,
+                currentDayIndex,
+                hour,
+              );
+              return (
+                <tr key={hour} style={{ height: rowHeight }}>
+                  {/* Stunden Zelle */}
+                  <td
+                    className={`bg-secondary text-center box-border p-1 ${
                       isLast ? "" : "border-b"
-                    } h-16 min-h-16 border-b-[var(--cell-border)]`}
+                    } min-h-16 text-xs border-b-[var(--hour-border)] sticky left-0 z-20`}
                     style={
                       {
-                        "--cell-border": Colors[colorScheme].textInputDisabled,
+                        "--hour-border": Colors[colorScheme].textInputDisabled,
+                        boxShadow: `inset -1px 0 ${Colors[colorScheme].textInputDisabled}`,
                       } as React.CSSProperties
                     }
                   >
-                    {specialization === 1 &&
-                      hourData.lessons.length === 1 &&
-                      hourData.lessons[0].specialization === 3 && (
-                        <div
-                          className="flex-1 flex items-center justify-center m-1 p-1 text-[var(--spec3-text)]"
-                          style={
-                            {
-                              "--spec3-text":
-                                Colors[colorScheme].textInputPlaceholder,
-                            } as React.CSSProperties
-                          }
-                        >
-                          -
-                        </div>
-                      )}
+                    <div className="flex flex-col justify-center h-full">
+                      <div className="text-xs text-tertiary">
+                        {startTime ||
+                          hourToTimeMap[hour as keyof typeof hourToTimeMap]
+                            ?.start}
+                      </div>
+                      <div className="font-bold text-sm">{hour}</div>
+                      <div className="text-xs text-tertiary">
+                        {endTime ||
+                          hourToTimeMap[hour as keyof typeof hourToTimeMap]
+                            ?.end}
+                      </div>
+                    </div>
+                  </td>
 
-                    {hourData.lessons.map((lesson, idx) => {
-                      const bgColor =
-                        getColor(lesson.teacher) ||
-                        Colors[colorScheme].textInputBackground;
-                      const textColor = isColorDark(bgColor)
-                        ? "white"
-                        : "black";
+                  {/* Tage Zellen */}
+                  {allDays.map((day, dayIndex) => {
+                    const hourData = groupedByDay[dayIndex].hours.find(
+                      (h) => h.hour === hour,
+                    );
 
+                    if (!hourData || hourData.lessons.length === 0) {
                       return (
-                        <button
-                          key={idx}
-                          onClick={async () => {
-                            const res = await fetch(
-                              `/api/week/notes?lessonId=${lesson.id}`,
-                            );
-                            const data = await res.json();
-                            const savedNotes = data.notes;
-                            setActiveNotes(savedNotes);
-                            setActiveClickedLesson(lesson);
-                            setIsEditNotesModalOpen(true);
-                          }}
-                          className="flex flex-1 rounded px-2 py-1 items-center justify-between cursor-pointer border-0"
+                        <td
+                          key={`${day}-${hour}`}
+                          className={`text-center box-border p-1 ${
+                            isLast ? "" : "border-b"
+                          } min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
                           style={
                             {
-                              background: bgColor,
-                              color: textColor,
-                            } as React.CSSProperties
-                          }
-                        >
-                          <div className="flex flex-col justify-between">
-                            <span className="font-bold text-sm">
-                              {lesson.subject} / {lesson.teacher}
-                            </span>
-                            {lesson.room && (
-                              <span className="flex items-center gap-1 text-xs">
-                                <MapPin size={12} color={textColor} />
-                                {lesson.room}
-                              </span>
-                            )}
-                          </div>
-                          {lesson.notes && lesson.notes?.length > 0 && (
-                            <LucideNotebookText
-                              color={textColor}
-                              className="self-center"
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-
-                    {specialization === 1 &&
-                      hourData.lessons.length === 1 &&
-                      hourData.lessons[0].specialization === 2 && (
-                        <div
-                          className="flex-1 flex items-center justify-center p-1 text-[var(--spec2-text)]"
-                          style={
-                            {
-                              "--spec2-text":
+                              "--empty-border":
+                                Colors[colorScheme].textInputDisabled,
+                              "--empty-text":
                                 Colors[colorScheme].textInputPlaceholder,
                             } as React.CSSProperties
                           }
                         >
                           -
+                        </td>
+                      );
+                    }
+
+                    return (
+                      <td
+                        key={`${day}-${hour}`}
+                        className={`box-border p-1 ${
+                          isLast ? "" : "border-b"
+                        } min-h-16 border-b-[var(--cell-border)]`}
+                        style={
+                          {
+                            "--cell-border":
+                              Colors[colorScheme].textInputDisabled,
+                          } as React.CSSProperties
+                        }
+                      >
+                        <div className="flex gap-1 flex-nowrap items-stretch h-full">
+                          {specialization === 1 &&
+                            hourData.lessons.length === 1 &&
+                            hourData.lessons[0].specialization === 3 && (
+                              <div
+                                className="flex-1 flex items-center justify-center m-1 p-1 h-full text-[var(--spec3-text)]"
+                                style={
+                                  {
+                                    "--spec3-text":
+                                      Colors[colorScheme].textInputPlaceholder,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                -
+                              </div>
+                            )}
+
+                          {hourData.lessons.map((lesson, idx) => {
+                            const bgColor =
+                              getColor(lesson.teacher) ||
+                              Colors[colorScheme].textInputBackground;
+                            const textColor = isColorDark(bgColor)
+                              ? "white"
+                              : "black";
+
+                            return (
+                              <button
+                                key={idx}
+                                onClick={async () => {
+                                  const res = await fetch(
+                                    `/api/week/notes?lessonId=${lesson.id}`,
+                                  );
+                                  const data = await res.json();
+                                  const savedNotes = data.notes;
+                                  setActiveNotes(savedNotes);
+                                  setActiveClickedLesson(lesson);
+                                  setIsEditNotesModalOpen(true);
+                                }}
+                                className="flex flex-1 h-full rounded px-1 py-1 items-center justify-between cursor-pointer border-0 text-xs"
+                                style={
+                                  {
+                                    background: bgColor,
+                                    color: textColor,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                <div className="flex flex-col justify-between min-w-0 flex-1 text-left">
+                                  <span className="font-bold text-xs truncate">
+                                    {lesson.subject} / {lesson.teacher}
+                                  </span>
+                                  {lesson.room && (
+                                    <span className="flex items-center gap-1 text-xs truncate">
+                                      <MapPin size={10} color={textColor} />
+                                      {lesson.room}
+                                    </span>
+                                  )}
+                                </div>
+                                {lesson.notes && lesson.notes?.length > 0 && (
+                                  <LucideNotebookText
+                                    color={textColor}
+                                    size={20}
+                                    className="self-center flex-shrink-0 ml-1"
+                                  />
+                                )}
+                              </button>
+                            );
+                          })}
+
+                          {specialization === 1 &&
+                            hourData.lessons.length === 1 &&
+                            hourData.lessons[0].specialization === 2 && (
+                              <div
+                                className="flex-1 flex items-center justify-center p-1 h-full text-[var(--spec2-text)]"
+                                style={
+                                  {
+                                    "--spec2-text":
+                                      Colors[colorScheme].textInputPlaceholder,
+                                  } as React.CSSProperties
+                                }
+                              >
+                                -
+                              </div>
+                            )}
                         </div>
-                      )}
-                  </div>
-                );
-              })}
-            </section>
-          ))}
-        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
