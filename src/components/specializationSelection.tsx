@@ -44,7 +44,7 @@ export function SpecializationSelect() {
       <SelectTrigger>
         <SelectValue placeholder="Fachrichtung wählen" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent align="end">
         <SelectGroup>
           {options.map((opt) => (
             <SelectItem key={opt.value} value={String(opt.value)}>
