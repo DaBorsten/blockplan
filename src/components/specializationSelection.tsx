@@ -41,7 +41,7 @@ export function SpecializationSelect() {
         handleSpecChange(num as Specialization);
       }}
     >
-      <SelectTrigger className="w-[100px]">
+      <SelectTrigger>
         <SelectValue placeholder="Fachrichtung wählen" />
       </SelectTrigger>
       <SelectContent>
