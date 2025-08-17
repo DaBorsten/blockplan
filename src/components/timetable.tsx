@@ -35,8 +35,15 @@ export default function Timetable({
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
   const theadRef = useRef<HTMLTableSectionElement>(null);
   const [rowHeight, setRowHeight] = useState<number>(64); // px
+  const [dayColWidth, setDayColWidth] = useState<number>(250);
+  const didInitialScrollRef = useRef<boolean>(false);
+
+  // layout constants
+  const TIME_COL_PX = 64;
+  const MIN_DAY_COL_PX = 250;
 
   const colorScheme = "dark";
 
@@ -76,8 +83,10 @@ export default function Timetable({
     const thead = theadRef.current;
     if (!container || !thead) return;
 
-    // Verfügbare Höhe ist Containerhöhe minus Kopfzeile
-    const containerH = container.clientHeight;
+    // Prefer the actual ScrollArea viewport height if available
+    const viewportH = viewportRef.current?.clientHeight;
+    // Verfügbare Höhe ist Viewport/Containerhöhe minus Kopfzeile
+    const containerH = (viewportH ?? container.clientHeight);
     const theadH = thead.getBoundingClientRect().height;
     const available = Math.max(0, containerH - theadH);
     const rows = allHours.length || 1;
@@ -86,24 +95,91 @@ export default function Timetable({
     setRowHeight(Math.max(minRow, equalRow));
   }, []);
 
+  // Compute day column width so that an integer number of day columns fills the available width.
+  const recomputeDayColumnWidth = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const fullW = viewport.clientWidth;
+    const daysArea = Math.max(0, fullW - TIME_COL_PX);
+    const visibleCount = Math.max(1, Math.floor(daysArea / MIN_DAY_COL_PX));
+    const width = Math.max(MIN_DAY_COL_PX, Math.floor(daysArea / visibleCount));
+    setDayColWidth(width);
+  }, []);
+
   useEffect(() => {
     recomputeRowHeight();
   }, [recomputeRowHeight, timeTableData, currentDayIndex]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    // Beobachte Größenänderungen (auch Zoom triggert oft Resize)
-    const ro = new ResizeObserver(() => recomputeRowHeight());
-    ro.observe(container);
-    // Fallback: Window-Resize
-    const onResize = () => recomputeRowHeight();
+    const root = containerRef.current;
+    if (!root) return;
+    // Locate the ScrollArea viewport (rendered by our UI component)
+    const vp = root.querySelector('[data-slot="scroll-area-viewport"]') as HTMLDivElement | null;
+    if (!vp) return;
+    viewportRef.current = vp;
+
+    // Observe height for row sizing
+    const roHeight = new ResizeObserver(() => recomputeRowHeight());
+    roHeight.observe(vp);
+
+    // Observe width for column sizing
+    const roWidth = new ResizeObserver(() => {
+      recomputeDayColumnWidth();
+      // Header may reflow on width changes; update row heights too
+      recomputeRowHeight();
+    });
+    roWidth.observe(vp);
+
+    // Snap handler: when scroll stops, snap to nearest day column
+    let snapTimer: number | null = null;
+    const onScroll = () => {
+      if (snapTimer) window.clearTimeout(snapTimer);
+      snapTimer = window.setTimeout(() => {
+        const el = viewportRef.current;
+        if (!el) return;
+        const x = el.scrollLeft;
+        const target = Math.round(x / dayColWidth) * dayColWidth;
+        el.scrollTo({ left: target, behavior: "smooth" });
+      }, 120);
+    };
+    vp.addEventListener("scroll", onScroll, { passive: true });
+
+    // Fallback: Window-Resize triggers both recomputations
+    const onResize = () => {
+      recomputeRowHeight();
+      recomputeDayColumnWidth();
+    };
     window.addEventListener("resize", onResize);
+
+    // Initial compute
+    recomputeRowHeight();
+    recomputeDayColumnWidth();
+
+    // Scroll once to today's column (Mon-Fri), after we know the viewport width.
+    if (!didInitialScrollRef.current) {
+      didInitialScrollRef.current = true;
+      const el = viewportRef.current;
+      if (el) {
+        const today = new Date().getDay();
+        const dow = today === 0 ? 6 : today - 1; // 0..6 => Mon=0..Sun=6
+        const initialIndex = dow >= 5 ? 0 : dow; // weekend -> Monday
+        // Compute the same width used by recomputeDayColumnWidth to avoid waiting for state update
+        const fullW = el.clientWidth;
+        const daysArea = Math.max(0, fullW - TIME_COL_PX);
+        const visibleCount = Math.max(1, Math.floor(daysArea / MIN_DAY_COL_PX));
+        const width = Math.max(MIN_DAY_COL_PX, Math.floor(daysArea / visibleCount));
+        const targetLeft = width * initialIndex;
+        el.scrollTo({ left: targetLeft, behavior: "auto" });
+      }
+    }
+
     return () => {
-      ro.disconnect();
+      roHeight.disconnect();
+      roWidth.disconnect();
+      vp.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [recomputeRowHeight]);
+  }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
 
   const groupedByDay = allDays.map((day) => {
     const dayData = timeTableData.filter(
@@ -123,11 +199,11 @@ export default function Timetable({
   return (
     <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
       <ScrollArea ref={containerRef} className="h-full">
-        <table className="h-full border-collapse bg-background w-full table-fixed ">
+        <table className="h-full border-collapse bg-background w-full table-fixed">
           <colgroup>
-            <col style={{ width: 64 }} />
+            <col style={{ width: TIME_COL_PX }} />
             {allDays.map((_, i) => (
-              <col key={`day-col-${i}`} style={{ width: 250 }} />
+              <col key={`day-col-${i}`} style={{ width: dayColWidth }} />
             ))}
           </colgroup>
           <thead ref={theadRef}>
