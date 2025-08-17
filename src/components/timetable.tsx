@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { Colors } from "@/constants/Colors";
@@ -121,8 +122,8 @@ export default function Timetable({
 
   return (
     <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
-      <div ref={containerRef} className="h-full overflow-auto">
-        <table className="h-full border-collapse bg-background w-full table-fixed">
+      <ScrollArea ref={containerRef} className="h-full">
+        <table className="h-full border-collapse bg-background w-full table-fixed ">
           <colgroup>
             <col style={{ width: 64 }} />
             {allDays.map((_, i) => (
@@ -321,7 +322,9 @@ export default function Timetable({
             })}
           </tbody>
         </table>
-      </div>
+        <ScrollBar orientation="vertical" />
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     </div>
   );
 }
