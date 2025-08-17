@@ -361,13 +361,13 @@ export default function Timetable({
                                   } as React.CSSProperties
                                 }
                               >
-                                <div className="flex flex-col justify-between min-w-0 flex-1 text-left">
+                                <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5">
                                   <span className="font-bold text-xs truncate">
                                     {lesson.subject} / {lesson.teacher}
                                   </span>
                                   {lesson.room && (
                                     <span className="flex items-center gap-1 text-xs truncate">
-                                      <MapPin size={10} color={textColor} />
+                                      <MapPin size={14} color={textColor} />
                                       {lesson.room}
                                     </span>
                                   )}
