@@ -6,6 +6,14 @@ import { v4 } from "uuid";
 export async function POST(req: NextRequest) {
   try {
     const { class: className, owner_id } = await req.json();
+
+    if (!className || !owner_id) {
+      return NextResponse.json(
+        { error: "Missing required fields: class, owner_id" },
+        { status: 400 },
+      );
+    }
+
     const class_id = v4();
 
     await turso.execute(
@@ -14,7 +22,7 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(
-      { message: "Class created successfully" },
+      { message: "Class created successfully", class_id },
       { status: 201 },
     );
   } catch (error) {

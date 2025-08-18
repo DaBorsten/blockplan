@@ -122,12 +122,62 @@ export default function ManageClass() {
     }
   };
 
+  const handleCreateSave = async () => {
+    const owner_id = user?.id;
+    if (!createName.trim() || !owner_id) return;
+
+    try {
+      setLoading(true);
+
+      // create class
+      const res = await fetch("/api/class", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ class: createName, owner_id }),
+      });
+
+      const data = await res.json();
+      const class_id =
+        data?.class_id || data?.id || (data?.data && data.data.class_id);
+
+      if (!class_id) {
+        console.error("Kein class_id in Antwort:", data);
+        // optional: show user-facing error
+        return;
+      }
+
+      // add user to user_class (adjust payload keys if your API expects different names)
+      const memberRes = await fetch("/api/class/member", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: owner_id, class_id, role: "owner" }),
+      });
+
+      if (!memberRes.ok) {
+        console.error(
+          "Fehler beim Hinzufügen des Users zur Klasse",
+          await memberRes.text(),
+        );
+        // optional: handle error (rollback, notify user, ...)
+      }
+
+      // refresh list / close dialog
+      await fetchWeeks();
+      setCreateOpen(false);
+      setCreateName("");
+    } catch (err) {
+      console.error("Fehler beim Erstellen der Klasse:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     await fetch(`/api/timetable/week?weekId=${id}`, { method: "DELETE" });
     fetchWeeks();
   };
 
-  const handleCreateSave = async () => {
+  /* onst handleCreateSave = async () => {
     // Currently only opens dialog to enter a class title as requested.
     // Hook up API call here when backend is ready.
     // Example (commented due to missing owner context):
@@ -147,7 +197,7 @@ export default function ManageClass() {
 
     setCreateOpen(false);
     setCreateName("");
-  };
+  }; */
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6">
@@ -172,7 +222,7 @@ export default function ManageClass() {
       {loading ? (
         <div>Lade...</div>
       ) : weeks.length === 0 ? (
-        <div>Keine Wochen gefunden.</div>
+        <div>Keine Klassen gefunden.</div>
       ) : (
         <div className="space-y-6">
           {grouped.map(([section, items]) => (
