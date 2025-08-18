@@ -6,6 +6,39 @@ export const runtime = "nodejs";
 export async function POST() {
   try {
     await turso.execute(`
+		CREATE TABLE IF NOT EXISTS user (
+			id TEXT PRIMARY KEY NOT NULL
+		);`);
+
+    await turso.execute(`
+		CREATE TABLE IF NOT EXISTS class (
+			id TEXT PRIMARY KEY NOT NULL,
+			owner_id TEXT NOT NULL,
+			title TEXT NOT NULL,
+			FOREIGN KEY (owner_id) REFERENCES user(id) ON DELETE CASCADE
+		);`);
+
+    await turso.execute(`
+		CREATE TABLE IF NOT EXISTS user_class (
+			user_id TEXT NOT NULL,
+			class_id TEXT NOT NULL,
+			role TEXT NOT NULL,
+			PRIMARY KEY (user_id, class_id),
+			FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+			FOREIGN KEY (class_id) REFERENCES class(id) ON DELETE CASCADE
+		);`);
+
+    await turso.execute(`
+		CREATE TABLE IF NOT EXISTS invitation (
+			id TEXT PRIMARY KEY NOT NULL,
+			user_id TEXT NOT NULL,
+			class_id TEXT NOT NULL,
+			expiration_date TEXT NOT NULL,
+			FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+			FOREIGN KEY (class_id) REFERENCES class(id) ON DELETE CASCADE
+		);`);
+
+    await turso.execute(`
 		CREATE TABLE IF NOT EXISTS timetable_week (
 			id TEXT PRIMARY KEY NOT NULL,
 			week_title TEXT NOT NULL,

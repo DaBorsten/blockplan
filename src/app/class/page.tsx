@@ -12,18 +12,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useUser } from "@clerk/nextjs";
 
 type Week = {
   week_id: string;
   week_title: string;
 };
 
-export default function Manage() {
+export default function ManageClass() {
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
+
+  const { user } = useUser();
 
   const fetchWeeks = async () => {
     setLoading(true);
@@ -122,16 +127,46 @@ export default function Manage() {
     fetchWeeks();
   };
 
+  const handleCreateSave = async () => {
+    // Currently only opens dialog to enter a class title as requested.
+    // Hook up API call here when backend is ready.
+    // Example (commented due to missing owner context):
+    // await fetch('/api/class', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ class: createName, owner_id: 'OWNER_ID_HERE' }),
+    // });
+
+    const owner_id = user?.id;
+
+    await fetch("/api/class", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ class: createName, owner_id: owner_id }),
+    });
+
+    setCreateOpen(false);
+    setCreateName("");
+  };
+
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6">
       <div className="flex flex-row justify-between items-center mb-8">
         <div className="hidden md:flex flex-col">
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
-            Verwalten
+            Klasse verwalten
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            Verwalten Sie Ihre importierten Wochen
+            Verwalten Sie Ihre erstellten Klassen
           </p>
+        </div>
+        <div className="flex flex-wrap gap-4 items-center">
+          <Button
+            className="whitespace-nowrap"
+            onClick={() => setCreateOpen(true)}
+          >
+            Klasse erstellen
+          </Button>
         </div>
       </div>
       {loading ? (
@@ -245,6 +280,52 @@ export default function Manage() {
             >
               <Check className="w-4 h-4" />
               Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Class Dialog */}
+      <Dialog
+        open={createOpen}
+        onOpenChange={(o) => {
+          setCreateOpen(o);
+          if (!o) setCreateName("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Neue Klasse erstellen</DialogTitle>
+            <DialogDescription>
+              Bitte geben Sie den Titel der Klasse ein.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Input
+              value={createName}
+              onChange={(e) => setCreateName(e.target.value)}
+              placeholder="Klassentitel"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="flex-row gap-2 justify-end">
+            <Button
+              variant="outline"
+              onClick={() => setCreateOpen(false)}
+              size="sm"
+              className="cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleCreateSave}
+              size="sm"
+              className="cursor-pointer"
+              disabled={!createName.trim()}
+            >
+              <Check className="w-4 h-4" />
+              Erstellen
             </Button>
           </DialogFooter>
         </DialogContent>

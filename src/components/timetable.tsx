@@ -9,11 +9,13 @@ import {
   useSpecializationStore,
 } from "@/store/useSpecializationStore";
 import { isColorDark } from "@/utils/colorDark";
-import { LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
+import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
 import { useWeekIDStore } from "@/store/useWeekIDStore";
 import { Lesson } from "@/types/timetableData";
 import { useTeacherColorStore } from "@/store/useTeacherColorStore";
 import { getTimesForTimetable } from "@/utils/times";
+import { useModeStore } from "@/store/useModeStore";
+import { toast } from "sonner";
 
 type TimetableProps = {
   setActiveClickedLesson: (lesson: Lesson | null) => void;
@@ -30,6 +32,7 @@ export default function Timetable({
 }: TimetableProps) {
   const { weekID } = useWeekIDStore();
   const { specialization } = useSpecializationStore();
+  const { mode } = useModeStore();
   const { getColor } = useTeacherColorStore();
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
@@ -86,7 +89,7 @@ export default function Timetable({
     // Prefer the actual ScrollArea viewport height if available
     const viewportH = viewportRef.current?.clientHeight;
     // Verfügbare Höhe ist Viewport/Containerhöhe minus Kopfzeile
-    const containerH = (viewportH ?? container.clientHeight);
+    const containerH = viewportH ?? container.clientHeight;
     const theadH = thead.getBoundingClientRect().height;
     const available = Math.max(0, containerH - theadH);
     const rows = allHours.length || 1;
@@ -115,7 +118,9 @@ export default function Timetable({
     const root = containerRef.current;
     if (!root) return;
     // Locate the ScrollArea viewport (rendered by our UI component)
-    const vp = root.querySelector('[data-slot="scroll-area-viewport"]') as HTMLDivElement | null;
+    const vp = root.querySelector(
+      '[data-slot="scroll-area-viewport"]',
+    ) as HTMLDivElement | null;
     if (!vp) return;
     viewportRef.current = vp;
 
@@ -133,12 +138,12 @@ export default function Timetable({
     roHeight.observe(vp);
 
     // Throttled observers to limit update frequency
-  const recomputeRowHeightDebounced = debounce(recomputeRowHeight, 200);
+    const recomputeRowHeightDebounced = debounce(recomputeRowHeight, 200);
     const recomputeDayWidthDebounced = debounce(() => {
       recomputeDayColumnWidth();
       // row heights can change when header wraps; debounce as well
       recomputeRowHeightDebounced();
-  }, 200);
+    }, 200);
 
     // Observe width for column sizing
     const roWidth = new ResizeObserver(() => {
@@ -199,15 +204,15 @@ export default function Timetable({
 
   return (
     <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
-  <ScrollArea ref={containerRef} className="h-full timetable-scroll">
+      <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         <table className="h-full border-collapse bg-background w-full table-fixed">
           <colgroup>
             <col style={{ width: TIME_COL_PX }} />
             {allDays.map((_, i) => (
-      <col
-        key={`day-col-${i}`}
-        style={{ width: dayColWidth, transition: "width 200ms ease" }}
-      />
+              <col
+                key={`day-col-${i}`}
+                style={{ width: dayColWidth, transition: "width 200ms ease" }}
+              />
             ))}
           </colgroup>
           <thead ref={theadRef}>
@@ -344,14 +349,34 @@ export default function Timetable({
                               <button
                                 key={idx}
                                 onClick={async () => {
-                                  const res = await fetch(
-                                    `/api/week/notes?lessonId=${lesson.id}`,
-                                  );
-                                  const data = await res.json();
-                                  const savedNotes = data.notes;
-                                  setActiveNotes(savedNotes);
-                                  setActiveClickedLesson(lesson);
-                                  setIsEditNotesModalOpen(true);
+                                  if (mode === "notes") {
+                                    const res = await fetch(
+                                      `/api/week/notes?lessonId=${lesson.id}`,
+                                    );
+                                    const data = await res.json();
+                                    const savedNotes = data.notes;
+                                    setActiveNotes(savedNotes);
+                                    setActiveClickedLesson(lesson);
+                                    setIsEditNotesModalOpen(true);
+                                  } else {
+                                    if (!lesson.notes) return;
+                                    // Zeige eine kurze Notification ("Notizen kopiert!") beim Kopieren
+                                    try {
+                                      await navigator.clipboard.writeText(
+                                        `${lesson.subject}/${lesson.teacher}: ${
+                                          lesson.notes ?? ""
+                                        }`,
+                                      );
+                                      // Notification API (sonner) Beispiel:
+                                      toast.success("Notizen kopiert!");
+                                    } catch (e: unknown) {
+                                      console.error(
+                                        "Kopieren fehlgeschlagen",
+                                        e,
+                                      );
+                                      toast.error("Kopieren fehlgeschlagen!");
+                                    }
+                                  }
                                 }}
                                 className="flex flex-1 h-full rounded px-1 py-1 items-center justify-between cursor-pointer border-0 text-xs"
                                 style={
@@ -372,13 +397,21 @@ export default function Timetable({
                                     </span>
                                   )}
                                 </div>
-                                {lesson.notes && lesson.notes?.length > 0 && (
-                                  <LucideNotebookText
-                                    color={textColor}
-                                    size={20}
-                                    className="self-center flex-shrink-0 ml-1"
-                                  />
-                                )}
+                                {lesson.notes &&
+                                  lesson.notes?.length > 0 &&
+                                  (mode === "notes" ? (
+                                    <LucideNotebookText
+                                      color={textColor}
+                                      size={20}
+                                      className="self-center flex-shrink-0 ml-1"
+                                    />
+                                  ) : (
+                                    <Copy
+                                      color={textColor}
+                                      size={20}
+                                      className="self-center flex-shrink-0 ml-1"
+                                    />
+                                  ))}
                               </button>
                             );
                           })}

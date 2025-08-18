@@ -2,8 +2,10 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { useUser } from "@clerk/nextjs";
 
 export default function Dev() {
+  const user = useUser();
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6 h-full w-full">
       <div className="mb-8">
@@ -22,6 +24,18 @@ export default function Dev() {
         className="cursor-pointer"
       >
         Datenbank initialisieren
+      </Button>
+      <Button
+        onClick={async () => {
+          await fetch("/api/user", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: user.user?.id }),
+          });
+        }}
+        className="cursor-pointer"
+      >
+        User erstellen
       </Button>
     </div>
   );

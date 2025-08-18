@@ -21,21 +21,32 @@ import {
   Specialization,
   useSpecializationStore,
 } from "@/store/useSpecializationStore";
+import { useModeStore } from "@/store/useModeStore";
 
 export default function TimetablePage() {
   const searchParams = useSearchParams();
 
   const { weekID, setWeekID } = useWeekIDStore();
   const { specialization, setSpecialization } = useSpecializationStore();
+  const { setMode } = useModeStore();
 
   // Initial aus URL lesen
   useEffect(() => {
     const week = searchParams.get("week") || null;
     const spec = searchParams.get("spec");
+    const mode = (searchParams.get("mode") as "notes") || "copy";
 
     setWeekID(week);
+    setMode(mode);
     setSpecialization(spec ? (Number(spec) as Specialization) : 1);
-  }, [searchParams, weekID, specialization, setSpecialization, setWeekID]);
+  }, [
+    searchParams,
+    weekID,
+    specialization,
+    setSpecialization,
+    setWeekID,
+    setMode,
+  ]);
 
   const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(
     null,
