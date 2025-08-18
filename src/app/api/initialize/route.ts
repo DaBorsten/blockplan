@@ -42,7 +42,8 @@ export async function POST() {
 		CREATE TABLE IF NOT EXISTS timetable_week (
 			id TEXT PRIMARY KEY NOT NULL,
 			week_title TEXT NOT NULL,
-			class TEXT NOT NULL
+			class_id TEXT NOT NULL,
+			FOREIGN KEY (class_id) REFERENCES class(id) ON DELETE CASCADE
 		);`);
 
     await turso.execute(`
