@@ -7,14 +7,13 @@ import { Lesson } from "@/types/timetableData";
 // POST /api/week
 export async function POST(req: NextRequest) {
   try {
-    const { timetable, week } = await req.json();
+    const { timetable, week, class_id } = await req.json();
     const week_id = v4();
-    const className = timetable.class;
     const timetableData = timetable.timetable;
 
     await turso.execute(
-      `INSERT INTO timetable_week (id, week_title, class) VALUES (?, ?, ?)`,
-      [week_id, week, className],
+      `INSERT INTO timetable_week (id, week_title, class_id) VALUES (?, ?, ?)`,
+      [week_id, week, class_id],
     );
 
     for (const day in timetableData) {

@@ -14,6 +14,7 @@ import {
 import { updateUrl } from "@/utils/updateTimetableURL";
 import { useWeekIDStore } from "@/store/useWeekIDStore";
 import { useRouter } from "next/navigation";
+import { useClassIDStore } from "@/store/useClassIDStore";
 
 const options = [
   { label: "Alle", value: 1 },
@@ -24,11 +25,12 @@ const options = [
 export function SpecializationSelect() {
   const { weekID } = useWeekIDStore();
   const { specialization, setSpecialization } = useSpecializationStore();
+  const { classID } = useClassIDStore();
   const router = useRouter();
 
   const handleSpecChange = (spec: Specialization) => {
     setSpecialization(spec);
-    updateUrl(router, weekID, spec);
+    updateUrl(router, weekID, spec, classID);
   };
 
   return (

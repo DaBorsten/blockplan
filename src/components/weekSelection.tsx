@@ -23,10 +23,12 @@ import { useWeekIDStore } from "@/store/useWeekIDStore";
 import { useSpecializationStore } from "@/store/useSpecializationStore";
 import { updateUrl } from "@/utils/updateTimetableURL";
 import { useRouter } from "next/navigation";
+import { useClassIDStore } from "@/store/useClassIDStore";
 
 export function WeekSelectionCombobox() {
   const { weekID, setWeekID } = useWeekIDStore();
   const { specialization } = useSpecializationStore();
+  const { classID } = useClassIDStore();
   const [open, setOpen] = React.useState(false);
   const [weeks, setWeeks] = React.useState<
     { label: string; value: string | null }[]
@@ -47,7 +49,7 @@ export function WeekSelectionCombobox() {
 
   const handleWeekChange = (weekId: string | null) => {
     setWeekID(weekId);
-    updateUrl(router, weekId, specialization);
+    updateUrl(router, weekId, specialization, classID);
   };
 
   return (

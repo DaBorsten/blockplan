@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { fetchWeekIDsWithNames } from "@/utils/weeks";
+import { fetchUserClassesWithNames } from "@/utils/classes";
 import { Check, ChevronsUpDown, School } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useWeekIDStore } from "@/store/useWeekIDStore";
-import { useSpecializationStore } from "@/store/useSpecializationStore";
-import { updateUrl } from "@/utils/updateTimetableURL";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
 import {
@@ -16,31 +14,34 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useClassIDStore } from "@/store/useClassIDStore";
+import { updateUrl } from "@/utils/updateTimetableURL";
+import { useWeekIDStore } from "@/store/useWeekIDStore";
+import { useSpecializationStore } from "@/store/useSpecializationStore";
 
 export function ClassSelectionCombobox() {
-  const { weekID, setWeekID } = useWeekIDStore();
+  const { classID, setClassID } = useClassIDStore();
+  const { weekID } = useWeekIDStore();
   const { specialization } = useSpecializationStore();
-  const [open, setOpen] = React.useState(false);
-  const [weeks, setWeeks] = React.useState<
+  const [classes, setClasses] = React.useState<
     { label: string; value: string | null }[]
   >([]);
-  const [loading, setLoading] = React.useState(true);
+  const { user } = useUser();
 
   React.useEffect(() => {
-    const fetchWeeks = async () => {
-      setLoading(true);
-      const result = await fetchWeekIDsWithNames();
-      setWeeks(result || []);
-      setLoading(false);
+    const load = async () => {
+      if (!user?.id) return;
+      const result = await fetchUserClassesWithNames(user.id);
+      setClasses(result || []);
     };
-    fetchWeeks();
-  }, []);
+    load();
+  }, [user?.id]);
 
   const router = useRouter();
 
-  const handleWeekChange = (weekId: string | null) => {
-    setWeekID(weekId);
-    updateUrl(router, weekId, specialization);
+  const handleClassChange = (classId: string | null) => {
+    setClassID(classId);
+    updateUrl(router, weekID, specialization, classId);
   };
 
   return (
@@ -53,12 +54,12 @@ export function ClassSelectionCombobox() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <School className="size-4 text-foreground"  />
+                <School className="size-4 text-foreground" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-medium">Klasse</span>
                 <span className="">
-                  {weeks.find((w) => w.value === weekID)?.label}
+                  {classes.find((w) => w.value === classID)?.label}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
@@ -68,23 +69,19 @@ export function ClassSelectionCombobox() {
             className="w-(--radix-dropdown-menu-trigger-width)"
             align="start"
           >
-            {weeks.map((week) => (
+            {classes.map((classItem) => (
               <DropdownMenuItem
-                key={week.value ?? "none"}
-                onSelect={(currentValue) => {
-                  if (currentValue === weekID) {
-                    setOpen(false);
-                    return;
-                  }
-                  setOpen(false);
-                  handleWeekChange(currentValue);
+                key={classItem.value ?? "none"}
+                onSelect={() => {
+                  if (classItem.value === classID) return;
+                  handleClassChange(classItem.value);
                 }}
               >
-                {week.label}
+                {classItem.label}
                 <Check
                   className={cn(
                     "ml-auto",
-                    weekID === week.value ? "opacity-100" : "opacity-0",
+                    classID === classItem.value ? "opacity-100" : "opacity-0",
                   )}
                 />
               </DropdownMenuItem>
