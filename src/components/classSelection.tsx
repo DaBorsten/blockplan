@@ -14,15 +14,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useClassIDStore } from "@/store/useClassIDStore";
 import { updateUrl } from "@/utils/updateTimetableURL";
-import { useWeekIDStore } from "@/store/useWeekIDStore";
-import { useSpecializationStore } from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
+import { useSearchParams } from "next/navigation";
 
 export function ClassSelectionCombobox() {
-  const { classID, setClassID } = useClassIDStore();
-  const { weekID } = useWeekIDStore();
-  const { specialization } = useSpecializationStore();
+  const searchParams = useSearchParams();
+  const classID = searchParams?.get("class") ?? null;
+  const weekID = searchParams?.get("week") ?? null;
+  const specParam = searchParams?.get("spec");
+  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
   const [classes, setClasses] = React.useState<
     { label: string; value: string | null }[]
   >([]);
@@ -40,7 +41,6 @@ export function ClassSelectionCombobox() {
   const router = useRouter();
 
   const handleClassChange = (classId: string | null) => {
-    setClassID(classId);
     updateUrl(router, weekID, specialization, classId);
   };
 

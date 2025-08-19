@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     // 1. Einträge mit Notes aus der ausgewählten Woche + Spezialisierung laden
     const sourceNotes = await turso.execute(
-      `SELECT t.*, tw.class
+      `SELECT t.*, tw.class_id
       FROM timetable t
       JOIN timetable_specialization ts ON t.id = ts.timetable_id
       JOIN timetable_week tw ON t.week_id = tw.id
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
           ts.specialization = ? AND
           t.day = ? AND
           t.hour = ? AND
-          tw.class = ? AND
+          tw.class_id = ? AND
           t.subject = ? AND
           t.teacher = ? AND
           NULLIF(TRIM(t.notes), '') IS NULL`,
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
           specialization,
           entry.day,
           entry.hour,
-          entry.class,
+          entry.class_id,
           entry.subject,
           entry.teacher,
         ],

@@ -7,14 +7,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Specialization,
-  useSpecializationStore,
-} from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
 import { updateUrl } from "@/utils/updateTimetableURL";
-import { useWeekIDStore } from "@/store/useWeekIDStore";
-import { useRouter } from "next/navigation";
-import { useClassIDStore } from "@/store/useClassIDStore";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const options = [
   { label: "Alle", value: 1 },
@@ -23,13 +18,14 @@ const options = [
 ];
 
 export function SpecializationSelect() {
-  const { weekID } = useWeekIDStore();
-  const { specialization, setSpecialization } = useSpecializationStore();
-  const { classID } = useClassIDStore();
+  const searchParams = useSearchParams();
+  const weekID = searchParams?.get("week") ?? null;
+  const specParam = searchParams?.get("spec");
+  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
+  const classID = searchParams?.get("class") ?? null;
   const router = useRouter();
 
   const handleSpecChange = (spec: Specialization) => {
-    setSpecialization(spec);
     updateUrl(router, weekID, spec, classID);
   };
 

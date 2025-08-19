@@ -17,6 +17,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToaster } from "@/components/ThemeToaster";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
+import ClassRouteSync from "@/components/ClassRouteSync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,8 @@ export default function RootLayout({
               <SidebarProvider>
                 <AppSidebar />
                 <SidebarInset className="flex flex-col h-screen">
+                  {/* Sync ?class & ?week with stores, validate access */}
+                  <ClassRouteSync />
                   <header className="flex shrink-0 items-center justify-between px-4 md:px-6 sticky top-0 z-10 bg-background gap-4 h-16">
                     <SidebarTrigger className="cursor-pointer" />
                     <div className="flex-1" />

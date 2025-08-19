@@ -1,4 +1,4 @@
-import { Specialization } from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
 
 export type TimetableDatabase = {
   id: string;
@@ -6,7 +6,7 @@ export type TimetableDatabase = {
   specialization: Specialization;
   week: string;
   day: string;
-  hour: int;
+  hour: number;
   class: string;
   subject: string;
   teacher: string;

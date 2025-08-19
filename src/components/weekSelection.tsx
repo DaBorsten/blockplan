@@ -19,16 +19,18 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useWeekIDStore } from "@/store/useWeekIDStore";
-import { useSpecializationStore } from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
 import { updateUrl } from "@/utils/updateTimetableURL";
-import { useRouter } from "next/navigation";
-import { useClassIDStore } from "@/store/useClassIDStore";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 export function WeekSelectionCombobox() {
-  const { weekID, setWeekID } = useWeekIDStore();
-  const { specialization } = useSpecializationStore();
-  const { classID } = useClassIDStore();
+  const { user } = useUser();
+  const searchParams = useSearchParams();
+  const specParam = searchParams?.get("spec");
+  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
+  const weekID = searchParams?.get("week") ?? null;
+  const classID = searchParams?.get("class") ?? null;
   const [open, setOpen] = React.useState(false);
   const [weeks, setWeeks] = React.useState<
     { label: string; value: string | null }[]
@@ -38,18 +40,22 @@ export function WeekSelectionCombobox() {
   React.useEffect(() => {
     const fetchWeeks = async () => {
       setLoading(true);
-      const result = await fetchWeekIDsWithNames();
-      setWeeks(result || []);
+      if (user?.id && classID) {
+        const result = await fetchWeekIDsWithNames(user.id, classID);
+        setWeeks(result || []);
+      } else {
+        setWeeks([{ label: "Keine Woche", value: null }]);
+      }
       setLoading(false);
     };
     fetchWeeks();
-  }, []);
+  }, [user?.id, classID]);
 
   const router = useRouter();
 
-  const handleWeekChange = (weekId: string | null) => {
-    setWeekID(weekId);
-    updateUrl(router, weekId, specialization, classID);
+  const handleWeekChange = (weekId: string | null | string) => {
+    const nextWeek = weekId && weekId.length > 0 ? (weekId as string) : null;
+    updateUrl(router, nextWeek, specialization, classID);
   };
 
   return (

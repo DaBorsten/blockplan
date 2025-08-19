@@ -1,4 +1,4 @@
-import { Specialization } from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
 
 export type Lesson = {
   id: string;

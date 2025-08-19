@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         timetable.week_id,
         timetable_specialization.specialization,
         timetable_week.week_title,
-        timetable_week.class,
+        timetable_week.class_id,
         COUNT(*) AS noteCount,
         TRIM(SUBSTR(
           timetable_week.week_title,
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
         timetable.week_id,
         timetable_specialization.specialization,
         timetable_week.week_title,
-        timetable_week.class`,
+        timetable_week.class_id`,
       [excludeWeekId, ...specializationIds],
     );
     return NextResponse.json({ data: result.rows });

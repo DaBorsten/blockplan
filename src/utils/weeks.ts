@@ -11,8 +11,9 @@ export const sortWeeksByName = (weeks: weekIDWithTitle[]) => {
     });
 };
 
-export const fetchWeekIDsWithNames = async () => {
-  const res = await fetch("/api/week/weeks");
+export const fetchWeekIDsWithNames = async (userId: string, classId: string) => {
+  const params = new URLSearchParams({ user_id: userId, class_id: classId });
+  const res = await fetch(`/api/week/weeks?${params.toString()}`);
   if (!res.ok) return [];
   const data = await res.json();
   const result = data.data || [];

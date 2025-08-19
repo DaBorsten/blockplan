@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Check, X } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -19,25 +21,35 @@ type Week = {
 };
 
 export default function Manage() {
+  const { user } = useUser();
+  const searchParams = useSearchParams();
+  const classID = searchParams?.get("class") ?? null;
   const [weeks, setWeeks] = useState<Week[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
-  const fetchWeeks = async () => {
+  const fetchWeeks = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/week/weeks");
-    const data = await res.json();
-    const result = data.data || [];
-
-    setWeeks(result || []);
-    setLoading(false);
-  };
+    try {
+      if (user?.id && classID) {
+        const params = new URLSearchParams({ user_id: user.id, class_id: classID });
+        const res = await fetch(`/api/week/weeks?${params.toString()}`);
+        const data = await res.json();
+        const result = data.data || [];
+        setWeeks(result || []);
+      } else {
+        setWeeks([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, classID]);
 
   useEffect(() => {
     fetchWeeks();
-  }, []);
+  }, [fetchWeeks]);
 
   const grouped = useMemo(() => {
     // Group by prefix before the last '_' in the title, or the full title if none
@@ -136,6 +148,8 @@ export default function Manage() {
       </div>
       {loading ? (
         <div>Lade...</div>
+      ) : !classID ? (
+        <div>Bitte zuerst eine Klasse auswählen.</div>
       ) : weeks.length === 0 ? (
         <div>Keine Wochen gefunden.</div>
       ) : (

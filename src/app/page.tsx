@@ -16,37 +16,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Lesson } from "@/types/timetableData";
-import { useWeekIDStore } from "@/store/useWeekIDStore";
-import {
-  Specialization,
-  useSpecializationStore,
-} from "@/store/useSpecializationStore";
 import { useModeStore } from "@/store/useModeStore";
 
 export default function TimetablePage() {
   const searchParams = useSearchParams();
-
-  const { weekID, setWeekID } = useWeekIDStore();
-  const { specialization, setSpecialization } = useSpecializationStore();
   const { setMode } = useModeStore();
 
   // Initial aus URL lesen
   useEffect(() => {
-    const week = searchParams.get("week") || null;
-    const spec = searchParams.get("spec");
     const mode = (searchParams.get("mode") as "notes") || "copy";
-
-    setWeekID(week);
     setMode(mode);
-    setSpecialization(spec ? (Number(spec) as Specialization) : 1);
-  }, [
-    searchParams,
-    weekID,
-    specialization,
-    setSpecialization,
-    setWeekID,
-    setMode,
-  ]);
+  }, [searchParams, setMode]);
 
   const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(
     null,

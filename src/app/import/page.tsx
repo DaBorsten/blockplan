@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useClassIDStore } from "@/store/useClassIDStore";
+import { useSearchParams } from "next/navigation";
 
 type FileItem = {
   id: string;
@@ -47,7 +47,8 @@ export default function Import() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { classID } = useClassIDStore();
+  const searchParams = useSearchParams();
+  const classID = searchParams?.get("class") ?? null;
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;

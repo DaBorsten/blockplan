@@ -4,13 +4,10 @@ import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { Colors } from "@/constants/Colors";
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
-import {
-  Specialization,
-  useSpecializationStore,
-} from "@/store/useSpecializationStore";
+import { Specialization } from "@/types/specialization";
 import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
-import { useWeekIDStore } from "@/store/useWeekIDStore";
+import { useSearchParams } from "next/navigation";
 import { Lesson } from "@/types/timetableData";
 import { useTeacherColorStore } from "@/store/useTeacherColorStore";
 import { getTimesForTimetable } from "@/utils/times";
@@ -30,8 +27,10 @@ export default function Timetable({
   setIsEditNotesModalOpen,
   notesUpdated,
 }: TimetableProps) {
-  const { weekID } = useWeekIDStore();
-  const { specialization } = useSpecializationStore();
+  const searchParams = useSearchParams();
+  const weekID = searchParams.get("week");
+  const specParam = searchParams.get("spec");
+  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
   const { mode } = useModeStore();
   const { getColor } = useTeacherColorStore();
 
