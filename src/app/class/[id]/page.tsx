@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, RefreshCw, Trash2 } from "lucide-react";
 
-type Member = { user_id: string; role: "owner" | "admin" | "member" };
+type Member = { user_id: string; role: "owner" | "admin" | "member"; nickname?: string | null };
 
 export default function ClassMembersPage() {
   const { id } = useParams<{ id: string }>();
@@ -193,14 +193,14 @@ export default function ClassMembersPage() {
 
       <h2 className="text-lg font-medium mb-2">Mitglieder</h2>
       <ul className="divide-y rounded-md border">
-        {members.map((m) => (
+  {members.map((m) => (
           <li key={m.user_id} className="flex items-center justify-between p-3">
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs">
-                {m.user_id.substring(0, 2)}
+    {(m.nickname || m.user_id).substring(0, 2)}
               </div>
               <div className="text-sm">
-                <div className="font-medium">{m.user_id}</div>
+    <div className="font-medium">{m.nickname || m.user_id}</div>
                 <div className="text-muted-foreground text-xs">{m.role}</div>
               </div>
             </div>

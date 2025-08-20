@@ -42,12 +42,17 @@ export async function GET(req: NextRequest) {
     }
 
     const membersRes = await turso.execute(
-      `SELECT user_id, role FROM user_class WHERE class_id = ? ORDER BY role, user_id`,
+      `SELECT uc.user_id, uc.role, u.nickname
+       FROM user_class uc
+       LEFT JOIN user u ON u.id = uc.user_id
+       WHERE uc.class_id = ?
+       ORDER BY uc.role, COALESCE(u.nickname, uc.user_id)`,
       [class_id],
     );
     const members = membersRes.rows.map((r) => ({
       user_id: (r as unknown as { user_id: string }).user_id,
       role: (r as unknown as { role: string }).role,
+      nickname: (r as unknown as { nickname?: string }).nickname ?? null,
     }));
 
     let currentRole: string | null = null;

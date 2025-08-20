@@ -18,6 +18,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToaster } from "@/components/ThemeToaster";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import ClassRouteSync from "@/components/ClassRouteSync";
+import NicknameGuard from "@/components/NicknameGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +64,8 @@ export default function RootLayout({
                 <SidebarInset className="flex flex-col h-screen">
                   {/* Sync ?class & ?week with stores, validate access */}
                   <ClassRouteSync />
+                  {/* Enforce nickname setup before accessing app */}
+                  <NicknameGuard />
                   <header className="flex shrink-0 items-center justify-between px-4 md:px-6 sticky top-0 z-10 bg-background gap-4 h-16">
                     <SidebarTrigger className="cursor-pointer" />
                     <div className="flex-1" />

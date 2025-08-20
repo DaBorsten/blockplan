@@ -10,6 +10,13 @@ export async function POST() {
 			id TEXT PRIMARY KEY NOT NULL
 		);`);
 
+		// Add nickname column if it doesn't exist
+		try {
+			await turso.execute(`ALTER TABLE user ADD COLUMN nickname TEXT`);
+		} catch {
+			// ignore if column already exists
+		}
+
     await turso.execute(`
 		CREATE TABLE IF NOT EXISTS class (
 			id TEXT PRIMARY KEY NOT NULL,
