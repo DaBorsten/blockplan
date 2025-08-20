@@ -55,7 +55,7 @@ export function ClassSelectionCombobox() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <School className="size-4 text-foreground" />
+                <School className="size-4 text-white" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-medium">Klasse</span>
