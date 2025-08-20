@@ -18,6 +18,7 @@ export default function ClassMembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [currentRole, setCurrentRole] = useState<Member["role"] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [classTitle, setClassTitle] = useState<string>("");
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -48,6 +49,20 @@ export default function ClassMembersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id]);
 
+  useEffect(() => {
+    const getTitle = async () => {
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/class?id=${encodeURIComponent(id)}`);
+        const data = await res.json();
+        if (res.ok && data?.data) setClassTitle((data.data.title as string) || "");
+      } catch {
+        /* ignore */
+      }
+    };
+    getTitle();
+  }, [id]);
+
   // Load invites when dialog opens
   useEffect(() => {
     if (inviteOpen) {
@@ -72,6 +87,7 @@ export default function ClassMembersPage() {
       body: JSON.stringify({ classID: id, newClassName: editName }),
     });
     setEditOpen(false);
+  setClassTitle(editName);
   };
 
   const handleCreateInvite = async () => {
@@ -159,17 +175,23 @@ export default function ClassMembersPage() {
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6">
-      <h1 className="text-2xl font-semibold mb-4">Mitglieder</h1>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-2xl font-semibold truncate">
+            Klasse {classTitle || ""}
+          </h1>
+          {currentRole === "owner" && (
+            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => { setEditName(classTitle || ""); setEditOpen(true); }} aria-label="Klasse umbenennen">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </Button>
+          )}
+        </div>
         {(currentRole === "owner" || currentRole === "admin") && (
-          <>
-            <Button onClick={() => setInviteOpen(true)} variant="outline" size="sm">Einladungen</Button>
-          </>
-        )}
-        {currentRole === "owner" && (
-          <Button onClick={() => setEditOpen(true)} size="sm">Bearbeiten</Button>
+          <Button onClick={() => setInviteOpen(true)} variant="outline" size="sm">Einladungen</Button>
         )}
       </div>
+
+      <h2 className="text-lg font-medium mb-2">Mitglieder</h2>
       <ul className="divide-y rounded-md border">
         {members.map((m) => (
           <li key={m.user_id} className="flex items-center justify-between p-3">
