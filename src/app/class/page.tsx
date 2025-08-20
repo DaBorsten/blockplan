@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, X } from "lucide-react";
@@ -21,9 +22,11 @@ export default function ManageClass() {
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
+  // join moved to /class/join
   // Invite management moved to details page
 
   const { user } = useUser();
+  const router = useRouter();
 
   const fetchClasses = async (userId: string) => {
     setLoading(true);
@@ -130,6 +133,13 @@ export default function ManageClass() {
             onClick={() => setCreateOpen(true)}
           >
             Klasse erstellen
+          </Button>
+          <Button
+            variant="outline"
+            className="whitespace-nowrap"
+            onClick={() => router.push("/class/join")}
+          >
+            Klasse beitreten
           </Button>
         </div>
       </div>
@@ -267,6 +277,8 @@ export default function ManageClass() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+  {/* Join dialog removed; use /class/join */}
 
   {/* Delete Invite dialog removed */}
     </div>

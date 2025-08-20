@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     );
 
     if (res.rows.length === 0) {
-      return NextResponse.json({ valid: false, reason: "not_found" }, { status: 404 });
+      return NextResponse.json({ valid: false, reason: "not_found" });
     }
 
     const row = (res.rows[0] as unknown) as { code: string; class_id: string; expiration_date: string; class_title: string };
