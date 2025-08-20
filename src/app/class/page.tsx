@@ -4,10 +4,12 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, X } from "lucide-react";
+import { Check, X, School, LogOut } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 type ClassItem = {
   class_id: string;
@@ -155,12 +157,12 @@ export default function ManageClass() {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <Link href={`/class/${cls.class_id}`} className="flex items-center gap-3 flex-1 min-w-0">
                     <div
-                      className="w-10 h-10 rounded-md flex items-center justify-center font-semibold text-sm"
+                      className="w-10 h-10 rounded-md flex items-center justify-center"
                       title={cls.class_title}
                       aria-hidden
                     >
                       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border dark:bg-sidebar-accent dark:text-sidebar-accent-foreground">
-                        {cls.class_title ? cls.class_title.split(" ")[0] : "C"}
+                        <School className="h-4 w-4" />
                       </div>
                     </div>
                     <div className="min-w-0">
@@ -175,7 +177,51 @@ export default function ManageClass() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Edit and Invite actions moved to details page */}
+                  {/* Leave class action */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon" title="Klasse verlassen">
+                        <LogOut className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Klasse verlassen?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Möchten Sie &quot;{cls.class_title}&quot; wirklich verlassen? Dieser Vorgang kann nicht rückgängig gemacht werden.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={async () => {
+                            if (!user?.id) return;
+                            try {
+                              const params = new URLSearchParams({
+                                class_id: cls.class_id,
+                                target_user_id: user.id,
+                                requester_id: user.id,
+                              });
+                              const res = await fetch(`/api/class/member?${params.toString()}`, { method: "DELETE" });
+                              if (!res.ok) {
+                                const txt = await res.text();
+                                toast.error("Verlassen fehlgeschlagen");
+                                console.error(txt);
+                                return;
+                              }
+                              toast.success("Klasse verlassen");
+                              if (user?.id) fetchClasses(user.id);
+                            } catch (err) {
+                              console.error(err);
+                              toast.error("Verlassen fehlgeschlagen");
+                            }
+                          }}
+                        >
+                          Verlassen
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </li>
