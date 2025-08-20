@@ -36,7 +36,8 @@ export function ClassSelectionCombobox() {
       setClasses(result || []);
     };
     load();
-  }, [user?.id]);
+    // Also reload when class query changes so new joins appear immediately
+  }, [user?.id, classID]);
 
   const router = useRouter();
 

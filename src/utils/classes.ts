@@ -2,7 +2,10 @@
 type ClassOption = { label: string; value: string | null };
 
 export const fetchUserClassesWithNames = async (userId: string): Promise<ClassOption[]> => {
-  const res = await fetch(`/api/class/classes?user_id=${encodeURIComponent(userId)}`);
+  const res = await fetch(
+    `/api/class/classes?user_id=${encodeURIComponent(userId)}`,
+    { cache: "no-store" }
+  );
   if (!res.ok) return [
     { label: "Keine Klasse", value: null },
   ];
