@@ -8,6 +8,7 @@ import { Check, X, School, LogOut } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
@@ -29,6 +30,9 @@ export default function ManageClass() {
 
   const { user } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const qs = searchParams?.toString() ?? "";
+  const withParams = (url: string) => (qs ? `${url}?${qs}` : url);
 
   const fetchClasses = async (userId: string) => {
     setLoading(true);
@@ -139,7 +143,7 @@ export default function ManageClass() {
           <Button
             variant="outline"
             className="whitespace-nowrap"
-            onClick={() => router.push("/class/join")}
+            onClick={() => router.push(withParams("/class/join"))}
           >
             Klasse beitreten
           </Button>
@@ -155,7 +159,7 @@ export default function ManageClass() {
             <li key={cls.class_id} className="block">
               <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 dark:bg-card border-border shadow-sm">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <Link href={`/class/${cls.class_id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                  <Link href={withParams(`/class/${cls.class_id}`)} className="flex items-center gap-3 flex-1 min-w-0">
                     <div
                       className="w-10 h-10 rounded-md flex items-center justify-center"
                       title={cls.class_title}

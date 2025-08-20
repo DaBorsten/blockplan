@@ -68,16 +68,20 @@ export function AppSidebar() {
           <SidebarGroupLabel>Blockplan</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {items.map((item) => {
+                const active = item.url === "/"
+                  ? pathname === "/"
+                  : pathname === item.url || pathname.startsWith(item.url + "/");
+                return (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={active}>
                     <Link href={withParams(item.url)}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              );})}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
