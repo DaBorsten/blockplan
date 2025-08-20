@@ -21,7 +21,8 @@ import {
   School,
   Settings,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { ClassSelectionCombobox } from "./classSelection";
 
 const items = [
@@ -54,6 +55,9 @@ const items = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const qs = searchParams?.toString() ?? "";
+  const withParams = (url: string) => (qs ? `${url}?${qs}` : url);
   return (
     <Sidebar>
       <SidebarHeader>
@@ -67,10 +71,10 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <a href={item.url}>
+                    <Link href={withParams(item.url)}>
                       <item.icon />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -82,10 +86,10 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={pathname === "/settings"}>
-              <a href="/settings">
+              <Link href={withParams("/settings") }>
                 <Settings />
                 <span>Einstellungen</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
