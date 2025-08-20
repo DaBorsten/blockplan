@@ -9,7 +9,7 @@ export async function PUT(req: NextRequest) {
   }
   try {
     await turso.execute(
-      `UPDATE timetable_class SET class_title = ? WHERE id = ?;`,
+      `UPDATE class SET title = ? WHERE id = ?;`,
       [newClassName, classID],
     );
     return NextResponse.json({ success: true });
