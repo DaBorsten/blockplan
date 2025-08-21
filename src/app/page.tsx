@@ -86,7 +86,22 @@ export default function TimetablePage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-4 items-center">
+        {/* Mobile: controls split left/right */}
+        <div className="flex w-full items-center justify-between md:hidden">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="overflow-hidden">
+              <WeekSelectionCombobox />
+            </div>
+            <SpecializationSelect />
+          </div>
+          <div className="flex items-center gap-2">
+            <ModeLockButton />
+            <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
+          </div>
+        </div>
+
+        {/* Desktop: original grouping */}
+        <div className="hidden md:flex flex-wrap gap-4 items-center">
           <WeekSelectionCombobox />
           <SpecializationSelect />
           <ModeLockButton />
