@@ -28,6 +28,11 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
   const classID = searchParams.get("class");
   const [openTransfer, setOpenTransfer] = React.useState(false);
   const handleCopy = async () => {
+    // Block copying when no week is selected
+    if (!weekID) {
+      toast.message("Keine Woche ausgewählt");
+      return;
+    }
     // If a week is selected, copy formatted weekly notes; otherwise fallback to current notes
     if (weekID) {
       try {
@@ -199,6 +204,10 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
   };
 
   const handleShare = async () => {
+    if (!weekID) {
+      toast.message("Keine Woche ausgewählt");
+      return;
+    }
     const notes = getNotes() ?? "";
     if (navigator.share) {
       try {
@@ -227,11 +236,11 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={handleCopy}>
+          <DropdownMenuItem onSelect={handleCopy} disabled={!weekID}>
             <Copy className="mr-2" />
             Notizen kopieren
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleShare}>
+          <DropdownMenuItem onSelect={handleShare} disabled={!weekID}>
             <Share2 className="mr-2" />
             Notizen teilen
           </DropdownMenuItem>
