@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Share2, Send, Ellipsis } from "lucide-react";
+import { Copy, Send, Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useModeStore } from "@/store/useModeStore";
 import NotesTransferDialog from "@/components/NotesTransferDialog";
@@ -203,25 +203,6 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
     toast.success("Notizen kopiert");
   };
 
-  const handleShare = async () => {
-    if (!weekID) {
-      toast.message("Keine Woche ausgewählt");
-      return;
-    }
-    const notes = getNotes() ?? "";
-    if (navigator.share) {
-      try {
-        await navigator.share({ text: notes, title: "Stundenplan Notizen" });
-      } catch (e) {
-        console.error("Share cancelled or failed", e);
-      }
-      return;
-    }
-
-    // Fallback: copy to clipboard
-    await handleCopy();
-  };
-
   const handleTransfer = async () => {
     // Open dialog; target week is current active week
     setOpenTransfer(true);
@@ -239,10 +220,6 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           <DropdownMenuItem onSelect={handleCopy} disabled={!weekID}>
             <Copy className="mr-2" />
             Notizen kopieren
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleShare} disabled={!weekID}>
-            <Share2 className="mr-2" />
-            Notizen teilen
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleTransfer} disabled={!weekID || !classID}>
             <Send className="mr-2" />
