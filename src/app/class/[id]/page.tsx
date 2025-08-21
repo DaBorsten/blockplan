@@ -26,6 +26,10 @@ export default function ClassMembersPage() {
   const [expiryPreset, setExpiryPreset] = useState<ExpiryPreset>("never");
   const [inviteLoading, setInviteLoading] = useState(false);
   const [invites, setInvites] = useState<Array<{ id: string; expiration_date: string; active: boolean }>>([]);
+  // Refresh spinner control: ensure at least one full rotation and stop at cycle boundary
+  const [invitesSpinning, setInvitesSpinning] = useState(false);
+  const [invitesFetching, setInvitesFetching] = useState(false);
+  const [spinStartTs, setSpinStartTs] = useState<number | null>(null);
 
   const load = async () => {
     if (!id) return;
@@ -73,10 +77,31 @@ export default function ClassMembersPage() {
 
   const fetchInvites = async () => {
     if (!user?.id || !id) return;
-    const res = await fetch(`/api/class/invitation?user_id=${encodeURIComponent(user.id)}&class_id=${encodeURIComponent(id as string)}`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setInvites(data.data || []);
+    if (invitesFetching) return; // avoid overlapping fetches
+    setInvitesFetching(true);
+    if (!invitesSpinning) {
+      setInvitesSpinning(true);
+      setSpinStartTs(performance.now());
+    }
+    try {
+      const res = await fetch(`/api/class/invitation?user_id=${encodeURIComponent(user.id)}&class_id=${encodeURIComponent(id as string)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setInvites(data.data || []);
+    } finally {
+      // compute remaining time to finish current spin cycle and ensure min 1s total
+      const cycleMs = 1000; // matches Tailwind animate-spin default
+      const started = spinStartTs ?? performance.now();
+      const elapsed = performance.now() - started;
+      const ensureMin = Math.max(cycleMs - elapsed, 0);
+      const toCycleEnd = (cycleMs - (elapsed % cycleMs)) % cycleMs;
+      const delay = Math.max(ensureMin, toCycleEnd);
+      window.setTimeout(() => {
+        setInvitesSpinning(false);
+        setSpinStartTs(null);
+        setInvitesFetching(false);
+      }, Math.ceil(delay));
+    }
   };
 
   const handleEditSave = async () => {
@@ -263,8 +288,8 @@ export default function ClassMembersPage() {
                 <Check className="w-4 h-4" />
                 Erstellen
               </Button>
-              <Button variant="ghost" size="sm" onClick={fetchInvites}>
-                <RefreshCw className="w-4 h-4" /> Aktualisieren
+              <Button variant="ghost" size="sm" onClick={fetchInvites} disabled={invitesSpinning || invitesFetching}>
+                <RefreshCw className={`w-4 h-4 ${invitesSpinning ? "animate-spin" : ""}`} /> Aktualisieren
               </Button>
             </div>
 
