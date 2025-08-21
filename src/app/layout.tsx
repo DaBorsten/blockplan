@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClerkProvider, SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import {
@@ -14,6 +14,7 @@ import { ClerkUserButton } from "@/components/ClerkUserButton";
 import ClassRouteSync from "@/components/ClassRouteSync";
 import NicknameGuard from "@/components/NicknameGuard";
 import LandingPage from "@/components/LandingPage";
+import ClerkThemingProvider from "@/components/ClerkThemingProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,17 +37,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="de" suppressHydrationWarning>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    <html lang="de" suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
         >
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+          <ClerkThemingProvider>
             <SignedOut>
               <LandingPage />
             </SignedOut>
@@ -68,9 +69,9 @@ export default function RootLayout({
                 </SidebarInset>
               </SidebarProvider>
             </SignedIn>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+          </ClerkThemingProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
