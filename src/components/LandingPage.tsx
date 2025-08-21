@@ -1,17 +1,12 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, StickyNote, Share2, School } from "lucide-react";
+import { CalendarDays, StickyNote, Share2 } from "lucide-react";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="flex items-center justify-between p-4 md:p-6 h-16">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-primary/10 text-primary flex items-center justify-center">
-            <School className="h-5 w-5" suppressHydrationWarning />
-          </div>
-          <span className="font-semibold">Blockplan</span>
-        </div>
+        <span className="font-semibold">Blockplan</span>
         <div className="flex items-center gap-2">
           <SignInButton mode="modal">
             <Button variant="ghost" size="sm" className="cursor-pointer">
@@ -31,7 +26,8 @@ export default function LandingPage() {
             Dein Stundenplan mit Notizen
           </h1>
           <p className="text-muted-foreground text-base md:text-lg">
-            Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.
+            Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in
+            Klassen zusammen.
           </p>
           <div className="flex items-center justify-center gap-3">
             <SignUpButton mode="modal">
@@ -49,17 +45,23 @@ export default function LandingPage() {
             <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
               <CalendarDays className="h-6 w-6" suppressHydrationWarning />
               <div className="font-medium">Woche im Blick</div>
-              <div className="text-xs text-muted-foreground">Schnell zwischen Wochen wechseln</div>
+              <div className="text-xs text-muted-foreground">
+                Schnell zwischen Wochen wechseln
+              </div>
             </div>
             <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
               <StickyNote className="h-6 w-6" suppressHydrationWarning />
               <div className="font-medium">Notizen je Stunde</div>
-              <div className="text-xs text-muted-foreground">Strukturiert, gruppenbasiert</div>
+              <div className="text-xs text-muted-foreground">
+                Strukturiert, gruppenbasiert
+              </div>
             </div>
             <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
               <Share2 className="h-6 w-6" suppressHydrationWarning />
               <div className="font-medium">Gemeinsam arbeiten</div>
-              <div className="text-xs text-muted-foreground">Klassen verwalten und einladen</div>
+              <div className="text-xs text-muted-foreground">
+                Klassen verwalten und einladen
+              </div>
             </div>
           </div>
         </div>
