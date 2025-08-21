@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, RefreshCw, Trash2, Copy as CopyIcon } from "lucide-react";
+import { Check, X, RefreshCw, Trash2, Copy as CopyIcon, Crown, Swords, User } from "lucide-react";
 import { toast } from "sonner";
 
 type Member = { user_id: string; role: "owner" | "admin" | "member"; nickname?: string | null };
@@ -255,7 +255,26 @@ export default function ClassMembersPage() {
               </div>
               <div className="text-sm">
     <div className="font-medium">{m.nickname || m.user_id}</div>
-                <div className="text-muted-foreground text-xs">{m.role}</div>
+                <div className="text-muted-foreground text-xs flex items-center gap-1">
+                  {m.role === "owner" && (
+                    <>
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>Besitzer</span>
+                    </>
+                  )}
+                  {m.role === "admin" && (
+                    <>
+                      <Swords className="w-3.5 h-3.5" />
+                      <span>Admin</span>
+                    </>
+                  )}
+                  {m.role === "member" && (
+                    <>
+                      <User className="w-3.5 h-3.5" />
+                      <span>Mitglied</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
