@@ -105,7 +105,26 @@ export async function DELETE(req: NextRequest) {
     // self-leave
     if (requester_id === target_user_id) {
       if (requesterRole === "owner") {
-        return NextResponse.json({ error: "Owner cannot leave the class" }, { status: 400 });
+        // Owner wants to leave: transfer ownership to another member if possible
+        const othersRes = await turso.execute(
+          `SELECT user_id, role FROM user_class WHERE class_id = ? AND user_id <> ?
+           ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 WHEN 'member' THEN 2 ELSE 3 END, user_id
+           LIMIT 1`,
+          [class_id, requester_id],
+        );
+        const next = (othersRes.rows?.[0] as { user_id?: string; role?: string } | undefined) ?? null;
+        if (!next?.user_id) {
+          // No other members to take ownership; disallow leaving to avoid orphaned class
+          return NextResponse.json(
+            { error: "Als einziger Besitzer kannst du die Klasse nicht verlassen. Bitte die Klasse löschen oder zuerst eine:n andere:n Besitzer:in festlegen." },
+            { status: 400 },
+          );
+        }
+        // Promote next member to owner
+        await turso.execute(`UPDATE user_class SET role = 'owner' WHERE user_id = ? AND class_id = ?`, [next.user_id, class_id]);
+        // Remove current owner membership
+        await turso.execute(`DELETE FROM user_class WHERE user_id = ? AND class_id = ?`, [requester_id, class_id]);
+        return NextResponse.json({ left: true, newOwnerId: next.user_id });
       }
       await turso.execute(`DELETE FROM user_class WHERE user_id = ? AND class_id = ?`, [requester_id, class_id]);
       return NextResponse.json({ left: true });

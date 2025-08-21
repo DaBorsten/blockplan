@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, RefreshCw, Trash2 } from "lucide-react";
+import { Check, X, RefreshCw, Trash2, Copy as CopyIcon } from "lucide-react";
+import { toast } from "sonner";
 
 type Member = { user_id: string; role: "owner" | "admin" | "member"; nickname?: string | null };
 
@@ -147,6 +148,34 @@ export default function ClassMembersPage() {
     if (res.ok) fetchInvites();
   };
 
+  const copyInviteLink = async (code: string) => {
+    const origin = typeof window !== "undefined" && window.location ? window.location.origin : "";
+    const url = `${origin}/class/join?code=${encodeURIComponent(code)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link kopiert");
+    } catch {
+      // Fallback for older browsers
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        const ok = document.execCommand("copy");
+        if (ok) {
+          toast.success("Link kopiert");
+        } else {
+          toast.error("Kopieren fehlgeschlagen");
+        }
+      } finally {
+        document.body.removeChild(ta);
+      }
+    }
+  };
+
   const canRemove = (target: Member) => {
     if (!currentRole) return false;
     if (user?.id === target.user_id) return true; // self leave allowed except owner, handled on server
@@ -160,11 +189,11 @@ export default function ClassMembersPage() {
     const res = await fetch(`/api/class/member?class_id=${encodeURIComponent(id)}&target_user_id=${encodeURIComponent(target.user_id)}&requester_id=${encodeURIComponent(user.id)}`, { method: "DELETE" });
     const data = await res.json();
     if (!res.ok) {
-      alert(data?.error || "Aktion fehlgeschlagen");
+  alert(data?.error || "Aktion fehlgeschlagen");
       return;
     }
     if (target.user_id === user.id) {
-      router.replace("/");
+  router.replace("/");
       return;
     }
     load();
@@ -302,9 +331,21 @@ export default function ClassMembersPage() {
                       {inv.expiration_date === "9999-12-31T23:59:59.000Z" ? "Kein Ablauf" : new Date(inv.expiration_date).toLocaleString()}
                     </span>
                   </div>
-                  <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => handleDeleteInvite(inv.id)} title="Löschen">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="cursor-pointer"
+                      onClick={() => copyInviteLink(inv.id)}
+                      title="Link kopieren"
+                      aria-label="Link kopieren"
+                    >
+                      <CopyIcon className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => handleDeleteInvite(inv.id)} title="Löschen">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )) : (
                 <div className="px-3 py-2 text-sm text-muted-foreground">Keine Einladungen vorhanden.</div>
