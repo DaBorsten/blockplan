@@ -12,15 +12,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const result = await turso.execute(
-      `SELECT c.id AS class_id, c.title AS class_title
-       FROM user_class uc
-       JOIN class c ON uc.class_id = c.id
-       WHERE uc.user_id = ?;`,
-      [user_id],
-    );
-
-    return NextResponse.json({ data: result.rows });
+    try {
+      const result = await turso.execute(
+        `SELECT c.id AS class_id, c.title AS class_title
+         FROM user_class uc
+         JOIN class c ON uc.class_id = c.id
+         WHERE uc.user_id = ?;`,
+        [user_id],
+      );
+      return NextResponse.json({ data: result.rows });
+    } catch (innerError: unknown) {
+      const msg = String((innerError as { message?: string } | undefined)?.message || innerError || "");
+      // If tables don't exist yet (first run), return an empty list instead of error
+      if (msg.includes("no such table")) {
+        return NextResponse.json({ data: [] }, { status: 200 });
+      }
+      throw innerError;
+    }
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
@@ -40,14 +48,22 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    const result = await turso.execute(
-      `SELECT c.id AS class_id, c.title AS class_title
-       FROM user_class uc
-       JOIN class c ON uc.class_id = c.id
-       WHERE uc.user_id = ?;`,
-      [user_id],
-    );
-    return NextResponse.json({ data: result.rows });
+    try {
+      const result = await turso.execute(
+        `SELECT c.id AS class_id, c.title AS class_title
+         FROM user_class uc
+         JOIN class c ON uc.class_id = c.id
+         WHERE uc.user_id = ?;`,
+        [user_id],
+      );
+      return NextResponse.json({ data: result.rows });
+    } catch (innerError: unknown) {
+      const msg = String((innerError as { message?: string } | undefined)?.message || innerError || "");
+      if (msg.includes("no such table")) {
+        return NextResponse.json({ data: [] }, { status: 200 });
+      }
+      throw innerError;
+    }
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
     return NextResponse.json(
