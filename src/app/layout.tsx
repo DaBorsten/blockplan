@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-} from "@clerk/nextjs";
+import { ClerkProvider, SignedIn, SignedOut } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import {
@@ -19,6 +13,7 @@ import { ThemeToaster } from "@/components/ThemeToaster";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import ClassRouteSync from "@/components/ClassRouteSync";
 import NicknameGuard from "@/components/NicknameGuard";
+import LandingPage from "@/components/LandingPage";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,10 +48,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <SignedOut>
-              <header className="flex flex-1 justify-end items-center p-4 gap-4 h-16">
-                <SignInButton />
-                <SignUpButton />
-              </header>
+              <LandingPage />
             </SignedOut>
             <SignedIn>
               <SidebarProvider>
