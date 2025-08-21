@@ -12,7 +12,7 @@ const extractFileName = (fullName: string): string => {
 };
 
 import React, { useRef, useState } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { AlertTriangle, Loader2, Upload } from "lucide-react";
 import Dropzone from "@/components/Dropzone";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,7 @@ export default function Import() {
 
   const searchParams = useSearchParams();
   const classID = searchParams?.get("class") ?? null;
+  const needsClass = !classID;
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -116,23 +117,34 @@ export default function Import() {
 
   return (
     <div className="flex flex-col h-full px-4 md:px-6 pb-4 md:pb-6">
-      <div className="mb-8 flex-shrink-0">
+      <div className="mb-4 md:mb-8 flex-shrink-0">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Importieren
         </h2>
         <p className="text-slate-600 dark:text-slate-400">
           Laden Sie Ihre Stundenplan-Dateien hoch
         </p>
+        {needsClass && (
+          <div className="mt-3">
+            <div className="flex items-start gap-3 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-900 dark:border-yellow-400/40 dark:bg-yellow-950/40 dark:text-yellow-200 p-3">
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Keine Klasse ausgewählt</p>
+                <p className="text-sm">Bitte wählen Sie zuerst eine Klasse in der Kopfzeile aus, bevor Sie importieren.</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col items-center justify-center w-full">
         {/* Dropzone oder Dateiliste */}
         <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center">
-          {files.length === 0 ? (
+      {files.length === 0 ? (
             <Dropzone
-              onFiles={loading ? () => {} : handleFiles}
-              onClick={loading ? () => {} : openFileDialog}
-              onDrop={loading ? () => {} : handleDrop}
+        onFiles={loading || needsClass ? () => {} : handleFiles}
+        onClick={loading || needsClass ? () => {} : openFileDialog}
+        onDrop={loading || needsClass ? () => {} : handleDrop}
               fileInputRef={fileInputRef}
               text="Dateien hierher ziehen zum Hochladen"
               supportedFiles="PDF"
@@ -143,8 +155,8 @@ export default function Import() {
               className={`scrollable flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed border-border rounded-2xl overflow-y-auto ${
                 loading ? "opacity-60 pointer-events-none" : ""
               }`}
-              onDrop={loading ? undefined : handleDrop}
-              onDragOver={loading ? undefined : (e) => e.preventDefault()}
+              onDrop={loading || needsClass ? undefined : handleDrop}
+              onDragOver={loading || needsClass ? undefined : (e) => e.preventDefault()}
             >
               {files.map((f) => (
                 <div
@@ -223,9 +235,9 @@ export default function Import() {
               ))}
             </div>
           )}
-          {loading && (
+      {loading && (
             <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 rounded-2xl">
-              <Loader2 className="animate-spin w-16 h-16 text-primary" />
+        <Loader2 className="animate-spin w-16 h-16 text-primary" />
             </div>
           )}
         </div>
@@ -235,14 +247,19 @@ export default function Import() {
           variant="default"
           className="flex-1 cursor-pointer"
           onClick={openFileDialog}
+          disabled={needsClass || loading}
         >
           <Upload className="w-4 h-4" />
           <span>Dateien auswählen</span>
         </Button>
         <Button
           className="flex-1 cursor-pointer"
-          disabled={files.length === 0 || loading}
+          disabled={files.length === 0 || loading || needsClass}
           onClick={async () => {
+            if (needsClass) {
+              toast.warning("Bitte wählen Sie zuerst eine Klasse aus.");
+              return;
+            }
             if (files.length === 0) {
               toast.error("Keine Dateien zum Importieren ausgewählt.");
               return;
