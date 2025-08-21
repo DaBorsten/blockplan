@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Timetable from "@/components/timetable";
 import NotesActionsDropdown from "@/components/NotesActionsDropdown";
+import ModeLockButton from "@/components/ModeLockButton";
 import {
   Dialog,
   DialogContent,
@@ -88,6 +89,7 @@ export default function TimetablePage() {
         <div className="flex flex-wrap gap-4 items-center">
           <WeekSelectionCombobox />
           <SpecializationSelect />
+          <ModeLockButton />
           <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
         </div>
       </div>

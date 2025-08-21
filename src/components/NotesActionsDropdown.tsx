@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Copy, Share2, Send, Ellipsis, NotebookText } from "lucide-react";
+import { Copy, Share2, Send, Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useModeStore } from "@/store/useModeStore";
 import NotesTransferDialog from "@/components/NotesTransferDialog";
@@ -18,7 +18,7 @@ type Props = {
 };
 
 export default function NotesActionsDropdown({ getNotes }: Props) {
-  const { mode, toggleMode } = useModeStore();
+  useModeStore();
   const searchParams = useSearchParams();
   const weekID = searchParams.get("week");
   const specParam = searchParams.get("spec");
@@ -64,14 +64,6 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={toggleMode}>
-            {mode === "notes" ? (
-              <Copy className="mr-2" />
-            ) : (
-              <NotebookText className="mr-2" />
-            )}
-            {mode === "notes" ? "Kopieren Modus" : "Notizen Modus"}
-          </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleCopy}>
             <Copy className="mr-2" />
             Notizen kopieren
