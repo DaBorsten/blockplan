@@ -129,7 +129,10 @@
 html,
 body,
 #__next {
-  overscroll-behavior: none;
+  /* Allow vertical overscroll again so native pull-to-refresh works on mobile.
+    We only suppress scroll chaining inside explicit scroll containers below. */
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: none; /* still prevent horizontal chaining if undesired */
 }
 
 /* Ensure scrollable elements use native momentum scrolling on iOS and don't trigger body overscroll */
