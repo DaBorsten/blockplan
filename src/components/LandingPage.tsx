@@ -1,6 +1,7 @@
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, StickyNote, Share2 } from "lucide-react";
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
@@ -66,6 +67,11 @@ export default function LandingPage() {
           </div>
         </div>
       </main>
+      <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
+        <Link href="/datenschutzhinweis">Datenschutzhinweis</Link>
+        <span> | </span>
+        <Link href="/impressum">Impressum</Link>
+      </footer>
     </div>
   );
 }

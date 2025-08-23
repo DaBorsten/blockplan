@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-export default function SetupPage() {
+export default function WelcomePage() {
   const { user } = useUser();
   const router = useRouter();
   const [nickname, setNickname] = useState("");
