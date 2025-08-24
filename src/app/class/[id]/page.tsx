@@ -38,6 +38,7 @@ export default function ClassMembersPage() {
   const [weekEditId, setWeekEditId] = useState<string | null>(null);
   const [weekEditName, setWeekEditName] = useState("");
   const [weekEditOpen, setWeekEditOpen] = useState(false);
+  const [weeksFetched, setWeeksFetched] = useState(false);
 
   const loadMembers = async () => {
     if (!id) return;
@@ -238,6 +239,7 @@ export default function ClassMembersPage() {
   const fetchWeeks = useCallback(async () => {
     if (!id || !user?.id) {
       setWeeks([]);
+      setWeeksFetched(false);
       return;
     }
     setWeeksLoading(true);
@@ -246,14 +248,26 @@ export default function ClassMembersPage() {
       const res = await fetch(`/api/week/weeks?${params.toString()}`);
       const data = await res.json();
       setWeeks((data.data as Week[]) || []);
+      setWeeksFetched(true);
     } finally {
       setWeeksLoading(false);
     }
   }, [id, user?.id]);
 
   useEffect(() => {
-    if (activeTab === "wochen") fetchWeeks();
-  }, [activeTab, fetchWeeks]);
+    if (activeTab === "wochen" && !weeksFetched && !weeksLoading) fetchWeeks();
+  }, [activeTab, fetchWeeks, weeksFetched, weeksLoading]);
+
+  // Preload weeks once user & class id available so count is accurate before switching tab
+  useEffect(() => {
+    if (id && user?.id && !weeksFetched && !weeksLoading) fetchWeeks();
+  }, [id, user?.id, fetchWeeks, weeksFetched, weeksLoading]);
+
+  // Reset weeks state when class changes
+  useEffect(() => {
+    setWeeks([]);
+    setWeeksFetched(false);
+  }, [id]);
 
   const groupedWeeks = useMemo(() => {
     const map: Record<string, Week[]> = {};
@@ -355,17 +369,17 @@ export default function ClassMembersPage() {
           variant={activeTab === "mitglieder" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("mitglieder")}
-          className={activeTab === "mitglieder" ? "" : "opacity-70"}
+          className={`relative ${activeTab === "mitglieder" ? "" : "opacity-70"}`}
         >
-          Mitglieder
+          Mitglieder{membersLoading ? "" : ` (${members.length})`}
         </Button>
         <Button
           variant={activeTab === "wochen" ? "default" : "ghost"}
           size="sm"
           onClick={() => setActiveTab("wochen")}
-          className={activeTab === "wochen" ? "" : "opacity-70"}
+          className={`relative ${activeTab === "wochen" ? "" : "opacity-70"}`}
         >
-          Wochen
+          Wochen{weeksLoading ? "" : ` (${weeks.length})`}
         </Button>
       </div>
 
