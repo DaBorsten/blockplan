@@ -42,7 +42,8 @@ export function WeekSelectionCombobox() {
       setLoading(true);
       if (user?.id && classID) {
         const result = await fetchWeekIDsWithNames(user.id, classID);
-        setWeeks(result || []);
+        const filtered = (result || []).filter(w => w.value !== null);
+        setWeeks([{ label: "Keine Woche", value: null }, ...filtered]);
       } else {
         setWeeks([{ label: "Keine Woche", value: null }]);
       }
@@ -79,7 +80,7 @@ export function WeekSelectionCombobox() {
         <Command>
           <CommandInput placeholder="Woche suchen..." className="h-9" />
           <CommandList>
-            <CommandEmpty>Keine Woche gefunden.</CommandEmpty>
+            <CommandEmpty>Keine Woche</CommandEmpty>
             <CommandGroup>
               {weeks.map((week) => (
                 <CommandItem
