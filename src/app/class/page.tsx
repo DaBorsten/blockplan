@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ type ClassItem = {
   class_id: string;
   class_title: string;
 };
+
+type ClassStats = { class_id: string; members: number; weeks: number };
 
 export default function ManageClass() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -34,23 +36,56 @@ export default function ManageClass() {
   const qs = searchParams?.toString() ?? "";
   const withParams = (url: string) => (qs ? `${url}?${qs}` : url);
 
-  const fetchClasses = async (userId: string) => {
+  const fetchClasses = useCallback(async (userId: string) => {
     setLoading(true);
     try {
       const res = await fetch(`/api/class/classes?user_id=${encodeURIComponent(userId)}`);
       const data = await res.json();
       const result: ClassItem[] = data.data || [];
       setClasses(result || []);
+      // After classes loaded, fetch stats
+      if (result.length) {
+        fetchStats(result.map(c => c.class_id), userId);
+      } else {
+        setStats([]);
+      }
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const [stats, setStats] = useState<ClassStats[]>([]);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const fetchStats = async (classIds: string[], userId: string) => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch(`/api/class/stats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ class_ids: classIds, user_id: userId })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setStats(data.data || []);
+    } finally {
+      setStatsLoading(false);
+    }
   };
+
+  const statsMap = useMemo(() => {
+    const m: Record<string, ClassStats> = {};
+    for (const s of stats) m[s.class_id] = s;
+    return m;
+  }, [stats]);
+
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
   // invites fetching removed (handled on details page)
 
   useEffect(() => {
     if (user?.id) fetchClasses(user.id);
-  }, [user?.id]);
+  }, [user?.id, fetchClasses]);
 
   // edit moved to details page
 
@@ -169,12 +204,18 @@ export default function ManageClass() {
                         <School className="h-4 w-4" />
                       </div>
                     </div>
-                    <div className="min-w-0">
-                      <div
-                        className="text-sm font-medium text-slate-900 dark:text-white truncate"
-                        title={cls.class_title}
-                      >
-                        {cls.class_title}
+                    <div className="min-w-0 flex flex-col">
+                      <div className="text-sm font-medium text-slate-900 dark:text-white truncate" title={cls.class_title}>{cls.class_title}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {statsLoading && !statsMap[cls.class_id] ? (
+                          <span>Lädt…</span>
+                        ) : (
+                          (() => {
+                            const st = statsMap[cls.class_id];
+                            if (!st) return <span>-</span>;
+                            return <span>{plural(st.weeks, 'Woche', 'Wochen')} · {plural(st.members, 'Mitglied', 'Mitglieder')}</span>;
+                          })()
+                        )}
                       </div>
                     </div>
                   </Link>
