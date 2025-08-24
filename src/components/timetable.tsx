@@ -9,7 +9,8 @@ import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
 import { useSearchParams } from "next/navigation";
 import { Lesson } from "@/types/timetableData";
-import { useTeacherColorStore } from "@/store/useTeacherColorStore";
+import { useTeacherColors } from "@/hooks/useTeacherColors";
+import { useUser } from "@clerk/nextjs";
 import { getTimesForTimetable } from "@/utils/times";
 import { useModeStore } from "@/store/useModeStore";
 import { toast } from "sonner";
@@ -34,7 +35,9 @@ export default function Timetable({
     specParam ? Number(specParam) : 1
   ) as Specialization;
   const { mode } = useModeStore();
-  const { getColor } = useTeacherColorStore();
+  const { user } = useUser();
+  const classId = searchParams.get("class");
+  const { getColor } = useTeacherColors(classId ?? undefined, user?.id);
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);

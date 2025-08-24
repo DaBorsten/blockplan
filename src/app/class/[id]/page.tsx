@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Check, X, RefreshCw, Trash2, Copy as CopyIcon, Crown, Swords, User } from "lucide-react";
+import { Check, X, RefreshCw, Trash2, Copy as CopyIcon, Crown, Swords, User, Palette } from "lucide-react";
+import { TeacherColorsManager } from "@/components/TeacherColorsManager";
 import { toast } from "sonner";
 
 type Member = { user_id: string; role: "owner" | "admin" | "member"; nickname?: string | null };
@@ -233,7 +234,7 @@ export default function ClassMembersPage() {
     return currentRole === "owner";
   };
 
-  const [activeTab, setActiveTab] = useState<"wochen" | "mitglieder">("mitglieder");
+  const [activeTab, setActiveTab] = useState<"wochen" | "mitglieder" | "farben">("mitglieder");
 
   // Weeks fetch (requires class id + user id similar to manage page logic which used search param 'class')
   const fetchWeeks = useCallback(async () => {
@@ -381,9 +382,18 @@ export default function ClassMembersPage() {
         >
           Wochen{weeksLoading ? "" : ` (${weeks.length})`}
         </Button>
+        <Button
+          variant={activeTab === "farben" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("farben")}
+          className={`relative ${activeTab === "farben" ? "" : "opacity-70"}`}
+        >
+          Farben
+          <Palette className="w-4 h-4 ml-1" />
+        </Button>
       </div>
 
-      {activeTab === "mitglieder" && (
+  {activeTab === "mitglieder" && (
         <>
           {membersLoading ? (
             <div>Lade…</div>
@@ -439,7 +449,7 @@ export default function ClassMembersPage() {
         </>
       )}
 
-      {activeTab === "wochen" && (
+  {activeTab === "wochen" && (
         <div>
           {weeksLoading ? (
             <div>Lade…</div>
@@ -482,6 +492,12 @@ export default function ClassMembersPage() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === "farben" && user?.id && id && (
+        <div>
+          <TeacherColorsManager classId={id as string} userId={user.id} />
         </div>
       )}
 
