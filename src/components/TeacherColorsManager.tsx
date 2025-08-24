@@ -3,9 +3,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Pencil, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { v4 as uuid } from "uuid";
 
-type TeacherColor = { id?: string; teacher: string; color: string };
+type RowState = { id?: string; teacher: string; color: string; _editing?: boolean };
 
 interface Props {
   classId: string;
@@ -13,7 +15,7 @@ interface Props {
 }
 
 export function TeacherColorsManager({ classId, userId }: Props) {
-  const [items, setItems] = useState<TeacherColor[]>([]);
+  const [items, setItems] = useState<RowState[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -25,17 +27,10 @@ export function TeacherColorsManager({ classId, userId }: Props) {
       );
       const data = await res.json();
       if (Array.isArray(data.data)) {
-        type Row = { id: string; teacher: string; color: string };
-        setItems(
-          (data.data as Row[]).map((r) => ({
-            id: r.id,
-            teacher: r.teacher,
-            color: r.color,
-          })),
-        );
+        type Row = { id?: string; teacher: string; color: string };
+        setItems((data.data as Row[]).map((r) => ({ ...r, _editing: false })));
       }
     } catch {
-      // load error
       toast.error("Fehler beim Laden");
     } finally {
       setLoading(false);
@@ -46,18 +41,20 @@ export function TeacherColorsManager({ classId, userId }: Props) {
     if (classId && userId) {
       void load();
     }
-    // intentionally excluding load from deps to avoid recreating; load only depends on classId/userId
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only depends on classId/userId and is recreated when they change
   }, [classId, userId]);
 
-  function updateItem(idx: number, patch: Partial<TeacherColor>) {
+  function updateItem(idx: number, patch: Partial<RowState>) {
     setItems((prev) =>
       prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
     );
   }
 
   function addRow() {
-    setItems((prev) => [...prev, { teacher: "", color: "#ffffff" }]);
+    setItems((prev) => [
+      ...prev,
+      { id: uuid(), teacher: "", color: "#ffffff", _editing: true },
+    ]);
   }
 
   async function remove(id?: string, index?: number) {
@@ -67,7 +64,7 @@ export function TeacherColorsManager({ classId, userId }: Props) {
     }
     try {
       const res = await fetch(
-        `/api/class/teacherColors?id=${id}&class_id=${classId}&user_id=${userId}`,
+        `/api/class/teacherColors?id=${encodeURIComponent(id)}&class_id=${classId}&user_id=${userId}`,
         { method: "DELETE" },
       );
       if (!res.ok) throw new Error();
@@ -81,15 +78,26 @@ export function TeacherColorsManager({ classId, userId }: Props) {
   async function save() {
     setSaving(true);
     try {
+      const payload = {
+        class_id: classId,
+        user_id: userId,
+        items: items.map((it) => ({ id: it.id, teacher: it.teacher.trim(), color: it.color })),
+      };
       const res = await fetch(`/api/class/teacherColors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ class_id: classId, user_id: userId, items }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
       toast.success("Gespeichert");
-      if (data.data) setItems(data.data);
+      if (data.data)
+        setItems(
+          data.data.map((d: { id?: string; teacher: string; color: string }) => ({
+            ...d,
+            _editing: false,
+          })),
+        );
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Speichern fehlgeschlagen";
@@ -101,14 +109,28 @@ export function TeacherColorsManager({ classId, userId }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-lg font-semibold">Farben & Kürzel</h3>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={addRow}>
-            Neu
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addRow}
+            className="flex items-center gap-1"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden md:inline">Neu</span>
           </Button>
-          <Button size="sm" onClick={save} disabled={saving}>
-            {saving ? "Speichert..." : "Speichern"}
+          <Button
+            size="sm"
+            onClick={save}
+            disabled={saving}
+            className="flex items-center gap-1"
+          >
+            <Save className="w-4 h-4" />
+            <span className="hidden md:inline">
+              {saving ? "Speichert..." : "Speichern"}
+            </span>
           </Button>
         </div>
       </div>
@@ -122,35 +144,92 @@ export function TeacherColorsManager({ classId, userId }: Props) {
               Noch keine Einträge
             </div>
           )}
-          {items.map((item, idx) => (
-            <div key={item.id || idx} className="flex gap-2 items-center">
-              <Input
-                placeholder="Lehrerkürzel"
-                value={item.teacher}
-                className="w-32"
-                onChange={(e) => updateItem(idx, { teacher: e.target.value })}
-              />
-              <Input
-                type="color"
-                className="w-16 h-9 p-1"
-                value={item.color}
-                onChange={(e) => updateItem(idx, { color: e.target.value })}
-              />
+          {items.map((item, idx) => {
+            const editing = item._editing;
+            return (
               <div
-                className="flex-1 h-9 rounded border"
-                style={{ background: item.color }}
-              />
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => remove(item.id, idx)}
+                key={item.id || idx}
+                className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2"
               >
-                Entfernen
-              </Button>
-            </div>
-          ))}
+                <label
+                  className="relative inline-flex h-12 w-12 items-center justify-center"
+                  title="Farbe wählen"
+                >
+                  <input
+                    type="color"
+                    value={item.color}
+                    onChange={(e) => updateItem(idx, { color: e.target.value })}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                    aria-label="Farbe"
+                  />
+                  <span
+                    className="h-10 w-10 rounded-full border ring-2 ring-background"
+                    style={{
+                      background: item.color,
+                      borderColor: "hsl(var(--border))",
+                      boxShadow:
+                        "0 0 0 2px var(--background), 0 0 0 3px var(--foreground)",
+                    }}
+                  />
+                </label>
+                <div className="flex-1 min-w-0">
+                  {editing ? (
+                    <Input
+                      value={item.teacher}
+                      placeholder="Kürzel"
+                      className="w-28 sm:w-40"
+                      onChange={(e) =>
+                        updateItem(idx, { teacher: e.target.value })
+                      }
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="font-medium truncate text-sm">
+                      {item.teacher || <span className="italic">(leer)</span>}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {editing ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                      onClick={() => updateItem(idx, { _editing: false })}
+                    >
+                      <CheckIcon />
+                      <span className="hidden md:inline">Fertig</span>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1"
+                      onClick={() => updateItem(idx, { _editing: true })}
+                    >
+                      <Pencil className="w-4 h-4" />
+                      <span className="hidden md:inline">Bearbeiten</span>
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="flex items-center gap-1"
+                    onClick={() => remove(item.id, idx)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span className="hidden md:inline">Löschen</span>
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
+}
+
+function CheckIcon() {
+  return <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
 }

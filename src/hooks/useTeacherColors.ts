@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 
-export type TeacherColorRecord = { id: string; teacher: string; color: string };
+export type TeacherColorRecord = { id?: string; teacher: string; color: string };
 
 export function useTeacherColors(classId: string | undefined, userId: string | undefined) {
   const [data, setData] = useState<TeacherColorRecord[]>([]);

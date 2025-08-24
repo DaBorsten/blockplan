@@ -21,10 +21,11 @@ export async function POST() {
 
     await turso.execute(`
 		CREATE TABLE IF NOT EXISTS color (
+		id TEXT PRIMARY KEY NOT NULL,
 			class_id TEXT NOT NULL,
 			teacher TEXT NOT NULL,
 			color TEXT NOT NULL,
-			PRIMARY KEY (class_id, teacher),
+			UNIQUE(class_id, teacher)
 			FOREIGN KEY (class_id) REFERENCES class(id) ON DELETE CASCADE
 		);`);
 

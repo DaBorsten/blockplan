@@ -1,5 +1,5 @@
 export type TeacherColorsType = {
-  id: string;
+  id: string; // primary key
   teacher: string | null;
   color: string | null;
 };
