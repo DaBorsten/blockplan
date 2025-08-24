@@ -324,7 +324,7 @@ export default function Timetable({
                             hourData.lessons.length === 1 &&
                             hourData.lessons[0].specialization === 3 && (
                               <div
-                                className="flex-1 flex items-center justify-center m-1 p-1 h-full text-[var(--spec3-text)]"
+                                className="flex-1 flex items-center justify-center p-1 h-full text-[var(--spec3-text)]"
                                 style={
                                   {
                                     "--spec3-text":
