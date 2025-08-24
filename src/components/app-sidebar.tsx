@@ -32,6 +32,11 @@ const items = [
     icon: Calendar,
   },
   {
+    title: "Klassen",
+    url: "/class",
+    icon: School,
+  },
+  {
     title: "Verwalten",
     url: "/manage",
     icon: Inbox,
@@ -40,11 +45,6 @@ const items = [
     title: "Importieren",
     url: "/import",
     icon: CloudDownload,
-  },
-  {
-    title: "Klasse",
-    url: "/class",
-    icon: School,
   },
   {
     title: "DEV",
