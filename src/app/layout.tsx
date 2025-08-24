@@ -13,8 +13,8 @@ import { ThemeToaster } from "@/components/ThemeToaster";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import ClassRouteSync from "@/components/ClassRouteSync";
 import NicknameGuard from "@/components/NicknameGuard";
-import LandingPage from "@/components/LandingPage";
 import ClerkThemingProvider from "@/components/ClerkThemingProvider";
+import PublicOrLanding from "@/components/PublicOrLanding";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,7 +49,7 @@ export default function RootLayout({
         >
           <ClerkThemingProvider>
             <SignedOut>
-              <LandingPage />
+              <PublicOrLanding>{children}</PublicOrLanding>
             </SignedOut>
             <SignedIn>
               <SidebarProvider>

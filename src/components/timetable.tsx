@@ -9,7 +9,8 @@ import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
 import { useSearchParams } from "next/navigation";
 import { Lesson } from "@/types/timetableData";
-import { useTeacherColorStore } from "@/store/useTeacherColorStore";
+import { useTeacherColors } from "@/hooks/useTeacherColors";
+import { useUser } from "@clerk/nextjs";
 import { getTimesForTimetable } from "@/utils/times";
 import { useModeStore } from "@/store/useModeStore";
 import { toast } from "sonner";
@@ -30,9 +31,13 @@ export default function Timetable({
   const searchParams = useSearchParams();
   const weekID = searchParams.get("week");
   const specParam = searchParams.get("spec");
-  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
+  const specialization: Specialization = (
+    specParam ? Number(specParam) : 1
+  ) as Specialization;
   const { mode } = useModeStore();
-  const { getColor } = useTeacherColorStore();
+  const { user } = useUser();
+  const classId = searchParams.get("class");
+  const { getColor } = useTeacherColors(classId ?? undefined, user?.id);
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
@@ -41,6 +46,8 @@ export default function Timetable({
   const theadRef = useRef<HTMLTableSectionElement>(null);
   const [rowHeight, setRowHeight] = useState<number>(64); // px
   const [dayColWidth, setDayColWidth] = useState<number>(250);
+  const [visibleDayCount, setVisibleDayCount] = useState<number>(5);
+  const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
   const didInitialScrollRef = useRef<boolean>(false);
 
   // layout constants
@@ -107,6 +114,7 @@ export default function Timetable({
     const width = Math.max(MIN_DAY_COL_PX, Math.floor(daysArea / visibleCount));
     // Avoid state churn if width hasn't meaningfully changed
     setDayColWidth((prev) => (Math.abs(prev - width) >= 1 ? width : prev));
+    setVisibleDayCount(visibleCount);
   }, []);
 
   useEffect(() => {
@@ -186,6 +194,20 @@ export default function Timetable({
     };
   }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
 
+  // Track scroll to know which day is currently in view in single-day mode
+  useEffect(() => {
+    if (visibleDayCount !== 1) return; // only needed in single-day view
+    const vp = viewportRef.current;
+    if (!vp) return;
+    const onScroll = () => {
+      const idx = Math.round(vp.scrollLeft / dayColWidth);
+      setActiveSingleDayIndex(Math.min(Math.max(idx, 0), allDays.length - 1));
+    };
+    vp.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => vp.removeEventListener("scroll", onScroll);
+  }, [visibleDayCount, dayColWidth]);
+
   const groupedByDay = allDays.map((day) => {
     const dayData = timeTableData.filter(
       (item) => item.day === day && item.week_id === weekID,
@@ -200,6 +222,24 @@ export default function Timetable({
       }),
     };
   });
+
+  // Helper: detect if day has a double lesson (3+4) for any specialization with same teacher, subject, room, specialization
+  const isDoubleLesson3And4 = (dayIndex: number): boolean => {
+    const hour3 = groupedByDay[dayIndex]?.hours.find((h) => h.hour === 3);
+    const hour4 = groupedByDay[dayIndex]?.hours.find((h) => h.hour === 4);
+    if (!hour3 || !hour4) return false;
+    return hour3.lessons.some((l3) =>
+      hour4.lessons.some(
+        (l4) =>
+          l3.specialization === l4.specialization &&
+          l3.subject === l4.subject &&
+          l3.teacher === l4.teacher &&
+          l3.room === l4.room,
+      ),
+    );
+  };
+
+  const singleDayMode = visibleDayCount === 1;
 
   return (
     <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
@@ -245,11 +285,24 @@ export default function Timetable({
           <tbody>
             {allHours.map((hour, hourIndex) => {
               const isLast = hourIndex === allHours.length - 1;
-              const { startTime, endTime } = getTimesForTimetable(
+              let { startTime, endTime } = getTimesForTimetable(
                 groupedByDay,
                 currentDayIndex,
                 hour,
               );
+              if (hour === 3) {
+                if (singleDayMode) {
+                  const activeIdx = activeSingleDayIndex;
+                  const isDouble = isDoubleLesson3And4(activeIdx);
+                  // Override directly
+                  startTime = isDouble ? "09:45" : "09:25";
+                  endTime = isDouble ? "10:30" : "10:10";
+                } else {
+                  // Wide mode: show with duration / break info
+                  startTime = "09:25 | 45"; // start | duration
+                  endTime = "10:10 | 30"; // end | break
+                }
+              }
               return (
                 <tr key={hour} style={{ height: rowHeight }}>
                   {/* Stunden Zelle */}
@@ -324,7 +377,7 @@ export default function Timetable({
                             hourData.lessons.length === 1 &&
                             hourData.lessons[0].specialization === 3 && (
                               <div
-                                className="flex-1 flex items-center justify-center m-1 p-1 h-full text-[var(--spec3-text)]"
+                                className="flex-1 flex items-center justify-center p-1 h-full text-[var(--spec3-text)]"
                                 style={
                                   {
                                     "--spec3-text":

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
 import { v4 } from "uuid";
+import { teacherColors as defaultTeacherColors } from "@/constants/teacherColors";
 
 // GET /api/class?id=...
 export async function GET(req: NextRequest) {
@@ -31,15 +32,22 @@ export async function POST(req: NextRequest) {
 
     const class_id = v4();
 
-    await turso.execute(
-      `INSERT INTO class (id, owner_id, title ) VALUES (?, ?, ?)`,
-      [class_id, owner_id, className],
-    );
+    await turso.execute(`INSERT INTO class (id, owner_id, title ) VALUES (?, ?, ?)`, [class_id, owner_id, className]);
 
-    return NextResponse.json(
-      { message: "Class created successfully", class_id },
-      { status: 201 },
-    );
+    // Seed default teacher colors with generated ids (best-effort; failures won't abort class creation)
+    try {
+      for (const tc of defaultTeacherColors) {
+        if (!tc.teacher || !tc.color) continue;
+        await turso.execute(
+          `INSERT INTO color (id, class_id, teacher, color) VALUES (?, ?, ?, ?)`,
+          [v4(), class_id, tc.teacher, tc.color],
+        );
+      }
+    } catch (seedErr) {
+      console.warn("Seeding teacher colors failed for class", class_id, seedErr);
+    }
+
+    return NextResponse.json({ message: "Class created successfully", class_id }, { status: 201 });
   } catch (error) {
     console.error("Error creating class:", error);
     return NextResponse.json(
