@@ -13,14 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import {
-  Bug,
-  Calendar,
-  CloudDownload,
-  Inbox,
-  School,
-  Settings,
-} from "lucide-react";
+import { Bug, Calendar, CloudDownload, School, Settings } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ClassSelectionCombobox } from "./classSelection";
@@ -35,11 +28,6 @@ const items = [
     title: "Klassen",
     url: "/class",
     icon: School,
-  },
-  {
-    title: "Verwalten",
-    url: "/manage",
-    icon: Inbox,
   },
   {
     title: "Importieren",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ export default function ClassMembersPage() {
   const { user } = useUser();
   const [members, setMembers] = useState<Member[]>([]);
   const [currentRole, setCurrentRole] = useState<Member["role"] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [membersLoading, setMembersLoading] = useState(true);
   const [classTitle, setClassTitle] = useState<string>("");
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
@@ -31,10 +31,17 @@ export default function ClassMembersPage() {
   const [invitesSpinning, setInvitesSpinning] = useState(false);
   const [invitesFetching, setInvitesFetching] = useState(false);
   const [spinStartTs, setSpinStartTs] = useState<number | null>(null);
+  // Weeks management state
+  type Week = { week_id: string; week_title: string };
+  const [weeks, setWeeks] = useState<Week[]>([]);
+  const [weeksLoading, setWeeksLoading] = useState(false);
+  const [weekEditId, setWeekEditId] = useState<string | null>(null);
+  const [weekEditName, setWeekEditName] = useState("");
+  const [weekEditOpen, setWeekEditOpen] = useState(false);
 
-  const load = async () => {
+  const loadMembers = async () => {
     if (!id) return;
-    setLoading(true);
+    setMembersLoading(true);
     try {
       const res = await fetch(`/api/class/member?class_id=${encodeURIComponent(id)}${user?.id ? `&current_user_id=${encodeURIComponent(user.id)}` : ""}`);
       const data = await res.json();
@@ -45,12 +52,12 @@ export default function ClassMembersPage() {
       setMembers(data.members || []);
       setCurrentRole(data.currentRole || null);
     } finally {
-      setLoading(false);
+      setMembersLoading(false);
     }
   };
 
   useEffect(() => {
-    load();
+    loadMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user?.id]);
 
@@ -193,10 +200,10 @@ export default function ClassMembersPage() {
       return;
     }
     if (target.user_id === user.id) {
-  router.replace("/");
+      router.replace("/");
       return;
     }
-    load();
+    loadMembers();
   };
 
   const changeRole = async (target: Member, role: "admin" | "member") => {
@@ -211,7 +218,7 @@ export default function ClassMembersPage() {
       alert(data?.error || "Rollenänderung fehlgeschlagen");
       return;
     }
-    load();
+  loadMembers();
   };
 
   const canPromote = (target: Member) => {
@@ -225,76 +232,246 @@ export default function ClassMembersPage() {
     return currentRole === "owner";
   };
 
-  if (loading) return <div className="px-4 md:px-6 pb-4 md:pb-6">Lade…</div>;
+  const [activeTab, setActiveTab] = useState<"wochen" | "mitglieder">("mitglieder");
+
+  // Weeks fetch (requires class id + user id similar to manage page logic which used search param 'class')
+  const fetchWeeks = useCallback(async () => {
+    if (!id || !user?.id) {
+      setWeeks([]);
+      return;
+    }
+    setWeeksLoading(true);
+    try {
+      const params = new URLSearchParams({ user_id: user.id, class_id: id as string });
+      const res = await fetch(`/api/week/weeks?${params.toString()}`);
+      const data = await res.json();
+      setWeeks((data.data as Week[]) || []);
+    } finally {
+      setWeeksLoading(false);
+    }
+  }, [id, user?.id]);
+
+  useEffect(() => {
+    if (activeTab === "wochen") fetchWeeks();
+  }, [activeTab, fetchWeeks]);
+
+  const groupedWeeks = useMemo(() => {
+    const map: Record<string, Week[]> = {};
+    for (const w of weeks) {
+      const title = w.week_title || "";
+      const idx = title.lastIndexOf("_");
+      const key = idx > 0 ? title.slice(0, idx) : title;
+      (map[key] ||= []).push(w);
+    }
+    const sections: Array<[string, Week[]]> = Object.entries(map);
+    const gradeFrom = (s: string) => { const m = s.match(/^(\d{1,2})/); return m ? parseInt(m[1], 10) : -Infinity; };
+    const kwFrom = (s: string) => { const m = s.match(/KW\s*(\d{1,3})/i) || s.match(/KW(\d{1,3})/i); return m ? parseInt(m[1], 10) : -Infinity; };
+    sections.sort((a, b) => {
+      const ga = gradeFrom(a[0]);
+      const gb = gradeFrom(b[0]);
+      if (ga !== gb) return gb - ga;
+      const kwa = kwFrom(a[0]);
+      const kwb = kwFrom(b[0]);
+      if (kwa !== kwb) return kwb - kwa;
+      return a[0].localeCompare(b[0]);
+    });
+    for (const [, items] of sections) {
+      items.sort((x, y) => {
+        const mx = x.week_title.match(/_(\d+)$/);
+        const my = y.week_title.match(/_(\d+)$/);
+        const nx = mx ? parseInt(mx[1], 10) : -Infinity;
+        const ny = my ? parseInt(my[1], 10) : -Infinity;
+        return ny - nx;
+      });
+    }
+    return sections;
+  }, [weeks]);
+
+  const handleWeekEdit = (wid: string, title: string) => {
+    setWeekEditId(wid);
+    setWeekEditName(title);
+    setWeekEditOpen(true);
+  };
+
+  const saveWeekEdit = async () => {
+    if (!weekEditId) return;
+    await fetch("/api/week/weekName", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekID: weekEditId, newWeekName: weekEditName }),
+    });
+    setWeekEditOpen(false);
+    setWeekEditId(null);
+    setWeekEditName("");
+    fetchWeeks();
+  };
+
+  const deleteWeek = async (wid: string) => {
+    await fetch(`/api/timetable/week?weekId=${wid}`, { method: "DELETE" });
+    fetchWeeks();
+  };
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-2xl font-semibold truncate">
-            Klasse {classTitle || ""}
-          </h1>
+          <h1 className="text-2xl font-semibold truncate">Klasse {classTitle || ""}</h1>
           {currentRole === "owner" && (
-            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => { setEditName(classTitle || ""); setEditOpen(true); }} aria-label="Klasse umbenennen">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={() => {
+                setEditName(classTitle || "");
+                setEditOpen(true);
+              }}
+              aria-label="Klasse umbenennen"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4"
+              >
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
             </Button>
           )}
         </div>
-        {(currentRole === "owner" || currentRole === "admin") && (
-          <Button onClick={() => setInviteOpen(true)} variant="outline" size="sm">Einladungen</Button>
+        {(currentRole === "owner" || currentRole === "admin") && activeTab === "mitglieder" && (
+          <Button onClick={() => setInviteOpen(true)} variant="outline" size="sm">
+            Einladungen
+          </Button>
         )}
       </div>
 
-      <h2 className="text-lg font-medium mb-2">Mitglieder</h2>
-      <ul className="divide-y rounded-md border">
-  {members.map((m) => (
-          <li key={m.user_id} className="flex items-center justify-between p-3">
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs">
-    {(m.nickname || m.user_id).substring(0, 2)}
-              </div>
-              <div className="text-sm">
-    <div className="font-medium">{m.nickname || m.user_id}</div>
-                <div className="text-muted-foreground text-xs flex items-center gap-1">
-                  {m.role === "owner" && (
-                    <>
-                      <Crown className="w-3.5 h-3.5" />
-                      <span>Besitzer</span>
-                    </>
-                  )}
-                  {m.role === "admin" && (
-                    <>
-                      <Swords className="w-3.5 h-3.5" />
-                      <span>Admin</span>
-                    </>
-                  )}
-                  {m.role === "member" && (
-                    <>
-                      <User className="w-3.5 h-3.5" />
-                      <span>Mitglied</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {canPromote(m) && (
-                <Button variant="secondary" size="sm" onClick={() => changeRole(m, "admin")}>Zu Admin machen</Button>
-              )}
-              {canDemote(m) && (
-                <Button variant="secondary" size="sm" onClick={() => changeRole(m, "member")}>Zu Member machen</Button>
-              )}
-              {canRemove(m) && (
-                <Button variant="outline" size="sm" onClick={() => removeOrLeave(m)}>
-                  {user?.id === m.user_id ? "Klasse verlassen" : "Entfernen"}
-                </Button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+      <div className="flex gap-2 mb-6 border-b pb-2">
+        <Button
+          variant={activeTab === "mitglieder" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("mitglieder")}
+          className={activeTab === "mitglieder" ? "" : "opacity-70"}
+        >
+          Mitglieder
+        </Button>
+        <Button
+          variant={activeTab === "wochen" ? "default" : "ghost"}
+          size="sm"
+          onClick={() => setActiveTab("wochen")}
+          className={activeTab === "wochen" ? "" : "opacity-70"}
+        >
+          Wochen
+        </Button>
+      </div>
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+      {activeTab === "mitglieder" && (
+        <>
+          {membersLoading ? (
+            <div>Lade…</div>
+          ) : (
+            <ul className="divide-y rounded-md border">
+              {members.map((m) => (
+                <li key={m.user_id} className="flex items-center justify-between p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs">
+                      {(m.nickname || m.user_id).substring(0, 2)}
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-medium">{m.nickname || m.user_id}</div>
+                      <div className="text-muted-foreground text-xs flex items-center gap-1">
+                        {m.role === "owner" && (
+                          <>
+                            <Crown className="w-3.5 h-3.5" />
+                            <span>Besitzer</span>
+                          </>
+                        )}
+                        {m.role === "admin" && (
+                          <>
+                            <Swords className="w-3.5 h-3.5" />
+                            <span>Admin</span>
+                          </>
+                        )}
+                        {m.role === "member" && (
+                          <>
+                            <User className="w-3.5 h-3.5" />
+                            <span>Mitglied</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {canPromote(m) && (
+                      <Button variant="secondary" size="sm" onClick={() => changeRole(m, "admin")}>Zu Admin machen</Button>
+                    )}
+                    {canDemote(m) && (
+                      <Button variant="secondary" size="sm" onClick={() => changeRole(m, "member")}>Zu Member machen</Button>
+                    )}
+                    {canRemove(m) && (
+                      <Button variant="outline" size="sm" onClick={() => removeOrLeave(m)}>
+                        {user?.id === m.user_id ? "Klasse verlassen" : "Entfernen"}
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {activeTab === "wochen" && (
+        <div>
+          {weeksLoading ? (
+            <div>Lade…</div>
+          ) : weeks.length === 0 ? (
+            <div className="text-sm text-muted-foreground">Keine Wochen gefunden.</div>
+          ) : (
+            <div className="space-y-6">
+              {groupedWeeks.map(([section, items]) => (
+                <section key={section}>
+                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{section}</h3>
+                  <ul className="grid gap-3">
+                    {items.map((week) => (
+                      <li key={week.week_id} className="block">
+                        <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-md flex items-center justify-center font-semibold text-sm" aria-hidden>
+                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border">
+                                {week.week_title ? week.week_title.split(" ")[0] : "W"}
+                              </div>
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium truncate" title={week.week_title}>{week.week_title}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button onClick={() => handleWeekEdit(week.week_id, week.week_title)} size="sm" className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                              <span className="hidden md:inline">Bearbeiten</span>
+                            </Button>
+                            <Button variant="destructive" onClick={() => deleteWeek(week.week_id)} size="sm" className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                              <span className="hidden md:inline">Löschen</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+  <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Klasse umbenennen</DialogTitle>
@@ -310,12 +487,42 @@ export default function ClassMembersPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+  <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Einladungslinks verwalten</DialogTitle>
             <DialogDescription>Erstellen Sie Einladungslinks und sehen Sie bestehende.</DialogDescription>
           </DialogHeader>
+      <Dialog
+        open={weekEditOpen}
+        onOpenChange={(o) => {
+          setWeekEditOpen(o);
+          if (!o) {
+            setWeekEditId(null);
+            setWeekEditName("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Woche umbenennen</DialogTitle>
+            <DialogDescription>Bitte geben Sie einen neuen Namen für die Woche ein.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <Input value={weekEditName} onChange={(e) => setWeekEditName(e.target.value)} placeholder="Neuer Wochenname" autoFocus />
+          </div>
+          <DialogFooter className="flex-row gap-2 justify-end">
+            <Button variant="outline" onClick={() => setWeekEditOpen(false)} size="sm" className="cursor-pointer">
+              <X className="w-4 h-4" />
+              Abbrechen
+            </Button>
+            <Button onClick={saveWeekEdit} size="sm" className="cursor-pointer">
+              <Check className="w-4 h-4" />
+              Speichern
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
           <div className="grid gap-3">
             <div className="flex items-center gap-2">
               <Select value={expiryPreset} onValueChange={(v: ExpiryPreset) => setExpiryPreset(v)}>
