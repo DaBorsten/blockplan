@@ -93,6 +93,9 @@ export function AppSidebar() {
                 <span>Datenschutzhinweis</span>
               </Link>
             </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            {" "}
             <SidebarMenuButton asChild isActive={pathname === "/impressum"}>
               <Link href={withParams("/impressum")}>
                 <span>Impressum</span>

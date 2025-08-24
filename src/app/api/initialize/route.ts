@@ -25,7 +25,7 @@ export async function POST() {
 			class_id TEXT NOT NULL,
 			teacher TEXT NOT NULL,
 			color TEXT NOT NULL,
-			UNIQUE(class_id, teacher)
+			UNIQUE(class_id, teacher),
 			FOREIGN KEY (class_id) REFERENCES class(id) ON DELETE CASCADE
 		);`);
 
