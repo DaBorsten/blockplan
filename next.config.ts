@@ -7,7 +7,7 @@ const securityHeaders = [
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live;
       connect-src 'self' https://accounts.google.com https://apis.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live;
-      frame-src 'self' https://accounts.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev;
+      frame-src 'self' https://accounts.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live;
       img-src 'self' data: https:;
       style-src 'self' 'unsafe-inline';
       font-src 'self' data:;
