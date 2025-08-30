@@ -3,17 +3,17 @@ import { useCallback, useEffect, useState } from "react";
 
 export type TeacherColorRecord = { id?: string; teacher: string; color: string };
 
-export function useTeacherColors(classId: string | undefined, userId: string | undefined) {
+export function useTeacherColors(classId: string | undefined) {
   const [data, setData] = useState<TeacherColorRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!classId || !userId) return;
+  if (!classId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/class/teacherColors?class_id=${classId}&user_id=${userId}`);
+  const res = await fetch(`/api/class/teacherColors?class_id=${classId}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Fehler beim Laden");
       if (Array.isArray(json.data)) setData(json.data as TeacherColorRecord[]);
@@ -22,7 +22,7 @@ export function useTeacherColors(classId: string | undefined, userId: string | u
     } finally {
       setLoading(false);
     }
-  }, [classId, userId]);
+  }, [classId]);
 
   useEffect(() => {
     void load();

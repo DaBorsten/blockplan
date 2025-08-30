@@ -19,18 +19,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Specialization } from "@/types/specialization";
-import { updateUrl } from "@/utils/updateTimetableURL";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+// query params handled via nuqs hooks
+import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
+import { useCurrentClass } from "@/store/useClassStore";
 
 export function WeekSelectionCombobox() {
-  const { user } = useUser();
-  const searchParams = useSearchParams();
-  const specParam = searchParams?.get("spec");
-  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
-  const weekID = searchParams?.get("week") ?? null;
-  const classID = searchParams?.get("class") ?? null;
+  const weekID = useCurrentWeek();
+  const classID = useCurrentClass();
+  const setWeekID = useSetWeek();
+
   const [open, setOpen] = React.useState(false);
   const [weeks, setWeeks] = React.useState<
     { label: string; value: string | null }[]
@@ -40,9 +37,9 @@ export function WeekSelectionCombobox() {
   React.useEffect(() => {
     const fetchWeeks = async () => {
       setLoading(true);
-      if (user?.id && classID) {
-        const result = await fetchWeekIDsWithNames(user.id, classID);
-        const filtered = (result || []).filter(w => w.value !== null);
+      if (classID) {
+        const result = await fetchWeekIDsWithNames(classID);
+        const filtered = (result || []).filter((w) => w.value !== null);
         setWeeks([{ label: "Keine Woche", value: null }, ...filtered]);
       } else {
         setWeeks([{ label: "Keine Woche", value: null }]);
@@ -50,13 +47,11 @@ export function WeekSelectionCombobox() {
       setLoading(false);
     };
     fetchWeeks();
-  }, [user?.id, classID]);
-
-  const router = useRouter();
+  }, [classID]);
 
   const handleWeekChange = (weekId: string | null | string) => {
     const nextWeek = weekId && weekId.length > 0 ? (weekId as string) : null;
-    updateUrl(router, nextWeek, specialization, classID);
+    setWeekID(nextWeek);
   };
 
   return (
@@ -87,7 +82,7 @@ export function WeekSelectionCombobox() {
                   key={week.value ?? "none"}
                   value={week.value ?? ""}
                   onSelect={(currentValue) => {
-                    if (currentValue === weekID) {
+                    if (currentValue === (weekID ?? "")) {
                       setOpen(false);
                       return;
                     }

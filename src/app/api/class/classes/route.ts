@@ -1,16 +1,11 @@
 import { turso } from "@/lib/tursoClient";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuthUserId } from "@/lib/auth";
 
-// GET /api/class/classes?user_id=...
+// GET /api/class/classes  (authenticated user)
 export async function GET(req: NextRequest) {
   try {
-    const user_id = req.nextUrl.searchParams.get("user_id");
-    if (!user_id) {
-      return NextResponse.json(
-        { error: "Missing user_id query parameter" },
-        { status: 400 },
-      );
-    }
+  const userId = requireAuthUserId(req);
 
     try {
       const result = await turso.execute(
@@ -18,7 +13,7 @@ export async function GET(req: NextRequest) {
          FROM user_class uc
          JOIN class c ON uc.class_id = c.id
          WHERE uc.user_id = ?;`,
-        [user_id],
+        [userId],
       );
       return NextResponse.json({ data: result.rows });
     } catch (innerError: unknown) {
@@ -38,23 +33,17 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/class/classes  { user_id }
+// POST /api/class/classes  (alternative fetch via POST, no body needed)
 export async function POST(req: NextRequest) {
   try {
-    const { user_id } = await req.json();
-    if (!user_id) {
-      return NextResponse.json(
-        { error: "Missing user_id in body" },
-        { status: 400 },
-      );
-    }
+  const userId = requireAuthUserId(req);
     try {
       const result = await turso.execute(
         `SELECT c.id AS class_id, c.title AS class_title
          FROM user_class uc
          JOIN class c ON uc.class_id = c.id
          WHERE uc.user_id = ?;`,
-        [user_id],
+        [userId],
       );
       return NextResponse.json({ data: result.rows });
     } catch (innerError: unknown) {

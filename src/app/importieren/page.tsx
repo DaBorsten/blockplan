@@ -2,11 +2,11 @@
 
 // Extrahiert den gewünschten Namen aus dem Dateinamen
 const extractFileName = (fullName: string): string => {
-  const regex = /KW\s+(\d+)_(\d+)_(\d+)([A-Z])/;
+  const regex = /KW\s*(\d+)[_\-\s]+(\d+)[_\-\s]+(\d+)\s*([A-Za-z]+)/i;
   const match = fullName.match(regex);
   if (match) {
     const [, n1, n2, n3, letter] = match;
-    return `${n3}${letter} KW ${n1}_${n2}`;
+    return `${n3}${letter.toUpperCase()} KW ${n1}_${n2}`;
   }
   return fullName;
 };
@@ -37,7 +37,10 @@ type FileItem = {
 };
 
 function getId() {
-  return Math.random().toString(36).slice(2) + Date.now();
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 export default function Import() {
@@ -48,21 +51,38 @@ export default function Import() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const searchParams = useSearchParams();
-  const classID = searchParams?.get("class") ?? null;
+  const classID = searchParams?.get("klasse") ?? null;
   const needsClass = !classID;
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
+    const MAX_MB = 10;
+    const MAX_BYTES = MAX_MB * 1024 * 1024;
     const newFiles: FileItem[] = [];
+    const existing = new Set(files.map((f) => `${f.name}-${f.file.size}`));
     Array.from(fileList).forEach((file) => {
-      if (file.type === "application/pdf") {
-        newFiles.push({
-          id: getId(),
-          file,
-          name: file.name,
-          displayName: extractFileName(file.name),
-        });
+      if (file.type !== "application/pdf") {
+        toast.warning(`Übersprungen (kein PDF): ${file.name}`);
+        return;
       }
+      if (file.size > MAX_BYTES) {
+        toast.warning(`Zu groß (> ${MAX_MB} MB): ${file.name}`);
+        return;
+      }
+      const key = `${file.name}-${file.size}`;
+
+      if (existing.has(key)) {
+        toast.message(`Bereits hinzugefügt: ${file.name}`);
+        return;
+      }
+      newFiles.push({
+        id: getId(),
+        file,
+        name: file.name,
+        displayName: extractFileName(file.name),
+      });
+
+      existing.add(key);
     });
     setFiles((prev) => [...prev, ...newFiles]);
   };
@@ -82,6 +102,11 @@ export default function Import() {
   };
 
   const handleEditSave = () => {
+    const next = editName.trim();
+    if (!next) {
+      toast.warning("Der Name darf nicht leer sein");
+      return;
+    }
     setFiles((prev) =>
       prev.map((f) => (f.id === editId ? { ...f, displayName: editName } : f)),
     );
@@ -104,15 +129,22 @@ export default function Import() {
         });
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Fehler beim Upload");
+          throw new Error(
+            errorData.error ||
+              `Upload fehlgeschlagen (Status: ${response.status})`,
+          );
         }
         const responseData = await response.json();
         return responseData;
       } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
-        throw Error("Internet oder Server Fehler", { cause: err });
+        console.error(`Upload-Fehler für Datei ${selectedFile.name}:`, err);
+        throw new Error(`Upload fehlgeschlagen: ${err.message}`, {
+          cause: err,
+        });
       }
     }
+    throw new Error("Keine Datei ausgewählt");
   }
 
   return (
@@ -130,7 +162,10 @@ export default function Import() {
               <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
               <div>
                 <p className="font-medium">Keine Klasse ausgewählt</p>
-                <p className="text-sm">Bitte wählen Sie zuerst eine Klasse in der Kopfzeile aus, bevor Sie importieren.</p>
+                <p className="text-sm">
+                  Bitte wählen Sie zuerst eine Klasse in der Kopfzeile aus,
+                  bevor Sie importieren.
+                </p>
               </div>
             </div>
           </div>
@@ -140,11 +175,11 @@ export default function Import() {
       <div className="flex flex-1 min-h-0 flex-col items-center justify-center w-full">
         {/* Dropzone oder Dateiliste */}
         <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center">
-      {files.length === 0 ? (
+          {files.length === 0 ? (
             <Dropzone
-        onFiles={loading || needsClass ? () => {} : handleFiles}
-        onClick={loading || needsClass ? () => {} : openFileDialog}
-        onDrop={loading || needsClass ? () => {} : handleDrop}
+              onFiles={loading || needsClass ? () => {} : handleFiles}
+              onClick={loading || needsClass ? () => {} : openFileDialog}
+              onDrop={loading || needsClass ? () => {} : handleDrop}
               fileInputRef={fileInputRef}
               text="Dateien hierher ziehen zum Hochladen"
               supportedFiles="PDF"
@@ -156,7 +191,9 @@ export default function Import() {
                 loading ? "opacity-60 pointer-events-none" : ""
               }`}
               onDrop={loading || needsClass ? undefined : handleDrop}
-              onDragOver={loading || needsClass ? undefined : (e) => e.preventDefault()}
+              onDragOver={
+                loading || needsClass ? undefined : (e) => e.preventDefault()
+              }
             >
               {files.map((f) => (
                 <div
@@ -235,9 +272,14 @@ export default function Import() {
               ))}
             </div>
           )}
-      {loading && (
-            <div className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 rounded-2xl">
-        <Loader2 className="animate-spin w-16 h-16 text-primary" />
+          {loading && (
+            <div
+              className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 rounded-2xl"
+              role="status"
+              aria-live="polite"
+              aria-label="Import läuft"
+            >
+              <Loader2 className="animate-spin w-16 h-16 text-primary" />
             </div>
           )}
         </div>
@@ -266,14 +308,11 @@ export default function Import() {
             }
             setLoading(true);
             try {
-              // Simuliere Import-Vorgang
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-
               for (const { file, displayName } of files) {
                 const response = await uploadFile(file);
 
                 if (response) {
-                  await fetch("/api/week", {
+                  const weekRes = await fetch("/api/week", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -282,6 +321,15 @@ export default function Import() {
                       class_id: classID,
                     }),
                   });
+
+                  if (!weekRes.ok) {
+                    const errorData = await weekRes.json().catch(() => ({}));
+                    const msg =
+                      errorData.error ||
+                      `Week-Import fehlgeschlagen für ${displayName}`;
+                    toast.error(msg);
+                    throw new Error(msg);
+                  }
                 }
               }
 

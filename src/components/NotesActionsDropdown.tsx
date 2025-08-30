@@ -11,7 +11,10 @@ import { Copy, Send, Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useModeStore } from "@/store/useModeStore";
 import NotesTransferDialog from "@/components/NotesTransferDialog";
-import { useSearchParams } from "next/navigation";
+// Selection state from Zustand store
+import { useCurrentWeek } from "@/store/useWeekStore";
+import { useCurrentGroup } from "@/store/useGroupStore";
+import { useCurrentClass } from "@/store/useClassStore";
 import { allDays } from "@/constants/allDays";
 import { toast } from "sonner";
 
@@ -21,11 +24,9 @@ type Props = {
 
 export default function NotesActionsDropdown({ getNotes }: Props) {
   useModeStore();
-  const searchParams = useSearchParams();
-  const weekID = searchParams.get("week");
-  const specParam = searchParams.get("spec");
-  const initialSpec = specParam ? Number(specParam) : 1;
-  const classID = searchParams.get("class");
+  const weekID = useCurrentWeek();
+  const classID = useCurrentClass();
+  const initialSpec = useCurrentGroup();
   const [openTransfer, setOpenTransfer] = React.useState(false);
   const handleCopy = async () => {
     // Block copying when no week is selected

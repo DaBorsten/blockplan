@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
+import { getAuthUserId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-// GET /api/class/invitation/check?code=XXXXXX&user_id=optional
+// GET /api/class/invitation/check?code=XXXXXX
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
-    const user_id = searchParams.get("user_id") || undefined;
     if (!code) {
       return NextResponse.json({ error: "Missing code" }, { status: 400 });
     }
@@ -32,10 +32,11 @@ export async function GET(req: NextRequest) {
     const valid = never || exp >= Date.now();
 
     let isMember = false;
-    if (user_id) {
+  const userId = getAuthUserId(req);
+  if (userId) {
       const mem = await turso.execute(
         `SELECT 1 FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`,
-        [user_id, row.class_id]
+    [userId, row.class_id]
       );
       isMember = mem.rows.length > 0;
     }

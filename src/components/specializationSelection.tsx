@@ -8,8 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Specialization } from "@/types/specialization";
-import { updateUrl } from "@/utils/updateTimetableURL";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCurrentGroup, useSetGroup } from "@/store/useGroupStore";
 
 const options = [
   { label: "Alle", value: 1 },
@@ -18,15 +17,10 @@ const options = [
 ];
 
 export function SpecializationSelect() {
-  const searchParams = useSearchParams();
-  const weekID = searchParams?.get("week") ?? null;
-  const specParam = searchParams?.get("spec");
-  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
-  const classID = searchParams?.get("class") ?? null;
-  const router = useRouter();
-
+  const specialization = useCurrentGroup();
+  const setSpecialization = useSetGroup();
   const handleSpecChange = (spec: Specialization) => {
-    updateUrl(router, weekID, spec, classID);
+    setSpecialization(spec);
   };
 
   return (
@@ -34,10 +28,7 @@ export function SpecializationSelect() {
       value={
         typeof specialization === "number" ? String(specialization) : undefined
       }
-      onValueChange={(val) => {
-        const num = val ? Number(val) : null;
-        handleSpecChange(num as Specialization);
-      }}
+  onValueChange={(val) => handleSpecChange(Number(val) as Specialization)}
     >
       <SelectTrigger>
         <SelectValue placeholder="Fachrichtung wählen" />

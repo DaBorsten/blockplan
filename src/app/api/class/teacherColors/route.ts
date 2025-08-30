@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
 import { v4 as uuid } from "uuid";
+import { requireAuthUserId } from "@/lib/auth";
 
-// GET /api/class/teacherColors?class_id=...&user_id=...
+// GET /api/class/teacherColors?class_id=... (user inferred)
 export async function GET(req: NextRequest) {
   try {
-    const class_id = req.nextUrl.searchParams.get("class_id");
-    const user_id = req.nextUrl.searchParams.get("user_id");
-    if (!class_id || !user_id) {
-      return NextResponse.json(
-        { error: "Missing class_id or user_id" },
-        { status: 400 },
-      );
-    }
+  const class_id = req.nextUrl.searchParams.get("class_id");
+  const userId = requireAuthUserId(req);
+  if (!class_id) return NextResponse.json({ error: "Missing class_id" }, { status: 400 });
     // membership check
     const membership = await turso.execute(
       `SELECT 1 FROM user_class WHERE class_id = ? AND user_id = ? LIMIT 1`,
-      [class_id, user_id],
+      [class_id, userId],
     );
     if (!membership.rows[0]) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -35,23 +31,21 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/class/teacherColors  body: { class_id, user_id, items: [{ id?, teacher, color }] }
+// POST /api/class/teacherColors  body: { class_id, items: [{ id?, teacher, color }] }
 // Logic:
 //  - if id present: attempt UPDATE (with optional teacher change). On unique conflict (teacher already used), respond 409.
 //  - if no id: INSERT new (uuid). On conflict(class_id,teacher) -> UPDATE color.
 export async function POST(req: NextRequest) {
   try {
-    const { class_id, user_id, items } = await req.json();
-    if (!class_id || !user_id || !Array.isArray(items)) {
-      return NextResponse.json(
-        { error: "Missing class_id, user_id or items" },
-        { status: 400 },
-      );
+  const { class_id, items } = await req.json();
+  const userId = requireAuthUserId(req);
+    if (!class_id || !Array.isArray(items)) {
+      return NextResponse.json({ error: "Missing class_id or items" }, { status: 400 });
     }
     // permission: must be member (any role)
     const membership = await turso.execute(
       `SELECT role FROM user_class WHERE class_id = ? AND user_id = ? LIMIT 1`,
-      [class_id, user_id],
+      [class_id, userId],
     );
     if (!membership.rows[0]) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -121,21 +115,16 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/class/teacherColors?id=...&class_id=...&user_id=...
+// DELETE /api/class/teacherColors?id=...&class_id=...
 export async function DELETE(req: NextRequest) {
   try {
-    const id = req.nextUrl.searchParams.get("id");
-    const class_id = req.nextUrl.searchParams.get("class_id");
-    const user_id = req.nextUrl.searchParams.get("user_id");
-    if (!id || !class_id || !user_id) {
-      return NextResponse.json(
-        { error: "Missing id, class_id or user_id" },
-        { status: 400 },
-      );
-    }
+  const id = req.nextUrl.searchParams.get("id");
+  const class_id = req.nextUrl.searchParams.get("class_id");
+  const userId = requireAuthUserId(req);
+    if (!id || !class_id) return NextResponse.json({ error: "Missing id or class_id" }, { status: 400 });
     const membership = await turso.execute(
       `SELECT 1 FROM user_class WHERE class_id = ? AND user_id = ? LIMIT 1`,
-      [class_id, user_id],
+      [class_id, userId],
     );
     if (!membership.rows[0]) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

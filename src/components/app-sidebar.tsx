@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,43 +15,48 @@ import {
 } from "@/components/ui/sidebar";
 
 import { Bug, Calendar, CloudDownload, School, Settings } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ClassSelectionCombobox } from "./classSelection";
 
+// Icons already imported individually above; route constants added below.
+import {
+  ROUTE_STUNDENPLAN,
+  ROUTE_KLASSEN,
+  ROUTE_IMPORTIEREN,
+  ROUTE_DEV,
+  ROUTE_EINSTELLUNGEN,
+} from "@/constants/routes";
 const items = [
   {
     title: "Stundenplan",
-    url: "/",
+    url: ROUTE_STUNDENPLAN,
     icon: Calendar,
   },
   {
     title: "Klassen",
-    url: "/class",
+    url: ROUTE_KLASSEN,
     icon: School,
   },
   {
     title: "Importieren",
-    url: "/import",
+    url: ROUTE_IMPORTIEREN,
     icon: CloudDownload,
   },
   {
     title: "DEV",
-    url: "/dev",
+    url: ROUTE_DEV,
     icon: Bug,
   },
   {
-    title: "Einstellaungen",
-    url: "/settings",
+    title: "Einstellungen",
+    url: ROUTE_EINSTELLUNGEN,
     icon: Settings,
   },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const qs = searchParams?.toString() ?? "";
-  const withParams = (url: string) => (qs ? `${url}?${qs}` : url);
   return (
     <Sidebar>
       <SidebarHeader>
@@ -63,14 +69,11 @@ export function AppSidebar() {
             <SidebarMenu>
               {items.map((item) => {
                 const active =
-                  item.url === "/"
-                    ? pathname === "/"
-                    : pathname === item.url ||
-                      pathname.startsWith(item.url + "/");
+                  pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={active}>
-                      <Link href={withParams(item.url)}>
+                        <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>
@@ -89,7 +92,7 @@ export function AppSidebar() {
               asChild
               isActive={pathname === "/datenschutzhinweis"}
             >
-              <Link href={withParams("/datenschutzhinweis")}>
+              <Link href="/datenschutzhinweis">
                 <span>Datenschutzhinweis</span>
               </Link>
             </SidebarMenuButton>
@@ -97,7 +100,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             {" "}
             <SidebarMenuButton asChild isActive={pathname === "/impressum"}>
-              <Link href={withParams("/impressum")}>
+              <Link href="/impressum">
                 <span>Impressum</span>
               </Link>
             </SidebarMenuButton>

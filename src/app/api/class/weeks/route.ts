@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
+import { requireAuthUserId } from "@/lib/auth";
 
-// GET /api/class/weeks?class_id=...&user_id=...
-// Requires both params; validates the user is a member of the class.
+// GET /api/class/weeks?class_id=...  (user inferred via auth)
+// Requires class_id; validates the authenticated user is a member of the class.
 export async function GET(req: NextRequest) {
   try {
-    const class_id = req.nextUrl.searchParams.get("class_id");
-    const user_id = req.nextUrl.searchParams.get("user_id");
-
-    if (!class_id || !user_id) {
+  const class_id = req.nextUrl.searchParams.get("class_id");
+  const userId = requireAuthUserId(req);
+  if (!class_id) {
       return NextResponse.json(
-        { error: "Missing required query params: class_id and user_id" },
+    { error: "Missing required query param: class_id" },
         { status: 400 },
       );
     }
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     // Validate membership: user must belong to the class
     const membership = await turso.execute(
       `SELECT 1 FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1;`,
-      [user_id, class_id],
+      [userId, class_id],
     );
     if (!membership.rows || !membership.rows[0]) {
       return NextResponse.json(

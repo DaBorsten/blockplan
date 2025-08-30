@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
 import { randomBytes } from "crypto";
+import { requireAuthUserId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 type EnsureOwnerResult = { ok: true } | { ok: false; status: number; error: string };
 
-async function ensureOwner(user_id: string, class_id: string): Promise<EnsureOwnerResult> {
+async function ensureOwner(authUserId: string, class_id: string): Promise<EnsureOwnerResult> {
   const roleRes = await turso.execute(
     `SELECT role FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`,
-    [user_id, class_id],
+  [authUserId, class_id],
   );
   const role = (roleRes.rows[0] as { role?: string } | undefined)?.role;
   if (!role) return { ok: false, status: 403, error: "not a class member" };
@@ -28,21 +29,15 @@ function generateCode(length = 6): string {
   return out;
 }
 
-// GET /api/class/invitation?user_id=&class_id=
+// GET /api/class/invitation?class_id=
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const user_id = searchParams.get("user_id");
+  const authUserId = requireAuthUserId(req);
     const class_id = searchParams.get("class_id");
+  if (!class_id) return NextResponse.json({ error: "Missing class_id" }, { status: 400 });
 
-    if (!user_id || !class_id) {
-      return NextResponse.json(
-        { error: "Missing required params: user_id, class_id" },
-        { status: 400 },
-      );
-    }
-
-    const auth = await ensureOwner(user_id, class_id);
+  const auth = await ensureOwner(authUserId, class_id);
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
@@ -57,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     const now = Date.now();
     const data = res.rows.map((r) => {
-      const row = (r as unknown) as { id: string; user_id: string; class_id: string; expiration_date: string };
+  const row = (r as unknown) as { id: string; user_id: string; class_id: string; expiration_date: string };
       const exp = new Date(row.expiration_date).getTime();
       const active = isFinite(exp) && exp >= now;
       return { ...row, active };
@@ -74,18 +69,14 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/class/invitation
-// body: { user_id, class_id, expires?: boolean, expiration_date?: string }
+// body: { class_id, expires?: boolean, expiration_date?: string }
 export async function POST(req: NextRequest) {
   try {
-    const { user_id, class_id, expires, expiration_date } = await req.json();
-    if (!user_id || !class_id) {
-      return NextResponse.json(
-        { error: "Missing required fields: user_id, class_id" },
-        { status: 400 },
-      );
-    }
+  const userId = requireAuthUserId(req);
+  const { class_id, expires, expiration_date } = await req.json();
+  if (!class_id) return NextResponse.json({ error: "Missing class_id" }, { status: 400 });
 
-    const auth = await ensureOwner(user_id, class_id);
+  const auth = await ensureOwner(userId, class_id);
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
@@ -134,11 +125,11 @@ export async function POST(req: NextRequest) {
     await turso.execute(
       `INSERT INTO invitation (id, user_id, class_id, expiration_date)
        VALUES (?, ?, ?, ?)`,
-      [id, user_id, class_id, expISO],
+      [id, userId, class_id, expISO],
     );
 
     return NextResponse.json(
-      { id, user_id, class_id, expiration_date: expISO },
+      { id, user_id: userId, class_id, expiration_date: expISO },
       { status: 201 },
     );
   } catch (error) {
@@ -150,15 +141,13 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/class/invitation?id=&user_id=
+// DELETE /api/class/invitation?id=
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
-    const user_id = searchParams.get("user_id");
-    if (!id || !user_id) {
-      return NextResponse.json({ error: "Missing id or user_id" }, { status: 400 });
-    }
+  const userId = requireAuthUserId(req);
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
     // load invitation with class_id and creator
     const res = await turso.execute(
@@ -171,13 +160,13 @@ export async function DELETE(req: NextRequest) {
     const row = (res.rows[0] as unknown) as { id: string; user_id: string; class_id: string };
 
     // allow if user is creator
-    if (row.user_id === user_id) {
+  if (row.user_id === userId) {
       await turso.execute(`DELETE FROM invitation WHERE id = ?`, [id]);
       return NextResponse.json({ deleted: true });
     }
 
     // or owner of the class
-    const auth = await ensureOwner(user_id, row.class_id);
+  const auth = await ensureOwner(userId, row.class_id);
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }

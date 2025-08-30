@@ -33,7 +33,8 @@ export default clerkMiddleware(async (auth, req) => {
     });
   }
 
-  if (!isPublicRoute(req)) {
+  const isPublic = isPublicRoute(req);
+  if (!isPublic) {
     await auth.protect();
   }
 

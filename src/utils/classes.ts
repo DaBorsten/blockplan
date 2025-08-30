@@ -1,9 +1,9 @@
 
 type ClassOption = { label: string; value: string | null };
 
-export const fetchUserClassesWithNames = async (userId: string): Promise<ClassOption[]> => {
+export const fetchUserClassesWithNames = async (): Promise<ClassOption[]> => {
   const res = await fetch(
-    `/api/class/classes?user_id=${encodeURIComponent(userId)}`,
+    `/api/class/classes`,
     { cache: "no-store" }
   );
   if (!res.ok) return [

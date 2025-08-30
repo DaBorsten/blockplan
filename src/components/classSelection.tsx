@@ -6,7 +6,6 @@ import { Check, ChevronsUpDown, School } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
 import {
   DropdownMenu,
@@ -14,16 +13,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { updateUrl } from "@/utils/updateTimetableURL";
-import { Specialization } from "@/types/specialization";
-import { useSearchParams } from "next/navigation";
+// updateUrl replaced by nuqs hooks
+import { useCurrentClass, useSetClass } from "@/store/useClassStore";
+
+// ALLOWED_SPECIALIZATIONS removed; validation handled in dedicated hook
 
 export function ClassSelectionCombobox() {
-  const searchParams = useSearchParams();
-  const classID = searchParams?.get("class") ?? null;
-  const weekID = searchParams?.get("week") ?? null;
-  const specParam = searchParams?.get("spec");
-  const specialization: Specialization = (specParam ? Number(specParam) : 1) as Specialization;
+  
+  const classID = useCurrentClass();
+  const setClassID = useSetClass();
   const [classes, setClasses] = React.useState<
     { label: string; value: string | null }[]
   >([]);
@@ -32,17 +30,15 @@ export function ClassSelectionCombobox() {
   React.useEffect(() => {
     const load = async () => {
       if (!user?.id) return;
-      const result = await fetchUserClassesWithNames(user.id);
+  const result = await fetchUserClassesWithNames();
       setClasses(result || []);
     };
     load();
     // Also reload when class query changes so new joins appear immediately
   }, [user?.id, classID]);
 
-  const router = useRouter();
-
   const handleClassChange = (classId: string | null) => {
-    updateUrl(router, weekID, specialization, classId);
+    setClassID(classId);
   };
 
   return (

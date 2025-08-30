@@ -11,10 +11,9 @@ type RowState = { id?: string; teacher: string; color: string; _editing?: boolea
 
 interface Props {
   classId: string;
-  userId: string;
 }
 
-export function TeacherColorsManager({ classId, userId }: Props) {
+export function TeacherColorsManager({ classId }: Props) {
   const [items, setItems] = useState<RowState[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -23,7 +22,7 @@ export function TeacherColorsManager({ classId, userId }: Props) {
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/class/teacherColors?class_id=${classId}&user_id=${userId}`,
+        `/api/class/teacherColors?class_id=${classId}`,
       );
       const data = await res.json();
       if (Array.isArray(data.data)) {
@@ -38,11 +37,11 @@ export function TeacherColorsManager({ classId, userId }: Props) {
   }
 
   useEffect(() => {
-    if (classId && userId) {
+    if (classId) {
       void load();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only depends on classId/userId and is recreated when they change
-  }, [classId, userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only depends on classId and is recreated when it changes
+  }, [classId]);
 
   function updateItem(idx: number, patch: Partial<RowState>) {
     setItems((prev) =>
@@ -64,7 +63,7 @@ export function TeacherColorsManager({ classId, userId }: Props) {
     }
     try {
       const res = await fetch(
-        `/api/class/teacherColors?id=${encodeURIComponent(id)}&class_id=${classId}&user_id=${userId}`,
+        `/api/class/teacherColors?id=${encodeURIComponent(id)}&class_id=${classId}`,
         { method: "DELETE" },
       );
       if (!res.ok) throw new Error();
@@ -80,7 +79,6 @@ export function TeacherColorsManager({ classId, userId }: Props) {
     try {
       const payload = {
         class_id: classId,
-        user_id: userId,
         items: items.map((it) => ({ id: it.id, teacher: it.teacher.trim(), color: it.color })),
       };
       const res = await fetch(`/api/class/teacherColors`, {
