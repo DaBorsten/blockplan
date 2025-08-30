@@ -4,13 +4,14 @@ import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { Colors } from "@/constants/Colors";
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
-import { Specialization } from "@/types/specialization";
 import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
-import { useSearchParams } from "next/navigation";
+// nuqs hooks for query params
 import { Lesson } from "@/types/timetableData";
+import { useCurrentWeek } from "@/store/useWeekStore";
+import { useCurrentGroup } from "@/store/useGroupStore";
+import { useCurrentClass } from "@/store/useClassStore";
 import { useTeacherColors } from "@/hooks/useTeacherColors";
-import { useUser } from "@clerk/nextjs";
 import { getTimesForTimetable } from "@/utils/times";
 import { useModeStore } from "@/store/useModeStore";
 import { toast } from "sonner";
@@ -19,25 +20,18 @@ type TimetableProps = {
   setActiveClickedLesson: (lesson: Lesson | null) => void;
   setActiveNotes: (notes: string | null) => void;
   setIsEditNotesModalOpen: (open: boolean) => void;
-  notesUpdated: boolean;
 };
 
 export default function Timetable({
   setActiveClickedLesson,
   setActiveNotes,
   setIsEditNotesModalOpen,
-  notesUpdated,
 }: TimetableProps) {
-  const searchParams = useSearchParams();
-  const weekID = searchParams.get("week");
-  const specParam = searchParams.get("spec");
-  const specialization: Specialization = (
-    specParam ? Number(specParam) : 1
-  ) as Specialization;
+  const weekID = useCurrentWeek();
+  const group = useCurrentGroup();
   const { mode } = useModeStore();
-  const { user } = useUser();
-  const classId = searchParams.get("class");
-  const { getColor } = useTeacherColors(classId ?? undefined, user?.id);
+  const classId = useCurrentClass();
+  const { getColor } = useTeacherColors(classId ?? undefined);
 
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
@@ -64,27 +58,34 @@ export default function Timetable({
     setCurrentDayIndex(adjustedDayIndex);
   }, []);
 
-  // Lade Stundenplan-Daten (hier musst du DB-Logik anpassen!)
-  const setTimetableData2 = useCallback(
-    async (specialization: Specialization) => {
-      if (!weekID) return;
-
-      const res = await fetch(
-        `/api/timetable/week?weekId=${weekID}&specialization=${specialization}`,
-      );
-      const data = await res.json();
-      const response = data.data;
-
-      setTimeTableData(response);
-    },
-    [weekID, setTimeTableData],
-  );
-
+  // Lade Stundenplandaten wenn sich weekID, group oder classId ändert
   useEffect(() => {
-    if (weekID && specialization) {
-      setTimetableData2(specialization);
-    }
-  }, [specialization, weekID, notesUpdated, setTimetableData2]);
+    const loadTimetableData = async () => {
+      if (!weekID || !group || !classId) {
+        setTimeTableData([]);
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/timetable/week?weekId=${weekID}&specialization=${group}`
+        );
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setTimeTableData(result.data || []);
+      } catch (error) {
+        console.error("Fehler beim Laden der Stundenplandaten:", error);
+        toast.error("Stundenplandaten konnten nicht geladen werden");
+        setTimeTableData([]);
+      }
+    };
+
+    loadTimetableData();
+  }, [weekID, group, classId]);
 
   // Dynamische Zeilenhöhe: alle Zeilen gleich hoch und füllen den Container
   const recomputeRowHeight = useCallback(() => {
@@ -208,6 +209,7 @@ export default function Timetable({
     return () => vp.removeEventListener("scroll", onScroll);
   }, [visibleDayCount, dayColWidth]);
 
+  // groupedByDay basiert nun direkt auf stableData (enthält nur die stabil angezeigte Woche)
   const groupedByDay = allDays.map((day) => {
     const dayData = timeTableData.filter(
       (item) => item.day === day && item.week_id === weekID,
@@ -242,7 +244,7 @@ export default function Timetable({
   const singleDayMode = visibleDayCount === 1;
 
   return (
-    <div className="h-full border border-solid border-border rounded-lg overflow-hidden">
+    <div className="h-full border border-solid border-border rounded-lg overflow-hidden relative">
       <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         <table className="h-full border-collapse bg-background w-full table-fixed">
           <colgroup>
@@ -344,17 +346,17 @@ export default function Timetable({
                           key={`${day}-${hour}`}
                           className={`text-center box-border p-1 ${
                             isLast ? "" : "border-b"
-                          } min-h-16 text-[var(--empty-text)] border-b-[var(--empty-border)]`}
+                          } min-h-16 border-b-[var(--empty-border)]`}
                           style={
                             {
                               "--empty-border":
                                 Colors[colorScheme].textInputDisabled,
-                              "--empty-text":
-                                Colors[colorScheme].textInputPlaceholder,
                             } as React.CSSProperties
                           }
                         >
-                          -
+                          <div className="h-full flex items-center justify-center text-muted-foreground">
+                            -
+                          </div>
                         </td>
                       );
                     }
@@ -373,21 +375,6 @@ export default function Timetable({
                         }
                       >
                         <div className="flex gap-1 flex-nowrap items-stretch h-full">
-                          {specialization === 1 &&
-                            hourData.lessons.length === 1 &&
-                            hourData.lessons[0].specialization === 3 && (
-                              <div
-                                className="flex-1 flex items-center justify-center p-1 h-full text-[var(--spec3-text)]"
-                                style={
-                                  {
-                                    "--spec3-text":
-                                      Colors[colorScheme].textInputPlaceholder,
-                                  } as React.CSSProperties
-                                }
-                              >
-                                -
-                              </div>
-                            )}
 
                           {hourData.lessons.map((lesson, idx) => {
                             const bgColor =
@@ -468,21 +455,7 @@ export default function Timetable({
                             );
                           })}
 
-                          {specialization === 1 &&
-                            hourData.lessons.length === 1 &&
-                            hourData.lessons[0].specialization === 2 && (
-                              <div
-                                className="flex-1 flex items-center justify-center p-1 h-full text-[var(--spec2-text)]"
-                                style={
-                                  {
-                                    "--spec2-text":
-                                      Colors[colorScheme].textInputPlaceholder,
-                                  } as React.CSSProperties
-                                }
-                              >
-                                -
-                              </div>
-                            )}
+                          {/* Entfernte künstliche Platzhalter für fehlende Spezialisierungseinträge */}
                         </div>
                       </td>
                     );

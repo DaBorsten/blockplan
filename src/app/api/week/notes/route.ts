@@ -3,8 +3,8 @@ import { turso } from "@/lib/tursoClient";
 
 // GET /api/week/notes?lessonId=...
 export async function GET(req: NextRequest) {
-  const lessonID = req.nextUrl.searchParams.get("lessonId");
-  if (!lessonID) {
+  const lessonId = req.nextUrl.searchParams.get("lessonId");
+  if (!lessonId) {
     return NextResponse.json(
       { error: "lessonId is required" },
       { status: 400 },
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     const result = await turso.execute(
       `SELECT notes from timetable WHERE id = ?;`,
-      [lessonID],
+      [lessonId],
     );
 
     if (!result) {
@@ -31,10 +31,10 @@ export async function GET(req: NextRequest) {
 
 // PUT /api/week/notes
 export async function PUT(req: NextRequest) {
-  const { lessonID, notes } = await req.json();
-  if (!lessonID) {
+  const { lessonId, notes } = await req.json();
+  if (!lessonId) {
     return NextResponse.json(
-      { error: "lessonID is required" },
+      { error: "lessonId is required" },
       { status: 400 },
     );
   }
@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
     const changedNotes = trimmedNotes === "" ? null : trimmedNotes;
     await turso.execute(`UPDATE timetable SET notes = ? WHERE id = ?;`, [
       changedNotes,
-      lessonID,
+      lessonId,
     ]);
     return NextResponse.json({ success: true });
   } catch (error: unknown) {

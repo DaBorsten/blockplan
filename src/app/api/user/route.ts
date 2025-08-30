@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
+import { requireAuthUserId } from "@/lib/auth";
 
-// GET /api/user?user_id=...
+// GET /api/user  (authenticated user info)
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const user_id = searchParams.get("user_id");
-    if (!user_id) return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+  const userId = requireAuthUserId(req);
 
     // Try to read user. If table or column doesn't exist yet, treat as no user configured.
     try {
-      const res = await turso.execute(`SELECT id, nickname FROM user WHERE id = ? LIMIT 1`, [user_id]);
+  const res = await turso.execute(`SELECT id, nickname FROM user WHERE id = ? LIMIT 1`, [userId]);
       if (res.rows.length === 0) return NextResponse.json({ data: null }, { status: 200 });
       return NextResponse.json({ data: res.rows[0] });
     } catch (innerError: unknown) {
@@ -22,7 +21,7 @@ export async function GET(req: NextRequest) {
       if (msg.includes("no such column: nickname")) {
         // Fallback: select only id to check existence
         try {
-          const fallback = await turso.execute(`SELECT id FROM user WHERE id = ? LIMIT 1`, [user_id]);
+          const fallback = await turso.execute(`SELECT id FROM user WHERE id = ? LIMIT 1`, [userId]);
           if (fallback.rows.length === 0) return NextResponse.json({ data: null }, { status: 200 });
           return NextResponse.json({ data: { id: fallback.rows[0].id, nickname: null } }, { status: 200 });
         } catch (fallbackErr) {
@@ -38,11 +37,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/user  { user_id, nickname? }
+// POST /api/user  { nickname? }
 export async function POST(req: NextRequest) {
   try {
-    const { user_id, nickname } = await req.json();
-    if (!user_id) return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
+  const userId = requireAuthUserId(req);
+  const { nickname } = await req.json();
 
     // Ensure table exists (created only when POSTing) and nickname column present
     await turso.execute(
@@ -55,14 +54,14 @@ export async function POST(req: NextRequest) {
 
 
     // Create user row if it doesn't exist yet
-    await turso.execute(`INSERT OR IGNORE INTO user (id) VALUES (?)`, [user_id]);
+  await turso.execute(`INSERT OR IGNORE INTO user (id) VALUES (?)`, [userId]);
 
     // Optionally set/update nickname when provided
     if (typeof nickname === "string" && nickname.trim().length > 0) {
-      await turso.execute(`UPDATE user SET nickname = ? WHERE id = ?`, [nickname.trim(), user_id]);
+  await turso.execute(`UPDATE user SET nickname = ? WHERE id = ?`, [nickname.trim(), userId]);
     }
 
-    const res = await turso.execute(`SELECT id, nickname FROM user WHERE id = ?`, [user_id]);
+  const res = await turso.execute(`SELECT id, nickname FROM user WHERE id = ?`, [userId]);
     return NextResponse.json({ data: res.rows[0] }, { status: 201 });
   } catch (error) {
     console.error("Error creating/updating user:", error);

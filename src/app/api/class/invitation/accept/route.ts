@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
+import { requireAuthUserId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 // POST /api/class/invitation/accept
-// body: { code, user_id }
+// body: { code }
 export async function POST(req: NextRequest) {
   try {
-    const { code, user_id } = await req.json();
-    if (!code || !user_id) {
-      return NextResponse.json({ error: "Missing code or user_id" }, { status: 400 });
+  const userId = requireAuthUserId(req);
+    const { code } = await req.json();
+    if (!code) {
+      return NextResponse.json({ error: "Missing code" }, { status: 400 });
     }
 
     const res = await turso.execute(
@@ -33,21 +35,18 @@ export async function POST(req: NextRequest) {
     }
 
     // check membership
-    const mem = await turso.execute(
-      `SELECT 1 FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`,
-      [user_id, row.class_id]
-    );
+  const mem = await turso.execute(`SELECT 1 FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`, [userId, row.class_id]);
     if (mem.rows.length > 0) {
       return NextResponse.json({ joined: false, alreadyMember: true, class_id: row.class_id, class_title: row.class_title });
     }
 
-    await turso.execute(
-      `INSERT INTO user_class (user_id, class_id, role) VALUES (?, ?, ?)`,
-      [user_id, row.class_id, "member"],
-    );
+  await turso.execute(`INSERT INTO user_class (user_id, class_id, role) VALUES (?, ?, ?)`, [userId, row.class_id, "member"]);
 
-    return NextResponse.json({ joined: true, class_id: row.class_id, class_title: row.class_title });
-  } catch (error) {
+  return NextResponse.json({ joined: true, class_id: row.class_id, class_title: row.class_title });
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && (error as { name?: string }).name === 'Unauthenticated') {
+      return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+    }
     console.error("Error accepting invitation:", error);
     return NextResponse.json({ error: "Error accepting invitation" }, { status: 500 });
   }

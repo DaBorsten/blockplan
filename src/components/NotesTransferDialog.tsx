@@ -9,8 +9,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUser } from "@clerk/nextjs";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { fetchWeekIDsWithNames } from "@/utils/weeks";
 import type { Specialization } from "@/types/specialization";
 import { toast } from "sonner";
@@ -31,11 +37,20 @@ const specOptions: { label: string; value: Specialization }[] = [
   { label: "Gruppe B", value: 3 },
 ];
 
-export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, classId, initialSpecialization }: Props) {
-  const { user } = useUser();
-  const [weeks, setWeeks] = useState<{ label: string; value: string | null }[]>([]);
+export default function NotesTransferDialog({
+  open,
+  onOpenChange,
+  targetWeekId,
+  classId,
+  initialSpecialization,
+}: Props) {
+  const [weeks, setWeeks] = useState<{ label: string; value: string | null }[]>(
+    [],
+  );
   const [sourceWeekId, setSourceWeekId] = useState<string | null>(null);
-  const [targetWeekIdState, setTargetWeekIdState] = useState<string | null>(null);
+  const [targetWeekIdState, setTargetWeekIdState] = useState<string | null>(
+    null,
+  );
   const [specialization, setSpecialization] = useState<Specialization>(1);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [totalCount, setTotalCount] = useState<number | null>(null);
@@ -45,15 +60,15 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
 
   useEffect(() => {
     const loadWeeks = async () => {
-      if (!user?.id || !classId) return;
+      if (!classId) return;
       setLoadingWeeks(true);
       try {
-        const data = await fetchWeekIDsWithNames(user.id, classId);
+        const data = await fetchWeekIDsWithNames(classId);
         const list = (data || []).filter((w) => w.value);
         setWeeks(list as { label: string; value: string | null }[]);
         if (open) {
           // Set defaults only when dialog is open
-          setSourceWeekId((prev) => prev ?? (list[0]?.value ?? null));
+          setSourceWeekId((prev) => prev ?? list[0]?.value ?? null);
           setTargetWeekIdState((prev) => prev ?? targetWeekId);
         }
       } catch (e) {
@@ -64,7 +79,7 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
       }
     };
     if (open) loadWeeks();
-  }, [open, user?.id, classId, targetWeekId]);
+  }, [open, classId, targetWeekId]);
 
   // Reset specialization and counters on dialog open
   useEffect(() => {
@@ -77,12 +92,16 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
   }, [open, targetWeekId, initialSpecialization]);
 
   const canPreview = useMemo(
-    () => !!sourceWeekId && !!targetWeekIdState && !!specialization && sourceWeekId !== targetWeekIdState,
+    () =>
+      !!sourceWeekId &&
+      !!targetWeekIdState &&
+      !!specialization &&
+      sourceWeekId !== targetWeekIdState,
     [sourceWeekId, targetWeekIdState, specialization],
   );
 
   useEffect(() => {
-  const run = async () => {
+    const run = async () => {
       if (!canPreview) {
         setPreviewCount(null);
         setTotalCount(null);
@@ -95,13 +114,14 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
           targetWeekId: targetWeekIdState!,
           specialization: String(specialization),
         });
-        const res = await fetch(`/api/week/notes/transfer?${params.toString()}`);
+        const res = await fetch(
+          `/api/week/notes/transfer?${params.toString()}`,
+        );
         const json = await res.json();
         if (res.ok) {
           setPreviewCount(json.transferableCount ?? 0);
           setTotalCount(json.totalCount ?? null);
-        }
-        else {
+        } else {
           setPreviewCount(null);
           setTotalCount(null);
           console.error(json.error || "Preview failed");
@@ -120,7 +140,11 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
       const res = await fetch(`/api/week/notes/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceWeekId: sourceWeekId!, targetWeekId: targetWeekIdState!, specialization }),
+        body: JSON.stringify({
+          sourceWeekId: sourceWeekId!,
+          targetWeekId: targetWeekIdState!,
+          specialization,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Transfer failed");
@@ -140,54 +164,99 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>Notizen übertragen</DialogTitle>
-          <p className="text-sm text-muted-foreground">Wähle Quelle, Ziel und Spezialisierung.</p>
+          <p className="text-sm text-muted-foreground">
+            Wähle Quelle, Ziel und Spezialisierung.
+          </p>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
             <div className="min-w-0">
-              <label className="text-sm mb-1 flex items-center gap-2"><Calendar className="h-4 w-4 opacity-70" /> Quelle (Woche)</label>
-              <Select value={sourceWeekId ?? undefined} onValueChange={(v) => setSourceWeekId(v)} disabled={loadingWeeks}>
-                <SelectTrigger disabled={loadingWeeks} className="w-full overflow-hidden text-ellipsis">
-                  <SelectValue placeholder={loadingWeeks ? "Lade Wochen..." : "Woche wählen"} />
+              <label className="text-sm mb-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4 opacity-70" /> Quelle (Woche)
+              </label>
+              <Select
+                value={sourceWeekId ?? undefined}
+                onValueChange={(v) => setSourceWeekId(v)}
+                disabled={loadingWeeks}
+              >
+                <SelectTrigger
+                  disabled={loadingWeeks}
+                  className="w-full overflow-hidden text-ellipsis"
+                >
+                  <SelectValue
+                    placeholder={
+                      loadingWeeks ? "Lade Wochen..." : "Woche wählen"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     {weeks.map((w) => (
-                      <SelectItem key={w.value!} value={w.value!}>{w.label}</SelectItem>
+                      <SelectItem key={w.value!} value={w.value!}>
+                        {w.label}
+                      </SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-0">
-              <label className="text-sm mb-1 flex items-center gap-2"><Calendar className="h-4 w-4 opacity-70" /> Ziel (Woche)</label>
-              <Select value={targetWeekIdState ?? undefined} onValueChange={(v) => setTargetWeekIdState(v)} disabled={loadingWeeks}>
-                <SelectTrigger disabled={loadingWeeks} className="w-full overflow-hidden text-ellipsis">
-                  <SelectValue placeholder={loadingWeeks ? "Lade Wochen..." : "Woche wählen"} />
+              <label className="text-sm mb-1 flex items-center gap-2">
+                <Calendar className="h-4 w-4 opacity-70" /> Ziel (Woche)
+              </label>
+              <Select
+                value={targetWeekIdState ?? undefined}
+                onValueChange={(v) => setTargetWeekIdState(v)}
+                disabled={loadingWeeks}
+              >
+                <SelectTrigger
+                  disabled={loadingWeeks}
+                  className="w-full overflow-hidden text-ellipsis"
+                >
+                  <SelectValue
+                    placeholder={
+                      loadingWeeks ? "Lade Wochen..." : "Woche wählen"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     {weeks.map((w) => (
-                      <SelectItem key={w.value!} value={w.value!}>{w.label}</SelectItem>
+                      <SelectItem key={w.value!} value={w.value!}>
+                        {w.label}
+                      </SelectItem>
                     ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {sourceWeekId && targetWeekIdState && sourceWeekId === targetWeekIdState && (
-                <p className="mt-1 text-xs text-red-500">Quelle und Ziel dürfen nicht identisch sein.</p>
-              )}
+              {sourceWeekId &&
+                targetWeekIdState &&
+                sourceWeekId === targetWeekIdState && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Quelle und Ziel dürfen nicht identisch sein.
+                  </p>
+                )}
             </div>
           </div>
           <div>
-            <label className="text-sm mb-1 flex items-center gap-2"><Users2 className="h-4 w-4 opacity-70" /> Spezialisierung</label>
-            <Select value={String(specialization)} onValueChange={(v) => setSpecialization(Number(v) as Specialization)}>
+            <label className="text-sm mb-1 flex items-center gap-2">
+              <Users2 className="h-4 w-4 opacity-70" /> Spezialisierung
+            </label>
+            <Select
+              value={String(specialization)}
+              onValueChange={(v) =>
+                setSpecialization(Number(v) as Specialization)
+              }
+            >
               <SelectTrigger className="w-full overflow-hidden text-ellipsis">
                 <SelectValue placeholder="Spezialisierung wählen" />
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectGroup>
                   {specOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                    <SelectItem key={opt.value} value={String(opt.value)}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectGroup>
               </SelectContent>
@@ -209,7 +278,10 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
               {canPreview ? (
                 <>
                   <span className="font-semibold">{previewCount ?? 0}</span>
-                  {typeof totalCount === "number" ? ` von ${totalCount}` : ""} Notizen können übertragen werden.
+                  {typeof totalCount === "number"
+                    ? ` von ${totalCount}`
+                    : ""}{" "}
+                  Notizen können übertragen werden.
                 </>
               ) : (
                 <span>Bitte Quelle und Ziel auswählen.</span>
@@ -218,8 +290,17 @@ export default function NotesTransferDialog({ open, onOpenChange, targetWeekId, 
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Abbrechen</Button>
-          <Button onClick={onSubmit} disabled={!canPreview || submitting || (previewCount ?? 0) === 0}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
+            Abbrechen
+          </Button>
+          <Button
+            onClick={onSubmit}
+            disabled={!canPreview || submitting || (previewCount ?? 0) === 0}
+          >
             {submitting ? "Übertrage..." : "Übertragen"}
           </Button>
         </DialogFooter>

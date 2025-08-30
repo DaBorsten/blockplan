@@ -1,148 +1,76 @@
-"use client";
-
-import { SpecializationSelect } from "@/components/specializationSelection";
-import { WeekSelectionCombobox } from "@/components/weekSelection";
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import Timetable from "@/components/timetable";
-import NotesActionsDropdown from "@/components/NotesActionsDropdown";
-import ModeLockButton from "@/components/ModeLockButton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Lesson } from "@/types/timetableData";
-import { useModeStore } from "@/store/useModeStore";
+import { CalendarDays, StickyNote, Share2 } from "lucide-react";
+import Link from "next/link";
+import { ROUTE_STUNDENPLAN } from "@/constants/routes";
+import type { Metadata } from "next";
 
-export default function TimetablePage() {
-  const searchParams = useSearchParams();
-  const { setMode } = useModeStore();
+export const metadata: Metadata = {
+  metadataBase: new URL("https://bs1-blockplan.de"),
+  title: "Stundenplan mit Notizen | Blockplan",
+  description:
+    "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
+  openGraph: {
+    title: "Stundenplan mit Notizen | Blockplan",
+    description:
+      "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
+    url: "https://bs1-blockplan.de",
+    type: "website",
+  },
+};
 
-  // Initial aus URL lesen
-  useEffect(() => {
-    const mode = (searchParams.get("mode") as "notes") || "copy";
-    setMode(mode);
-  }, [searchParams, setMode]);
-
-  const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(
-    null,
-  );
-  const [activeNotes, setActiveNotes] = useState<string | null>(null);
-  const [isEditNotesModalOpen, setIsEditNotesModalOpen] = useState(false);
-  const [notesUpdated, setNotesUpdated] = useState(false);
-
-  // Notizen per API laden, wenn Lesson angeklickt wird
-  useEffect(() => {
-    const fetchNotes = async () => {
-      if (activeClickedLesson) {
-        const res = await fetch(
-          `/api/week/notes?lessonId=${activeClickedLesson.id}`,
-        );
-        const data = await res.json();
-        setActiveNotes(data.notes ?? "");
-      } else {
-        setActiveNotes("");
-      }
-    };
-    if (isEditNotesModalOpen) {
-      fetchNotes();
-    }
-  }, [activeClickedLesson, isEditNotesModalOpen]);
-
-  // Notizen-Dialog-Logik
-  const [editNotes, setEditNotes] = useState<string | null>(null);
-  useEffect(() => {
-    setEditNotes(activeNotes);
-  }, [activeNotes, isEditNotesModalOpen]);
-
-  const handleSaveNotes = async () => {
-    if (!activeClickedLesson) return;
-    await fetch(`/api/week/notes`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lessonID: activeClickedLesson.id,
-        notes: editNotes,
-      }),
-    });
-    setIsEditNotesModalOpen(false);
-    setNotesUpdated((v) => !v);
-  };
-
+export default function LandingPage() {
   return (
-    <div className="flex flex-1 h-full flex-col px-4 pb-4 md:px-6 md:pb-6 min-h-0">
-      <div className="flex flex-row justify-between items-center mb-4 md:mb-8">
-        <div className="hidden md:flex flex-col">
-          <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
-            Stundenplan
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400">
-            Verwalten Sie Ihren Stundenplan effizient
-          </p>
+    <main className="flex-1 flex items-center justify-center px-6">
+      <div className="max-w-3xl w-full text-center space-y-6">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+          Dein Stundenplan mit Notizen
+        </h1>
+        <p className="text-muted-foreground text-base md:text-lg">
+          Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in
+          Klassen zusammen.
+        </p>
+        <div className="flex items-center justify-center gap-3">
+          <SignedOut>
+            <SignUpButton mode="modal">
+              <Button size="lg">Jetzt starten</Button>
+            </SignUpButton>
+            <SignInButton mode="modal">
+              <Button variant="outline" size="lg">
+                Ich habe bereits ein Konto
+              </Button>
+            </SignInButton>
+          </SignedOut>
+          <SignedIn>
+            <Button asChild size="lg">
+              <Link href={ROUTE_STUNDENPLAN}>Zum Stundenplan</Link>
+            </Button>
+          </SignedIn>
         </div>
-
-        {/* Mobile: controls split left/right */}
-        <div className="flex w-full items-center justify-between md:hidden">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="overflow-hidden">
-              <WeekSelectionCombobox />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6">
+          <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
+            <CalendarDays className="h-6 w-6" aria-hidden="true" />
+            <div className="font-medium">Woche im Blick</div>
+            <div className="text-xs text-muted-foreground">
+              Schnell zwischen Wochen wechseln
             </div>
-            <SpecializationSelect />
           </div>
-          <div className="flex items-center gap-2">
-            <ModeLockButton />
-            <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
+          <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
+            <StickyNote className="h-6 w-6" aria-hidden="true" />
+            <div className="font-medium">Notizen je Stunde</div>
+            <div className="text-xs text-muted-foreground">
+              Strukturiert, gruppenbasiert
+            </div>
           </div>
-        </div>
-
-        {/* Desktop: original grouping */}
-        <div className="hidden md:flex flex-wrap gap-4 items-center">
-          <WeekSelectionCombobox />
-          <SpecializationSelect />
-          <ModeLockButton />
-          <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
+          <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
+            <Share2 className="h-6 w-6" aria-hidden="true" />
+            <div className="font-medium">Gemeinsam arbeiten</div>
+            <div className="text-xs text-muted-foreground">
+              Klassen verwalten und einladen
+            </div>
+          </div>
         </div>
       </div>
-
-      <Timetable
-        setActiveClickedLesson={setActiveClickedLesson}
-        setActiveNotes={setActiveNotes}
-        setIsEditNotesModalOpen={setIsEditNotesModalOpen}
-        notesUpdated={notesUpdated}
-      />
-
-      <Dialog
-        open={isEditNotesModalOpen}
-        onOpenChange={setIsEditNotesModalOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Notizen bearbeiten</DialogTitle>
-          </DialogHeader>
-          <Textarea
-            value={editNotes ?? ""}
-            onChange={(e) => setEditNotes(e.target.value)}
-            placeholder="Notizen eintragen..."
-            rows={6}
-          />
-          <DialogFooter>
-            <Button
-              variant="secondary"
-              onClick={() => setIsEditNotesModalOpen(false)}
-            >
-              Abbrechen
-            </Button>
-            <Button onClick={handleSaveNotes} disabled={!activeClickedLesson}>
-              Speichern
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </main>
   );
 }
