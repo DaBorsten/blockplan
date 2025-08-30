@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useSearchParams } from "next/navigation";
+import { useClassStore } from "@/store/useClassStore";
 
 type FileItem = {
   id: string;
@@ -50,9 +50,8 @@ export default function Import() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const searchParams = useSearchParams();
-  const classID = searchParams?.get("klasse") ?? null;
-  const needsClass = !classID;
+  const { classId } = useClassStore();
+  const needsClass = !classId;
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -318,7 +317,7 @@ export default function Import() {
                     body: JSON.stringify({
                       timetable: response,
                       week: displayName,
-                      class_id: classID,
+                      class_id: classId,
                     }),
                   });
 
