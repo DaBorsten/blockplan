@@ -49,7 +49,7 @@ export default function ManageClass() {
   const withParams = (url: string) => url; // no query params now
 
   const fetchStats = useCallback(
-  async (classIds: string[], signal?: AbortSignal) => {
+    async (classIds: string[], signal?: AbortSignal) => {
       setStatsLoading(true);
       try {
         const res = await fetch(`/api/class/stats`, {
@@ -84,13 +84,10 @@ export default function ManageClass() {
   );
 
   const fetchClasses = useCallback(
-  async (signal?: AbortSignal) => {
+    async (signal?: AbortSignal) => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `/api/class/classes`,
-          { signal },
-        );
+        const res = await fetch(`/api/class/classes`, { signal });
         if (signal?.aborted) return;
         const data = await res.json();
         const result: ClassItem[] = data.data || [];
@@ -135,10 +132,10 @@ export default function ManageClass() {
   // invites fetching removed (handled on details page)
 
   useEffect(() => {
-  if (!user?.id) return;
+    if (!user?.id) return;
     const controller = new AbortController();
     // Wrap call in void to avoid unhandled promise rejections
-  void fetchClasses(controller.signal);
+    void fetchClasses(controller.signal);
     return () => controller.abort();
   }, [user?.id, fetchClasses]);
 
@@ -158,13 +155,13 @@ export default function ManageClass() {
       toast.success("Klasse erfolgreich umbenannt");
       setEditId(null);
       setEditName("");
-  if (user?.id) fetchClasses();
+      if (user?.id) fetchClasses();
       setEditOpen(false);
     }
   };
 
   const handleCreateSave = async () => {
-  if (!createName.trim() || !user?.id) return;
+    if (!createName.trim() || !user?.id) return;
 
     try {
       setLoading(true);
@@ -192,16 +189,20 @@ export default function ManageClass() {
         return;
       }
 
-  // owner membership now auto-created server-side
+      // owner membership now auto-created server-side
 
-  // Optimistisch in Liste einfügen und direkt auswählen
-  setClasses(prev => [{ class_id, class_title: createName.trim() }, ...prev]);
-  setKlasse(class_id);
-  // Stats neu laden
-  if (user?.id) fetchStats([class_id, ...classes.map(c=>c.class_id)]);
-  setCreateOpen(false);
-  setCreateName("");
-  toast.success("Klasse erfolgreich erstellt und ausgewählt");
+      // Optimistisch in Liste einfügen und direkt auswählen
+      const newClasses = [
+        { class_id, class_title: createName.trim() },
+        ...classes,
+      ];
+      setClasses(newClasses);
+      setKlasse(class_id);
+      // Stats neu laden
+      if (user?.id) fetchStats(newClasses.map((c) => c.class_id));
+      setCreateOpen(false);
+      setCreateName("");
+      toast.success("Klasse erfolgreich erstellt und ausgewählt");
     } catch (err) {
       console.error("Fehler beim Erstellen der Klasse:", err);
       toast.error("Netzwerkfehler beim Erstellen der Klasse");
@@ -472,7 +473,7 @@ export default function ManageClass() {
                   );
                   setLeaveOpen(false);
                   setPendingLeaveClass(null);
-              if (user?.id) fetchClasses();
+                  if (user?.id) fetchClasses();
                 } catch (err) {
                   console.error(err);
                   toast.error("Netzwerkfehler beim Verlassen der Klasse");

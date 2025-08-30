@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useWeekStore } from "./useWeekStore";
 
 // Class Store
 type ClassState = {
@@ -18,17 +19,13 @@ export const useClassStore = create<ClassState>()(
         if (currentClassId !== id) {
           set({ classId: id ?? null });
           // Week Store zurücksetzen wenn sich die Klasse ändert
-          import("./useWeekStore").then(({ useWeekStore }) => {
-            useWeekStore.getState().clearWeek();
-          });
+          useWeekStore.getState().clearWeek();
         }
       },
       clearClass: () => {
         set({ classId: null });
         // Week Store auch bei clearClass zurücksetzen
-        import("./useWeekStore").then(({ useWeekStore }) => {
-          useWeekStore.getState().clearWeek();
-        });
+        useWeekStore.getState().clearWeek();
       },
     }),
     {

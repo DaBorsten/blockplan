@@ -61,20 +61,20 @@ export default function Timetable({
   // Lade Stundenplandaten wenn sich weekID, group oder classId ändert
   useEffect(() => {
     const loadTimetableData = async () => {
-      if (!weekID || !group || !classId) {
+      if (!weekID || !group || group < 1 || group > 3 || !classId) {
         setTimeTableData([]);
         return;
       }
 
       try {
         const response = await fetch(
-          `/api/timetable/week?weekId=${weekID}&specialization=${group}`
+          `/api/timetable/week?weekId=${weekID}&specialization=${group}`,
         );
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         setTimeTableData(result.data || []);
       } catch (error) {
@@ -375,7 +375,6 @@ export default function Timetable({
                         }
                       >
                         <div className="flex gap-1 flex-nowrap items-stretch h-full">
-
                           {hourData.lessons.map((lesson, idx) => {
                             const bgColor =
                               getColor(lesson.teacher) ||
