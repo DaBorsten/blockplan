@@ -354,7 +354,7 @@ export default function Timetable({
                             } as React.CSSProperties
                           }
                         >
-                          <div className="h-full flex items-center justify-center text-muted-foreground">
+                          <div className="h-full flex items-center justify-center text-muted-foreground" aria-label="Keine Stunde">
                             -
                           </div>
                         </td>

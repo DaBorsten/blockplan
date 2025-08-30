@@ -22,7 +22,11 @@ export default function WelcomePage() {
       toast.error("Du bist nicht angemeldet.");
       return;
     }
-    if (trimmed.length === 0) return;
+    if (trimmed.length === 0) {
+      toast.error("Bitte gib einen Spitznamen ein.");
+      return;
+    }
+    setLoading(true);
     try {
       const res = await fetch("/api/user", {
         method: "POST",

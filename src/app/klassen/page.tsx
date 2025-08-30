@@ -180,8 +180,7 @@ export default function ManageClass() {
       }
 
       const data = await res.json();
-      const class_id =
-        data?.class_id || data?.id || (data?.data && data.data.class_id);
+      const class_id = data?.class_id;
 
       if (!class_id) {
         console.error("Kein class_id in Antwort:", data);

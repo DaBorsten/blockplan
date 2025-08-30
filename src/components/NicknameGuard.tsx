@@ -21,16 +21,13 @@ function isProtectedPath(pathname: string | null): boolean {
 }
 
 function isUserMeResponse(obj: unknown): obj is UserMeResponse {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    ("data" in obj
-      ? typeof (obj as any).data === "object" &&
-        ((obj as any).data === null ||
-          typeof (obj as any).data.nickname === "undefined" ||
-          typeof (obj as any).data.nickname === "string")
-      : true)
-  );
+  if (obj === null || typeof obj !== "object") return false;
+  if (!("data" in obj)) return true; // data optional
+  const data = (obj as { data?: unknown }).data;
+  if (data == null) return true;
+  if (typeof data !== "object") return false;
+  const nick = (data as { nickname?: unknown }).nickname;
+  return nick === undefined || typeof nick === "string";
 }
 
 export default function NicknameGuard() {

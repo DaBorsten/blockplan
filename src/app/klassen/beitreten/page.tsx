@@ -126,7 +126,7 @@ export default function ClassJoinPage() {
       })();
       return () => controller.abort();
     }
-  }, [searchParams, checkCode]);
+  }, [searchParams, checkCode, user?.id]);
 
   const accept = async () => {
     if (!classInfo || !user?.id) return;
