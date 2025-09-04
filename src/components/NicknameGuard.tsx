@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { PROTECTED_PATH_PREFIXES } from "@/constants/routes";
+import { PROTECTED_PATH_PREFIXES, ROUTE_STUNDENPLAN } from "@/constants/routes";
 
 // Centralised in @/constants/routes (PROTECTED_PATH_PREFIXES)
 
@@ -57,8 +57,8 @@ export default function NicknameGuard() {
         const parsed: UserMeResponse = isUserMeResponse(json) ? json : {};
         const hasNickname = Boolean(parsed.data?.nickname);
         if (pathname === "/willkommen") {
-          // Already on willkommen: if user finished (has nickname) redirect home
-          if (hasNickname) router.replace("/");
+          // Already on willkommen: if user finished (has nickname) redirect timetable
+          if (hasNickname) router.replace(ROUTE_STUNDENPLAN);
           return;
         }
         if (!hasNickname) router.replace("/willkommen");

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 
 export default function WelcomePage() {
   const { user } = useUser();
@@ -39,7 +40,7 @@ export default function WelcomePage() {
         return;
       }
       toast.success("Willkommen! Ihr Konto wurde erfolgreich initialisiert.");
-      router.replace("/");
+      router.replace(ROUTE_STUNDENPLAN);
     } catch (error) {
       toast.error(
         "Fehler beim Speichern des Spitznamens.",

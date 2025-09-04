@@ -1,25 +1,20 @@
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+"use client";
+
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignUpButton,
+  useUser,
+} from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, StickyNote, Share2 } from "lucide-react";
+import { CalendarDays, StickyNote, Share2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  metadataBase: new URL("https://bs1-blockplan.de"),
-  title: "Stundenplan mit Notizen | Blockplan",
-  description:
-    "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
-  openGraph: {
-    title: "Stundenplan mit Notizen | Blockplan",
-    description:
-      "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
-    url: "https://bs1-blockplan.de",
-    type: "website",
-  },
-};
 
 export default function LandingPage() {
+  const { isLoaded } = useUser();
+
   return (
     <main className="flex-1 flex items-center justify-center px-6">
       <div className="max-w-3xl w-full text-center space-y-6">
@@ -31,21 +26,35 @@ export default function LandingPage() {
           Klassen zusammen.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <SignedOut>
-            <SignUpButton mode="modal">
-              <Button size="lg">Jetzt starten</Button>
-            </SignUpButton>
-            <SignInButton mode="modal">
-              <Button variant="outline" size="lg">
-                Ich habe bereits ein Konto
-              </Button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <Button asChild size="lg">
-              <Link href={ROUTE_STUNDENPLAN}>Zum Stundenplan</Link>
-            </Button>
-          </SignedIn>
+          {!isLoaded ? (
+            <div
+              className="flex items-center gap-2"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-muted-foreground">Lädt...</span>
+            </div>
+          ) : (
+            <>
+              <SignedOut>
+                <SignUpButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
+                  <Button size="lg">Jetzt starten</Button>
+                </SignUpButton>
+                <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
+                  <Button variant="outline" size="lg">
+                    Ich habe bereits ein Konto
+                  </Button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <Button asChild size="lg">
+                  <Link href={ROUTE_STUNDENPLAN}>Zum Stundenplan</Link>
+                </Button>
+              </SignedIn>
+            </>
+          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6">
           <div className="rounded-lg border p-4 flex flex-col items-center gap-2">
