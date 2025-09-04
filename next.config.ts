@@ -21,6 +21,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   experimental: {
     reactCompiler: true,
+    middlewarePrefetch: "flexible",
   },
   async headers() {
     return [

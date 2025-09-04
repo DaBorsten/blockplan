@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { corsMiddleware } from "./middleware-cors";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -8,48 +9,15 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // Handle CORS preflight
-  if (req.method === "OPTIONS") {
-    const origin = req.headers.get("origin") || "";
-    const allowedExact = ["https://bs1-blockplan.de", "http://localhost:3000"];
-    const vercelPattern = /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/i;
-
-    const isAllowed =
-      allowedExact.includes(origin) || vercelPattern.test(origin);
-
-    if (!isAllowed) {
-      return new Response(null, { status: 403 });
-    }
-
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": origin,
-        Vary: "Origin",
-        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Max-Age": "86400",
-      },
-    });
-  }
+  const cors = corsMiddleware(req);
+  if (cors) return cors;
 
   const isPublic = isPublicRoute(req);
   if (!isPublic) {
     await auth.protect();
   }
 
-  // You can add CORS headers to normal responses if needed:
-  const res = NextResponse.next();
-  const origin = req.headers.get("origin") || "";
-  const allowedExact = ["https://bs1-blockplan.de", "http://localhost:3000"];
-  const vercelPattern = /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/i;
-
-  if (allowedExact.includes(origin) || vercelPattern.test(origin)) {
-    res.headers.set("Access-Control-Allow-Origin", origin);
-    res.headers.set("Vary", "Origin");
-    res.headers.set("Access-Control-Allow-Credentials", "true");
-  }
-  return res;
+  return NextResponse.next();
 });
 
 export const config = {

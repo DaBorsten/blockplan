@@ -20,8 +20,28 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Blockplan",
-  description: "Blockplan mit Notizen für Timesheet",
+  metadataBase: new URL("https://bs1-blockplan.de"),
+  title: "Stundenplan mit Notizen | Blockplan",
+  description:
+    "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
+  openGraph: {
+    title: "Stundenplan mit Notizen | Blockplan",
+    description:
+      "Organisiere Unterricht, erfasse Notizen pro Stunde und arbeite in Klassen zusammen.",
+    url: "/",
+    type: "website",
+    siteName: "Blockplan",
+    locale: "de_DE",
+    images: [
+      {
+        url: "/images/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Stundenplan mit Notizen | Blockplan",
+      },
+    ],
+  },
+  alternates: { canonical: "/" },
 };
 
 export default function RootLayout({
@@ -42,11 +62,11 @@ export default function RootLayout({
         >
           <ClerkThemingProvider>
             <SignedOut>
-                <PublicPageWrapper>
-                  {children}
-                  <ThemeToaster />
-                </PublicPageWrapper>
-              </SignedOut>
+              <PublicPageWrapper>
+                {children}
+                <ThemeToaster />
+              </PublicPageWrapper>
+            </SignedOut>
             <SignedIn>
               <SignedInWrapper>
                 {children}

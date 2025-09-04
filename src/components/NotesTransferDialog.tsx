@@ -165,11 +165,11 @@ export default function NotesTransferDialog({
         <DialogHeader>
           <DialogTitle>Notizen übertragen</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Wähle Quelle, Ziel und Spezialisierung.
+            Wähle Quelle, Ziel und Gruppe.
           </p>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             <div className="min-w-0">
               <label className="text-sm mb-1 flex items-center gap-2">
                 <Calendar className="h-4 w-4 opacity-70" /> Quelle (Woche)

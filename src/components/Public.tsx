@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
+import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 
 interface Props {
   children: React.ReactNode;
@@ -29,12 +30,12 @@ export default function Public({ children }: Props) {
             className="flex items-center gap-2"
           >
             <SignedOut>
-              <SignInButton mode="modal">
+              <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                 <Button variant="ghost" size="sm" type="button">
                   Anmelden
                 </Button>
               </SignInButton>
-              <SignUpButton mode="modal">
+              <SignUpButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                 <Button size="sm" type="button">
                   Registrieren
                 </Button>
