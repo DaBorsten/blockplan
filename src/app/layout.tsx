@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToaster } from "@/components/ThemeToaster";
-import { SignedInWrapper } from "@/components/SignedInWrapper";
-import { PublicPageWrapper } from "@/components/PublicPageWrapper";
+import AppShell from "@/components/AppShell";
 import ClerkThemingProvider from "@/components/ClerkThemingProvider";
-// Removed NuqsAdapter & ParamPolicySync after migrating to Zustand state
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,8 +41,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export const dynamic = "force-dynamic";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -63,18 +58,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ClerkThemingProvider>
-            <SignedOut>
-              <PublicPageWrapper>
-                {children}
-                <ThemeToaster />
-              </PublicPageWrapper>
-            </SignedOut>
-            <SignedIn>
-              <SignedInWrapper>
-                {children}
-                <ThemeToaster />
-              </SignedInWrapper>
-            </SignedIn>
+            <AppShell>
+              {children}
+              <ThemeToaster />
+            </AppShell>
           </ClerkThemingProvider>
         </ThemeProvider>
       </body>
