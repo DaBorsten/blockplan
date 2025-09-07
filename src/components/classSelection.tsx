@@ -16,8 +16,6 @@ import {
 // updateUrl replaced by nuqs hooks
 import { useCurrentClass, useSetClass } from "@/store/useClassStore";
 
-// ALLOWED_SPECIALIZATIONS removed; validation handled in dedicated hook
-
 export function ClassSelectionCombobox() {
   
   const classID = useCurrentClass();

@@ -54,12 +54,12 @@ export async function POST(req: NextRequest) {
                 null,
               ],
             );
-            const specialization = lesson.specialization;
-            const specializationId = v4();
+            const group = lesson.specialization;
+            const groupId = v4();
             await turso.execute(
-              `INSERT INTO timetable_specialization (id, timetable_id, specialization)
+              `INSERT INTO timetable_group (id, timetable_id, groupNumber)
                  VALUES (?, ?, ?);`,
-              [specializationId, lessonId, specialization],
+              [groupId, lessonId, group],
             );
           }
         }

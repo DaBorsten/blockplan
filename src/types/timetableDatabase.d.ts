@@ -1,9 +1,9 @@
-import { Specialization } from "@/types/specialization";
+import { Group } from "@/types/group";
 
 export type TimetableDatabase = {
   id: string;
   week_id: string;
-  specialization: Specialization;
+  group: Group;
   week: string;
   day: string;
   hour: number;

@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fetchWeekIDsWithNames } from "@/utils/weeks";
-import type { Specialization } from "@/types/specialization";
+import type { Group } from "@/types/group";
 import { toast } from "sonner";
 import { Calendar, Users2, Loader2, CheckCircle2, XCircle } from "lucide-react";
 
@@ -28,10 +28,10 @@ type Props = {
   // initial target week from URL (can be changed in dialog)
   targetWeekId: string;
   classId: string;
-  initialSpecialization?: number;
+  initialGroup?: Group;
 };
 
-const specOptions: { label: string; value: Specialization }[] = [
+const groupOptions: { label: string; value: Group }[] = [
   { label: "Alle", value: 1 },
   { label: "Gruppe A", value: 2 },
   { label: "Gruppe B", value: 3 },
@@ -42,7 +42,7 @@ export default function NotesTransferDialog({
   onOpenChange,
   targetWeekId,
   classId,
-  initialSpecialization,
+  initialGroup,
 }: Props) {
   const [weeks, setWeeks] = useState<{ label: string; value: string | null }[]>(
     [],
@@ -51,7 +51,7 @@ export default function NotesTransferDialog({
   const [targetWeekIdState, setTargetWeekIdState] = useState<string | null>(
     null,
   );
-  const [specialization, setSpecialization] = useState<Specialization>(1);
+  const [group, setGroup] = useState<Group>(1);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [totalCount, setTotalCount] = useState<number | null>(null);
   const [loadingWeeks, setLoadingWeeks] = useState(false);
@@ -81,23 +81,23 @@ export default function NotesTransferDialog({
     if (open) loadWeeks();
   }, [open, classId, targetWeekId]);
 
-  // Reset specialization and counters on dialog open
+  // Reset group and counters on dialog open
   useEffect(() => {
     if (!open) return;
     // Reset preview counters
     setPreviewCount(null);
     setTotalCount(null);
-    // Initialize specialization (defaults to provided or 1)
-    setSpecialization((initialSpecialization as Specialization) || 1);
-  }, [open, targetWeekId, initialSpecialization]);
+    // Initialize group (defaults to provided or 1)
+    setGroup((initialGroup ?? 1) as Group);
+  }, [open, targetWeekId, initialGroup]);
 
   const canPreview = useMemo(
     () =>
       !!sourceWeekId &&
       !!targetWeekIdState &&
-      !!specialization &&
+      !!group &&
       sourceWeekId !== targetWeekIdState,
-    [sourceWeekId, targetWeekIdState, specialization],
+    [sourceWeekId, targetWeekIdState, group],
   );
 
   useEffect(() => {
@@ -112,7 +112,7 @@ export default function NotesTransferDialog({
         const params = new URLSearchParams({
           sourceWeekId: sourceWeekId!,
           targetWeekId: targetWeekIdState!,
-          specialization: String(specialization),
+          group: String(group),
         });
         const res = await fetch(
           `/api/week/notes/transfer?${params.toString()}`,
@@ -131,7 +131,7 @@ export default function NotesTransferDialog({
       }
     };
     run();
-  }, [canPreview, sourceWeekId, targetWeekIdState, specialization]);
+  }, [canPreview, sourceWeekId, targetWeekIdState, group]);
 
   const onSubmit = async () => {
     if (!canPreview) return;
@@ -143,7 +143,7 @@ export default function NotesTransferDialog({
         body: JSON.stringify({
           sourceWeekId: sourceWeekId!,
           targetWeekId: targetWeekIdState!,
-          specialization,
+          group: group,
         }),
       });
       const json = await res.json();
@@ -243,17 +243,23 @@ export default function NotesTransferDialog({
               <Users2 className="h-4 w-4 opacity-70" /> Spezialisierung
             </label>
             <Select
-              value={String(specialization)}
-              onValueChange={(v) =>
-                setSpecialization(Number(v) as Specialization)
-              }
+              value={String(group)}
+              onValueChange={(v) => {
+                const numValue = Number(v);
+                if ([1, 2, 3].includes(numValue)) {
+                  setGroup(numValue as Group);
+                } else {
+                  console.error(`Invalid group value: ${v}`);
+                  setGroup(1);
+                }
+              }}
             >
               <SelectTrigger className="w-full overflow-hidden text-ellipsis">
                 <SelectValue placeholder="Spezialisierung wählen" />
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectGroup>
-                  {specOptions.map((opt) => (
+                  {groupOptions.map((opt) => (
                     <SelectItem key={opt.value} value={String(opt.value)}>
                       {opt.label}
                     </SelectItem>

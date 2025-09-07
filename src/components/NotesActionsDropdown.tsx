@@ -26,7 +26,7 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
   useModeStore();
   const weekID = useCurrentWeek();
   const classID = useCurrentClass();
-  const initialSpec = useCurrentGroup();
+  const initialGroup = useCurrentGroup();
   const [openTransfer, setOpenTransfer] = React.useState(false);
   const handleCopy = async () => {
     // Block copying when no week is selected
@@ -37,32 +37,56 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
     // If a week is selected, copy formatted weekly notes; otherwise fallback to current notes
     if (weekID) {
       try {
-        const params = new URLSearchParams({ week_id: weekID, specialization: String(initialSpec) });
+        const params = new URLSearchParams({
+          week_id: weekID,
+          group: String(initialGroup ?? 1),
+        });
         const res = await fetch(`/api/week/notes/week?${params.toString()}`);
         if (!res.ok) throw new Error("Fehler beim Laden der Wochen-Notizen");
         const json = await res.json();
 
         // Robustly extract rows from API response (supports result, result.rows, and columns+array rows)
-        type RawResult = { rows?: unknown[]; columns?: string[] } | unknown[] | null | undefined;
-        const raw: RawResult = (json && (json.data as RawResult)) ?? (json as RawResult);
+        type RawResult =
+          | { rows?: unknown[]; columns?: string[] }
+          | unknown[]
+          | null
+          | undefined;
+        const raw: RawResult =
+          (json && (json.data as RawResult)) ?? (json as RawResult);
         let rowsObj: Array<Record<string, unknown>> = [];
         if (Array.isArray(raw)) {
           // Either array of objects or array rows with separate columns attached on json
-          if (raw.length > 0 && typeof raw[0] === "object" && !Array.isArray(raw[0])) {
+          if (
+            raw.length > 0 &&
+            typeof raw[0] === "object" &&
+            !Array.isArray(raw[0])
+          ) {
             rowsObj = raw as Array<Record<string, unknown>>;
           }
         } else if (raw && typeof raw === "object") {
-          const maybeRows = (raw as Record<string, unknown>).rows as unknown[] | undefined;
-          const maybeCols = (raw as Record<string, unknown>).columns as string[] | undefined;
+          const maybeRows = (raw as Record<string, unknown>).rows as
+            | unknown[]
+            | undefined;
+          const maybeCols = (raw as Record<string, unknown>).columns as
+            | string[]
+            | undefined;
           if (Array.isArray(maybeRows)) {
-            if (maybeRows.length > 0 && Array.isArray(maybeRows[0]) && Array.isArray(maybeCols)) {
+            if (
+              maybeRows.length > 0 &&
+              Array.isArray(maybeRows[0]) &&
+              Array.isArray(maybeCols)
+            ) {
               // rows are arrays -> map to objects using columns
               rowsObj = (maybeRows as unknown[][]).map((arr) => {
                 const o: Record<string, unknown> = {};
-                for (let i = 0; i < maybeCols.length; i++) o[maybeCols[i]] = arr[i];
+                for (let i = 0; i < maybeCols.length; i++)
+                  o[maybeCols[i]] = arr[i];
                 return o;
               });
-            } else if (maybeRows.length > 0 && typeof maybeRows[0] === "object") {
+            } else if (
+              maybeRows.length > 0 &&
+              typeof maybeRows[0] === "object"
+            ) {
               rowsObj = maybeRows as Array<Record<string, unknown>>;
             }
           }
@@ -75,7 +99,7 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           subject: string | null | undefined;
           teacher: string | null | undefined;
           notes: string | null | undefined;
-          specialization: number | string | null | undefined;
+          group: number | string | null | undefined;
         };
         const toDayName = (d: Row["day"]): string | undefined => {
           // Accept German names, numeric strings, and numbers. Prefer mapped names.
@@ -103,7 +127,7 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
             subject: String((r as Row).subject ?? "").trim(),
             teacher: String((r as Row).teacher ?? "").trim(),
             notes: String((r as Row).notes ?? "").trim(),
-            specialization: Number((r as Row).specialization ?? 1),
+            group: Number((r as Row).group ?? 1),
           }))
           .filter((e) => !!e.day && !!e.notes) as Array<{
           day: string;
@@ -111,7 +135,7 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           subject: string;
           teacher: string;
           notes: string;
-          specialization: number;
+          group: number;
         }>;
 
         if (!entries.length) {
@@ -127,12 +151,13 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           byDay.set(e.day, list);
         }
 
-        // Sort within day: hour asc, then specialization (2 before 3, others last)
-        const specOrder = (s: number) => (s === 2 ? 0 : s === 3 ? 1 : 2);
+        // Sort within day: hour asc, then group (2 before 3, others last)
+        const groupOrder = (s: number) => (s === 2 ? 0 : s === 3 ? 1 : 2);
         for (const [, list] of byDay) {
           list.sort((a, b) => {
             if (a.hour !== b.hour) return a.hour - b.hour;
-            if (a.specialization !== b.specialization) return specOrder(a.specialization) - specOrder(b.specialization);
+            if (a.group !== b.group)
+              return groupOrder(a.group) - groupOrder(b.group);
             return 0;
           });
         }
@@ -145,7 +170,10 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
           if (!list.length) continue;
           out.push(`${d}:`);
           for (const it of list) {
-            const label = it.subject && it.teacher ? `${it.subject}/${it.teacher}` : it.subject || it.teacher || "Notiz";
+            const label =
+              it.subject && it.teacher
+                ? `${it.subject}/${it.teacher}`
+                : it.subject || it.teacher || "Notiz";
             out.push(`${label}: ${it.notes}`);
           }
           out.push("");
@@ -222,19 +250,22 @@ export default function NotesActionsDropdown({ getNotes }: Props) {
             <Copy className="mr-2" />
             Notizen kopieren
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={handleTransfer} disabled={!weekID || !classID}>
+          <DropdownMenuItem
+            onSelect={handleTransfer}
+            disabled={!weekID || !classID}
+          >
             <Send className="mr-2" />
             Notizen übertragen
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    {weekID && classID && (
+      {weekID && classID && (
         <NotesTransferDialog
           open={openTransfer}
           onOpenChange={setOpenTransfer}
           targetWeekId={weekID}
           classId={classID}
-      initialSpecialization={initialSpec}
+          initialGroup={initialGroup}
         />
       )}
     </>

@@ -7,31 +7,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Specialization } from "@/types/specialization";
+import { Group, Groups } from "@/types/group";
 import { useCurrentGroup, useSetGroup } from "@/store/useGroupStore";
 
-const options = [
+const options: Groups = [
   { label: "Alle", value: 1 },
   { label: "Gruppe A", value: 2 },
   { label: "Gruppe B", value: 3 },
 ];
 
-export function SpecializationSelect() {
-  const specialization = useCurrentGroup();
-  const setSpecialization = useSetGroup();
-  const handleSpecChange = (spec: Specialization) => {
-    setSpecialization(spec);
+export function GroupSelect() {
+  const group = useCurrentGroup();
+  const setGroup = useSetGroup();
+  const handleGroupChange = (newGroup: Group) => {
+    setGroup(newGroup);
   };
 
   return (
     <Select
-      value={
-        typeof specialization === "number" ? String(specialization) : undefined
-      }
-  onValueChange={(val) => handleSpecChange(Number(val) as Specialization)}
+      value={typeof group === "number" ? String(group) : undefined}
+      onValueChange={(val) => handleGroupChange(Number(val) as Group)}
     >
-      <SelectTrigger>
-        <SelectValue placeholder="Fachrichtung wählen" />
+      <SelectTrigger aria-label="Gruppenauswahl">
+        <SelectValue placeholder="Gruppe wählen" />
       </SelectTrigger>
       <SelectContent align="end">
         <SelectGroup>
