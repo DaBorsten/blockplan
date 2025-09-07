@@ -1,4 +1,4 @@
-import { Specialization } from "@/types/specialization";
+import { Group } from "@/types/group";
 
 export type Lesson = {
   id: string;
@@ -9,7 +9,7 @@ export type Lesson = {
   hour: number;
   startTime: string;
   endTime: string;
-  specialization: Specialization;
+  group: Group;
   week_id: string;
   day: string;
 };
@@ -18,7 +18,7 @@ export type LessonForImport = {
   subject: string;
   teacher: string;
   room: string;
-  specialization: Specialization;
+  group: Group;
 };
 
 export type HourForImport = LessonForImport[];

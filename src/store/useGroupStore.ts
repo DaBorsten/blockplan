@@ -1,10 +1,11 @@
+import { Group } from "@/types/group";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 // Group Store
 type GroupState = {
-  group: number; // 1=Alle, 2=A, 3=B
-  setGroup: (g: number) => void;
+  group: Group; // 1=Alle, 2=A, 3=B
+  setGroup: (g: Group) => void;
   clearGroup: () => void;
 };
 

@@ -73,15 +73,15 @@ export async function POST() {
 				);`);
 
     await turso.execute(`
-				CREATE TABLE IF NOT EXISTS timetable_specialization (
+				CREATE TABLE IF NOT EXISTS timetable_group (
 					id TEXT PRIMARY KEY NOT NULL,
 					timetable_id TEXT NOT NULL,
-					specialization INTEGER NOT NULL,
+					groupNumber INTEGER NOT NULL,
 					FOREIGN KEY (timetable_id) REFERENCES timetable(id) ON DELETE CASCADE,
-					UNIQUE(timetable_id, specialization)
+					UNIQUE(timetable_id, groupNumber)
 				);`);
 
-    await turso.execute("PRAGMA foreign_keys = ON");
+    await turso.execute("PRAGMA foreign_keys = ON;");
 
     return NextResponse.json({ dbInitialized: true });
   } catch (error) {

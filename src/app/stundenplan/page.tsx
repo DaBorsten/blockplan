@@ -1,6 +1,6 @@
 "use client";
 
-import { SpecializationSelect } from "@/components/specializationSelection";
+import { GroupSelect } from "@/components/GroupSelection";
 import { WeekSelectionCombobox } from "@/components/weekSelection";
 import { useEffect, useState } from "react";
 import Timetable from "@/components/timetable";
@@ -111,7 +111,7 @@ export default function TimetablePage() {
             <div className="overflow-hidden">
               <WeekSelectionCombobox />
             </div>
-            <SpecializationSelect />
+            <GroupSelect />
           </div>
           <div className="flex items-center gap-2">
             <ModeLockButton />
@@ -122,7 +122,7 @@ export default function TimetablePage() {
         {/* Desktop: original grouping */}
         <div className="hidden md:flex flex-wrap gap-4 items-center">
           <WeekSelectionCombobox />
-          <SpecializationSelect />
+          <GroupSelect />
           <ModeLockButton />
           <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
         </div>

@@ -3,11 +3,18 @@ import { turso } from "@/lib/tursoClient";
 
 // POST /api/timetable/notes/copy
 export async function POST(req: NextRequest) {
-  const { currentWeekId, specialization, selectedWeekID } = await req.json();
-  if (!currentWeekId || !specialization || !selectedWeekID) {
+  const { currentWeekId, group, selectedWeekID } = await req.json();
+  const groupNumber = Number(group);
+  if (
+    !currentWeekId ||
+    !selectedWeekID ||
+    !Number.isFinite(groupNumber) ||
+    ![1, 2, 3].includes(groupNumber)
+  ) {
     return NextResponse.json(
       {
-        error: "currentWeekId, specialization, and selectedWeekID are required",
+        error:
+          "currentWeekId, selectedWeekID, and a valid group (1|2|3) are required",
       },
       { status: 400 },
     );
@@ -17,13 +24,13 @@ export async function POST(req: NextRequest) {
     const sourceNotes = await turso.execute(
       `SELECT t.*, tw.class_id
       FROM timetable t
-      JOIN timetable_specialization ts ON t.id = ts.timetable_id
+      JOIN timetable_group tg ON t.id = tg.timetable_id
       JOIN timetable_week tw ON t.week_id = tw.id
       WHERE
         t.week_id = ? AND
-        ts.specialization = ? AND
+        tg.groupNumber = ? AND
         NULLIF(TRIM(t.notes), '') IS NOT NULL`,
-      [selectedWeekID, specialization],
+      [selectedWeekID, groupNumber],
     );
     let updatedCount = 0;
     for (const entry of sourceNotes.rows) {
@@ -31,11 +38,11 @@ export async function POST(req: NextRequest) {
       const matchingEntry = await turso.execute(
         `SELECT t.id
         FROM timetable t
-        JOIN timetable_specialization ts ON t.id = ts.timetable_id
+        JOIN timetable_group tg ON t.id = tg.timetable_id
         JOIN timetable_week tw ON t.week_id = tw.id
         WHERE
           t.week_id = ? AND
-          ts.specialization = ? AND
+          tg.groupNumber = ? AND
           t.day = ? AND
           t.hour = ? AND
           tw.class_id = ? AND
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
           NULLIF(TRIM(t.notes), '') IS NULL`,
         [
           currentWeekId,
-          specialization,
+          groupNumber,
           entry.day,
           entry.hour,
           entry.class_id,

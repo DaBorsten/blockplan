@@ -3,17 +3,13 @@ import { Lesson, LessonForImport } from "@/types/timetableData";
 
 type LessonWithHour = LessonForImport & { hour: number };
 
-// Funktion zur Erkennung von Doppelstunden für eine bestimmte Spezialisierung
-function hasDoubleLessonForSpecialization(
+// Funktion zur Erkennung von Doppelstunden für eine bestimmte Gruppe
+function hasDoubleLessonForGroup(
   lessons: Lesson[] | LessonWithHour[],
-  specialization: number,
+  group: number,
 ): boolean {
-  const lesson3 = lessons.find(
-    (l) => l.hour === 3 && l.specialization === specialization,
-  );
-  const lesson4 = lessons.find(
-    (l) => l.hour === 4 && l.specialization === specialization,
-  );
+  const lesson3 = lessons.find((l) => l.hour === 3 && l.group === group);
+  const lesson4 = lessons.find((l) => l.hour === 4 && l.group === group);
 
   if (!lesson3 || !lesson4) return false;
 
@@ -28,13 +24,10 @@ export function getTimeForHour(
   currentLesson: Lesson | LessonForImport,
   allLessonsForDay: Lesson[] | LessonWithHour[],
 ): { start: string; end: string } {
-  // Wenn es Stunde 3 ist und für diese Spezialisierung eine Doppelstunde zwischen 3-4 existiert
+  // Wenn es Stunde 3 ist und für diese Gruppe eine Doppelstunde zwischen 3-4 existiert
   if (
     hour === 3 &&
-    hasDoubleLessonForSpecialization(
-      allLessonsForDay,
-      currentLesson.specialization,
-    )
+    hasDoubleLessonForGroup(allLessonsForDay, currentLesson.group)
   ) {
     return { start: "09:45", end: "10:30" };
   }
@@ -62,23 +55,12 @@ export function getTimesForTimetable(
   const getOrderedUniqueTimes = (timeType: "startTime" | "endTime") => {
     if (!hourData?.lessons) return [];
 
-    // Nach Spezialisierung sortieren und dann unique Zeiten sammeln
-    const spec1Time = hourData.lessons.find((l) => l.specialization === 1)?.[
-      timeType
-    ];
-
-    const spec2Time = hourData.lessons.find((l) => l.specialization === 2)?.[
-      timeType
-    ];
-    const spec3Time = hourData.lessons.find((l) => l.specialization === 3)?.[
-      timeType
-    ];
-
-    const times = [];
-    if (spec1Time) times.push(spec1Time);
-    if (spec2Time && spec2Time !== spec1Time) times.push(spec2Time);
-    if (spec3Time && spec3Time !== spec1Time && spec3Time !== spec2Time)
-      times.push(spec3Time);
+    const groups = [1, 2, 3] as const;
+    const times: string[] = [];
+    for (const g of groups) {
+      const t = hourData.lessons.find((l) => l.group === g)?.[timeType];
+      if (t && !times.includes(t)) times.push(t);
+    }
 
     return times;
   };

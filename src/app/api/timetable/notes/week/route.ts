@@ -1,34 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { turso } from "@/lib/tursoClient";
+import { resolveGroupIds } from "@/utils/groups";
 
-// GET /api/timetable/notes/week?week_id=...&specialization=...
+// GET /api/timetable/notes/week?week_id=...&group=...
 export async function GET(req: NextRequest) {
   const week_id = req.nextUrl.searchParams.get("week_id");
-  const specialization = Number(req.nextUrl.searchParams.get("specialization"));
-  if (!week_id || !specialization) {
+  const groupParam = req.nextUrl.searchParams.get("group");
+  if (!week_id || !groupParam) {
     return NextResponse.json(
-      { error: "week_id and specialization are required" },
+      { error: "week_id and group are required" },
       { status: 400 },
     );
   }
-  let specializationIds: number[];
-  if (specialization === 1) {
-    specializationIds = [1, 2, 3];
-  } else if (specialization === 2) {
-    specializationIds = [1, 2];
-  } else if (specialization === 3) {
-    specializationIds = [1, 3];
-  } else {
-    specializationIds = [specialization];
+  const group = Number(groupParam);
+
+  if (!Number.isFinite(group) || group <= 0) {
+    return NextResponse.json(
+      { error: "group must be a positive number" },
+      { status: 400 },
+    );
   }
-  const placeholders = specializationIds.map(() => "?").join(",");
+
+  const groupIds = resolveGroupIds(group);
+  const placeholders = groupIds.map(() => "?").join(",");
+  if (groupIds.length === 0) {
+    return NextResponse.json({ data: [] });
+  }
   try {
     const result = await turso.execute(
-      `SELECT timetable.day, timetable.hour, timetable.subject, timetable.teacher, timetable.notes, timetable_specialization.specialization
-       FROM timetable 
-       JOIN timetable_specialization ON timetable.id = timetable_specialization.timetable_id 
-       WHERE timetable.week_id = ? AND timetable_specialization.specialization IN (${placeholders}) AND timetable.notes IS NOT NULL AND TRIM(timetable.notes) != '';`,
-      [week_id, ...specializationIds],
+      `SELECT timetable.day, timetable.hour, timetable.subject, timetable.teacher, timetable.notes, timetable_group.groupNumber
+       FROM timetable
+       JOIN timetable_group ON timetable.id = timetable_group.timetable_id
+       WHERE timetable.week_id = ? AND timetable_group.groupNumber IN (${placeholders}) AND timetable.notes IS NOT NULL AND TRIM(timetable.notes) != '';`,
+      [week_id, ...groupIds],
     );
     return NextResponse.json({ data: result });
   } catch (error: unknown) {

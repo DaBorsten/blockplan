@@ -68,7 +68,7 @@ export default function Timetable({
 
       try {
         const response = await fetch(
-          `/api/timetable/week?weekId=${weekID}&specialization=${group}`,
+          `/api/timetable/week?weekId=${weekID}&group=${group}`,
         );
 
         if (!response.ok) {
@@ -225,7 +225,7 @@ export default function Timetable({
     };
   });
 
-  // Helper: detect if day has a double lesson (3+4) for any specialization with same teacher, subject, room, specialization
+  // Helper: detect if day has a double lesson (3+4) for any group with same teacher, subject, room, group
   const isDoubleLesson3And4 = (dayIndex: number): boolean => {
     const hour3 = groupedByDay[dayIndex]?.hours.find((h) => h.hour === 3);
     const hour4 = groupedByDay[dayIndex]?.hours.find((h) => h.hour === 4);
@@ -233,7 +233,7 @@ export default function Timetable({
     return hour3.lessons.some((l3) =>
       hour4.lessons.some(
         (l4) =>
-          l3.specialization === l4.specialization &&
+          l3.group === l4.group &&
           l3.subject === l4.subject &&
           l3.teacher === l4.teacher &&
           l3.room === l4.room,

@@ -5,11 +5,11 @@ import { requireAuthUserId } from "@/lib/auth";
 // GET /api/week/weeks?class_id=... (user inferred)
 export async function GET(req: NextRequest) {
   try {
-  const class_id = req.nextUrl.searchParams.get("class_id");
-  const userId = requireAuthUserId(req);
-  if (!class_id) {
+    const class_id = req.nextUrl.searchParams.get("class_id");
+    const userId = requireAuthUserId(req);
+    if (!class_id) {
       return NextResponse.json(
-    { error: "Missing required query param: class_id" },
+        { error: "Missing required query param: class_id" },
         { status: 400 },
       );
     }
@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: result.rows });
   } catch (error: unknown) {
     const err = error instanceof Error ? error : new Error(String(error));
-    return NextResponse.json({ error: "Error loading week ids", details: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error loading week ids", details: err.message },
+      { status: 500 },
+    );
   }
 }
