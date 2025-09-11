@@ -1,16 +1,11 @@
 "use client";
 
-import {
-  SignedIn,
-  SignedOut,
-  SignInButton,
-  SignUpButton,
-  useUser,
-} from "@clerk/nextjs";
+import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, StickyNote, Share2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
+import { Authenticated, Unauthenticated } from "convex/react";
 
 export default function LandingPage() {
   const { isLoaded } = useUser();
@@ -38,7 +33,7 @@ export default function LandingPage() {
             </div>
           ) : (
             <>
-              <SignedOut>
+              <Unauthenticated>
                 <SignUpButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                   <Button size="lg">Jetzt starten</Button>
                 </SignUpButton>
@@ -47,12 +42,12 @@ export default function LandingPage() {
                     Ich habe bereits ein Konto
                   </Button>
                 </SignInButton>
-              </SignedOut>
-              <SignedIn>
+              </Unauthenticated>
+              <Authenticated>
                 <Button asChild size="lg">
                   <Link href={ROUTE_STUNDENPLAN}>Zum Stundenplan</Link>
                 </Button>
-              </SignedIn>
+              </Authenticated>
             </>
           )}
         </div>

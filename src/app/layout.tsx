@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToaster } from "@/components/ThemeToaster";
 import AppShell from "@/components/AppShell";
 import ClerkThemingProvider from "@/components/ClerkThemingProvider";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,10 +59,12 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ClerkThemingProvider>
-            <AppShell>
-              {children}
-              <ThemeToaster />
-            </AppShell>
+            <ConvexClientProvider>
+              <AppShell>
+                {children}
+                <ThemeToaster />
+              </AppShell>
+            </ConvexClientProvider>
           </ClerkThemingProvider>
         </ThemeProvider>
       </body>

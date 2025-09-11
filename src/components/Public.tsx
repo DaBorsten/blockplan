@@ -1,10 +1,11 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { SignedIn, SignedOut, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
+import { Authenticated, Unauthenticated } from "convex/react";
 
 interface Props {
   children: React.ReactNode;
@@ -29,7 +30,7 @@ export default function Public({ children }: Props) {
             aria-label="Benutzeraktionen"
             className="flex items-center gap-2"
           >
-            <SignedOut>
+            <Unauthenticated>
               <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                 <Button variant="ghost" size="sm" type="button">
                   Anmelden
@@ -40,10 +41,10 @@ export default function Public({ children }: Props) {
                   Registrieren
                 </Button>
               </SignUpButton>
-            </SignedOut>
-            <SignedIn>
+            </Unauthenticated>
+            <Authenticated>
               <ClerkUserButton />
-            </SignedIn>
+            </Authenticated>
           </nav>
         </header>
         <main id="main" className="flex-1 flex flex-col">
