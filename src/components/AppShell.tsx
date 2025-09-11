@@ -5,6 +5,7 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 import { SignedInWrapper } from "@/components/SignedInWrapper";
 import { PublicPageWrapper } from "@/components/PublicPageWrapper";
 import React from "react";
+import { Spinner } from "./ui/shadcn-io/spinner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useUser();
@@ -13,7 +14,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Während Clerk noch lädt: Loader minimal – verhindert falschen Public Snapshot.
   if (!isLoaded) {
-    return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Lade...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+        <Spinner />
+      </div>
+    );
   }
 
   if (isPublicRoute || !isSignedIn) {

@@ -72,8 +72,8 @@ export function AppSidebar() {
                   pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={active}>
-                        <Link href={item.url}>
+                    <SidebarMenuButton asChild isActive={active} size="lg">
+                      <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>
@@ -91,6 +91,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               asChild
               isActive={pathname === "/datenschutzhinweis"}
+              size="lg"
             >
               <Link href="/datenschutzhinweis">
                 <span>Datenschutzhinweis</span>
@@ -99,7 +100,11 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             {" "}
-            <SidebarMenuButton asChild isActive={pathname === "/impressum"}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/impressum"}
+              size="lg"
+            >
               <Link href="/impressum">
                 <span>Impressum</span>
               </Link>

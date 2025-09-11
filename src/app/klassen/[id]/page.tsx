@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -30,9 +31,11 @@ import {
   Swords,
   User,
   Palette,
+  Users,
 } from "lucide-react";
 import { TeacherColorsManager } from "@/components/TeacherColorsManager";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 type Member = {
   user_id: string;
@@ -120,7 +123,7 @@ export default function ClassMembersPage() {
   }, [inviteOpen]);
 
   const fetchInvites = async () => {
-  if (!id) return;
+    if (!id) return;
     if (invitesFetching) return; // avoid overlapping fetches
     setInvitesFetching(true);
     if (!invitesSpinning) {
@@ -168,7 +171,7 @@ export default function ClassMembersPage() {
   };
 
   const handleCreateInvite = async () => {
-  if (!id) return;
+    if (!id) return;
     try {
       setInviteLoading(true);
       const body: {
@@ -207,9 +210,7 @@ export default function ClassMembersPage() {
   const handleDeleteInvite = async (inviteId: string) => {
     if (!user?.id) return;
     const res = await fetch(
-      `/api/class/invitation?id=${encodeURIComponent(
-        inviteId,
-      )}`,
+      `/api/class/invitation?id=${encodeURIComponent(inviteId)}`,
       { method: "DELETE" },
     );
     if (res.ok) fetchInvites();
@@ -276,7 +277,7 @@ export default function ClassMembersPage() {
 
   const changeRole = async (target: Member, role: "admin" | "member") => {
     if (!id || !user?.id) return;
-  const res = await fetch(`/api/class/member`, {
+    const res = await fetch(`/api/class/member`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -395,6 +396,10 @@ export default function ClassMembersPage() {
   const [pendingTarget, setPendingTarget] = useState<Member | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // Week delete confirmation dialog state
+  const [weekDeleteOpen, setWeekDeleteOpen] = useState(false);
+  const [pendingWeek, setPendingWeek] = useState<Week | null>(null);
+  const [weekDeleteLoading, setWeekDeleteLoading] = useState(false);
 
   const openConfirm = (target: Member) => {
     setPendingTarget(target);
@@ -440,7 +445,6 @@ export default function ClassMembersPage() {
   };
 
   const deleteWeek = async (wid: string) => {
-    if (!confirm("Möchten Sie diese Woche wirklich löschen?")) return;
     const res = await fetch(`/api/timetable/week?weekId=${wid}`, {
       method: "DELETE",
     });
@@ -453,276 +457,283 @@ export default function ClassMembersPage() {
     }
   };
 
+  const openWeekDelete = (week: Week) => {
+    setPendingWeek(week);
+    setWeekDeleteOpen(true);
+  };
+
   return (
-    <div className="px-4 md:px-6 pb-4 md:pb-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-2xl font-semibold truncate">
-            Klasse {classTitle || ""}
-          </h1>
-          {currentRole === "owner" && (
+    <div className="h-full flex-1 flex flex-col min-h-0">
+      <div className="sticky top-0 z-20 pb-2 px-4 md:px-6 border-b flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <h1 className="text-2xl font-semibold truncate">
+              Klasse{" "}
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md tracking-tight">
+                {classTitle || ""}
+              </span>
+            </h1>
+            {currentRole === "owner" && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => {
+                    setEditName(classTitle || "");
+                    setEditOpen(true);
+                  }}
+                  aria-label="Klasse umbenennen"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </Button>
+              </div>
+            )}
+          </div>
+          {(currentRole === "owner" || currentRole === "admin") && (
             <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0"
-                onClick={() => {
-                  setEditName(classTitle || "");
-                  setEditOpen(true);
-                }}
-                aria-label="Klasse umbenennen"
+                onClick={() => setInviteOpen(true)}
+                variant="outline"
+                size="default"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-4 h-4"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
+                <Users className="w-4 h-4" />
+                <span className="hidden md:inline">Einladungen</span>
               </Button>
               <Button
                 variant="destructive"
-                size="icon"
+                size="default"
                 className="shrink-0"
                 onClick={() => setDeleteOpen(true)}
                 aria-label="Klasse löschen"
                 title="Klasse löschen"
               >
                 <Trash2 className="w-4 h-4" />
+                <span className="hidden md:inline">Löschen</span>
               </Button>
             </div>
           )}
         </div>
-        {(currentRole === "owner" || currentRole === "admin") &&
-          activeTab === "mitglieder" && (
-            <Button
-              onClick={() => setInviteOpen(true)}
-              variant="outline"
-              size="sm"
+        <div className="flex gap-2 p-1 -m-1 overflow-x-auto">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+              className="w-full"
             >
-              Einladungen
-            </Button>
-          )}
+              <TabsList className="overflow-x-auto flex max-w-full">
+                <TabsTrigger value="mitglieder" className="flex items-center gap-1">
+                  Mitglieder{membersLoading ? "" : ` (${members.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="wochen" className="flex items-center gap-1">
+                  Wochen{weeksLoading ? "" : ` (${weeks.length})`}
+                </TabsTrigger>
+                <TabsTrigger value="farben" className="flex items-center gap-1">
+                  Farben <Palette className="w-4 h-4" />
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+        </div>
       </div>
-
-      <div className="flex gap-2 mb-6 border-b pb-2">
-        <Button
-          variant={activeTab === "mitglieder" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("mitglieder")}
-          className={`relative ${
-            activeTab === "mitglieder" ? "" : "opacity-70"
-          }`}
-        >
-          Mitglieder{membersLoading ? "" : ` (${members.length})`}
-        </Button>
-        <Button
-          variant={activeTab === "wochen" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("wochen")}
-          className={`relative ${activeTab === "wochen" ? "" : "opacity-70"}`}
-        >
-          Wochen{weeksLoading ? "" : ` (${weeks.length})`}
-        </Button>
-        <Button
-          variant={activeTab === "farben" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("farben")}
-          className={`relative ${activeTab === "farben" ? "" : "opacity-70"}`}
-        >
-          Farben
-          <Palette className="w-4 h-4 ml-1" />
-        </Button>
-      </div>
-
-      {activeTab === "mitglieder" && (
-        <>
-          {membersLoading ? (
-            <div>Lade…</div>
-          ) : (
-            <ul className="divide-y rounded-md border">
-              {members.map((m) => (
-                <li
-                  key={m.user_id}
-                  className="flex items-center justify-between p-3"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs">
-                      {(m.nickname || m.user_id).substring(0, 2)}
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">
-                        {m.nickname || m.user_id}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
+        {activeTab === "mitglieder" && (
+          <>
+            {membersLoading ? (
+              <div className="flex flex-1 justify-center items-center h-full">
+                <Spinner />
+              </div>
+            ) : (
+              <ul className="divide-y rounded-md border">
+                {members.map((m) => (
+                  <li
+                    key={m.user_id}
+                    className="flex items-center justify-between p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs">
+                        {(m.nickname || m.user_id).substring(0, 2)}
                       </div>
-                      <div className="text-muted-foreground text-xs flex items-center gap-1">
-                        {m.role === "owner" && (
-                          <>
-                            <Crown className="w-3.5 h-3.5" />
-                            <span>Besitzer</span>
-                          </>
-                        )}
-                        {m.role === "admin" && (
-                          <>
-                            <Swords className="w-3.5 h-3.5" />
-                            <span>Admin</span>
-                          </>
-                        )}
-                        {m.role === "member" && (
-                          <>
-                            <User className="w-3.5 h-3.5" />
-                            <span>Mitglied</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {canPromote(m) && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => changeRole(m, "admin")}
-                      >
-                        Zu Admin machen
-                      </Button>
-                    )}
-                    {canDemote(m) && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => changeRole(m, "member")}
-                      >
-                        Zu Mitglied machen
-                      </Button>
-                    )}
-                    {canRemove(m) && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openConfirm(m)}
-                      >
-                        {user?.id === m.user_id
-                          ? "Klasse verlassen"
-                          : "Entfernen"}
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
-
-      {activeTab === "wochen" && (
-        <div>
-          {weeksLoading ? (
-            <div>Lade…</div>
-          ) : weeks.length === 0 ? (
-            <div className="text-sm text-muted-foreground">
-              Keine Wochen gefunden.
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {groupedWeeks.map(([section, items]) => (
-                <section key={section}>
-                  <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                    {section}
-                  </h3>
-                  <ul className="grid gap-3">
-                    {items.map((week) => (
-                      <li key={week.week_id} className="block">
-                        <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div
-                              className="w-10 h-10 rounded-md flex items-center justify-center font-semibold text-sm"
-                              aria-hidden
-                            >
-                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border">
-                                {week.week_title
-                                  ? week.week_title.split(" ")[0]
-                                  : "W"}
-                              </div>
-                            </div>
-                            <div className="min-w-0">
-                              <div
-                                className="text-sm font-medium truncate"
-                                title={week.week_title}
-                              >
-                                {week.week_title}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              onClick={() =>
-                                handleWeekEdit(week.week_id, week.week_title)
-                              }
-                              size="sm"
-                              className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="w-4 h-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M12 20h9" />
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                              </svg>
-                              <span className="hidden md:inline">
-                                Bearbeiten
-                              </span>
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => deleteWeek(week.week_id)}
-                              size="sm"
-                              className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="w-4 h-4"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="M3 6h18" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                              <span className="hidden md:inline">Löschen</span>
-                            </Button>
-                          </div>
+                      <div className="text-sm">
+                        <div className="font-medium">
+                          {m.nickname || m.user_id}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                        <div className="text-muted-foreground text-xs flex items-center gap-1">
+                          {m.role === "owner" && (
+                            <>
+                              <Crown className="w-3.5 h-3.5" />
+                              <span>Besitzer</span>
+                            </>
+                          )}
+                          {m.role === "admin" && (
+                            <>
+                              <Swords className="w-3.5 h-3.5" />
+                              <span>Admin</span>
+                            </>
+                          )}
+                          {m.role === "member" && (
+                            <>
+                              <User className="w-3.5 h-3.5" />
+                              <span>Mitglied</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {canPromote(m) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => changeRole(m, "admin")}
+                        >
+                          Zu Admin machen
+                        </Button>
+                      )}
+                      {canDemote(m) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => changeRole(m, "member")}
+                        >
+                          Zu Mitglied machen
+                        </Button>
+                      )}
+                      {canRemove(m) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openConfirm(m)}
+                        >
+                          {user?.id === m.user_id
+                            ? "Klasse verlassen"
+                            : "Entfernen"}
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
 
-      {activeTab === "farben" && id && (
-        <div>
+        {activeTab === "wochen" && (
+          <div className="flex flex-1 h-full flex-col">
+            {weeksLoading ? (
+              <div className="flex flex-1 justify-center items-center h-full">
+                <Spinner />
+              </div>
+            ) : weeks.length === 0 ? (
+              <div className="text-sm text-muted-foreground">
+                Keine Wochen gefunden.
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {groupedWeeks.map(([section, items]) => (
+                  <section key={section}>
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                      {section}
+                    </h3>
+                    <ul className="grid gap-3">
+                      {items.map((week) => (
+                        <li key={week.week_id} className="block">
+                          <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div
+                                className="w-10 h-10 rounded-md flex items-center justify-center font-semibold text-sm"
+                                aria-hidden
+                              >
+                                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border">
+                                  {week.week_title
+                                    ? week.week_title.split(" ")[0]
+                                    : "W"}
+                                </div>
+                              </div>
+                              <div className="min-w-0">
+                                <div
+                                  className="text-sm font-medium truncate"
+                                  title={week.week_title}
+                                >
+                                  {week.week_title}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onClick={() =>
+                                  handleWeekEdit(week.week_id, week.week_title)
+                                }
+                                size="sm"
+                                className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-4 h-4"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M12 20h9" />
+                                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                                <span className="hidden md:inline">
+                                  Bearbeiten
+                                </span>
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => openWeekDelete(week)}
+                                size="sm"
+                                className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="w-4 h-4"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M3 6h18" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                                <span className="hidden md:inline">
+                                  Löschen
+                                </span>
+                              </Button>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "farben" && id && (
           <TeacherColorsManager classId={id as string} />
-        </div>
-      )}
+        )}
+      </div>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
@@ -751,8 +762,64 @@ export default function ClassMembersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Week delete confirmation dialog */}
+      <Dialog
+        open={weekDeleteOpen}
+        onOpenChange={(o) => {
+          setWeekDeleteOpen(o);
+          if (!o) {
+            setPendingWeek(null);
+            setWeekDeleteLoading(false);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Woche löschen?</DialogTitle>
+            <DialogDescription>
+              Diese Aktion löscht die Woche{" "}
+              <span className="font-medium">
+                „{pendingWeek?.week_title || "(ohne Titel)"}“
+              </span>{" "}
+              dauerhaft. Fortfahren?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2 justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekDeleteOpen(false)}
+              className="cursor-pointer"
+              disabled={weekDeleteLoading}
+            >
+              <X className="w-4 h-4" />
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="cursor-pointer"
+              disabled={weekDeleteLoading || !pendingWeek}
+              onClick={async () => {
+                if (!pendingWeek) return;
+                try {
+                  setWeekDeleteLoading(true);
+                  await deleteWeek(pendingWeek.week_id);
+                  setWeekDeleteOpen(false);
+                  setPendingWeek(null);
+                } finally {
+                  setWeekDeleteLoading(false);
+                }
+              }}
+            >
+              <Trash2 className="w-4 h-4" />
+              {weekDeleteLoading ? "Bitte warten…" : "Löschen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-  <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Einladungslinks verwalten</DialogTitle>
@@ -856,7 +923,8 @@ export default function ClassMembersPage() {
           <DialogHeader>
             <DialogTitle>Klasse löschen?</DialogTitle>
             <DialogDescription>
-              Diese Aktion löscht die Klasse dauerhaft inklusive aller Wochen, Farben und Stundenplandaten. Fortfahren?
+              Diese Aktion löscht die Klasse dauerhaft inklusive aller Wochen,
+              Farben und Stundenplandaten. Fortfahren?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row gap-2 justify-end">
@@ -877,17 +945,19 @@ export default function ClassMembersPage() {
                 if (!id || !user?.id) return;
                 try {
                   const params = new URLSearchParams({ id: id as string });
-                  const res = await fetch(`/api/class?${params.toString()}`, { method: 'DELETE' });
-                  const data = await res.json().catch(()=>({}));
+                  const res = await fetch(`/api/class?${params.toString()}`, {
+                    method: "DELETE",
+                  });
+                  const data = await res.json().catch(() => ({}));
                   if (!res.ok) {
-                    toast.error(data.error || 'Löschen fehlgeschlagen');
+                    toast.error(data.error || "Löschen fehlgeschlagen");
                     return;
                   }
-                  toast.success('Klasse gelöscht');
-                  router.replace('/klassen');
+                  toast.success("Klasse gelöscht");
+                  router.replace("/klassen");
                 } catch (e) {
                   console.error(e);
-                  toast.error('Netzwerkfehler beim Löschen');
+                  toast.error("Netzwerkfehler beim Löschen");
                 }
               }}
             >
@@ -898,10 +968,22 @@ export default function ClassMembersPage() {
         </DialogContent>
       </Dialog>
       {/* Confirmation dialog for remove / leave actions */}
-      <Dialog open={confirmOpen} onOpenChange={(o)=>{ if(!o){ setPendingTarget(null);} setConfirmOpen(o); }}>
+      <Dialog
+        open={confirmOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setPendingTarget(null);
+          }
+          setConfirmOpen(o);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{user?.id === pendingTarget?.user_id ? "Klasse verlassen?" : "Mitglied entfernen?"}</DialogTitle>
+            <DialogTitle>
+              {user?.id === pendingTarget?.user_id
+                ? "Klasse verlassen?"
+                : "Mitglied entfernen?"}
+            </DialogTitle>
             <DialogDescription>
               {user?.id === pendingTarget?.user_id
                 ? "Bist du sicher, dass du die Klasse verlassen möchtest? Du kannst über einen neuen Invite wieder beitreten."
@@ -911,7 +993,10 @@ export default function ClassMembersPage() {
           <DialogFooter className="flex-row gap-2 justify-end">
             <Button
               variant="outline"
-              onClick={()=>{ setConfirmOpen(false); setPendingTarget(null); }}
+              onClick={() => {
+                setConfirmOpen(false);
+                setPendingTarget(null);
+              }}
               size="sm"
               className="cursor-pointer"
               disabled={confirmLoading}
@@ -926,7 +1011,11 @@ export default function ClassMembersPage() {
               className="cursor-pointer"
               disabled={confirmLoading}
             >
-              {confirmLoading ? "Bitte warten…" : user?.id === pendingTarget?.user_id ? "Verlassen" : "Entfernen"}
+              {confirmLoading
+                ? "Bitte warten…"
+                : user?.id === pendingTarget?.user_id
+                ? "Verlassen"
+                : "Entfernen"}
             </Button>
           </DialogFooter>
         </DialogContent>

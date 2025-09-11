@@ -10,12 +10,24 @@ type EnsureOwnerResult = { ok: true } | { ok: false; status: number; error: stri
 async function ensureOwner(authUserId: string, class_id: string): Promise<EnsureOwnerResult> {
   const roleRes = await turso.execute(
     `SELECT role FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`,
-  [authUserId, class_id],
+    [authUserId, class_id],
   );
   const role = (roleRes.rows[0] as { role?: string } | undefined)?.role;
   if (!role) return { ok: false, status: 403, error: "not a class member" };
   if (role !== "owner")
     return { ok: false, status: 403, error: "only owner can manage invites" };
+  return { ok: true } as const;
+}
+
+async function ensureOwnerOrAdmin(authUserId: string, class_id: string): Promise<EnsureOwnerResult> {
+  const roleRes = await turso.execute(
+    `SELECT role FROM user_class WHERE user_id = ? AND class_id = ? LIMIT 1`,
+    [authUserId, class_id],
+  );
+  const role = (roleRes.rows[0] as { role?: string } | undefined)?.role;
+  if (!role) return { ok: false, status: 403, error: "not a class member" };
+  if (role !== "owner" && role !== "admin")
+    return { ok: false, status: 403, error: "only owner or admin can view invites" };
   return { ok: true } as const;
 }
 
@@ -37,7 +49,8 @@ export async function GET(req: NextRequest) {
     const class_id = searchParams.get("class_id");
   if (!class_id) return NextResponse.json({ error: "Missing class_id" }, { status: 400 });
 
-  const auth = await ensureOwner(authUserId, class_id);
+  // Allow both owner and admin to view invitation list
+  const auth = await ensureOwnerOrAdmin(authUserId, class_id);
     if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }

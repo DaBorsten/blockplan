@@ -73,7 +73,7 @@ export function WeekSelectionCombobox() {
       </PopoverTrigger>
       <PopoverContent className="w-[150px] p-0">
         <Command>
-          <CommandInput placeholder="Woche suchen..." className="h-9" />
+          <CommandInput placeholder="Suchen" className="h-9" />
           <CommandList>
             <CommandEmpty>Keine Woche</CommandEmpty>
             <CommandGroup>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 // Dialog removed in favor of info card
 import {
@@ -15,6 +14,14 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { GraduationCap, Users } from "lucide-react";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
+import { ROUTE_STUNDENPLAN } from "@/constants/routes";
+import { useClassStore } from "@/store/useClassStore";
 
 export default function ClassJoinPage() {
   const [code, setCode] = useState("");
@@ -31,6 +38,8 @@ export default function ClassJoinPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const prefillHandled = useRef(false);
+
+  const { setClass } = useClassStore();
 
   const checkCode = useCallback(
     async (override?: string) => {
@@ -143,8 +152,9 @@ export default function ClassJoinPage() {
         return;
       }
       toast.success("Klasse beigetreten");
+      setClass(data.class_id);
       // Trigger sidebar refresh by navigating with the new class in query
-      router.replace(`/?class=${data.class_id}`);
+      router.replace(`${ROUTE_STUNDENPLAN}?class=${data.class_id}`);
     } catch (error) {
       console.error("Fehler beim Beitreten:", error);
       toast.error("Ein unerwarteter Fehler ist aufgetreten");
@@ -157,19 +167,31 @@ export default function ClassJoinPage() {
     <div className="px-4 md:px-6 pb-4 md:pb-6">
       <h1 className="text-2xl font-semibold mb-4">Klasse beitreten</h1>
       <form
-        className="flex gap-2 items-center"
+        className="flex gap-3 items-center flex-wrap"
         onSubmit={(e) => {
           e.preventDefault();
           if (!loading && code.length === 6) void checkCode();
         }}
       >
-        <Input
-          placeholder="Einladungscode (6 Zeichen)"
-          value={code}
+        <InputOTP
           maxLength={6}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          className="max-w-xs"
-        />
+          pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+          value={code}
+          onChange={(v) => {
+            const up = v.toUpperCase();
+            setCode(up);
+            if (up.length === 6 && !loading) void checkCode(up);
+          }}
+        >
+          <InputOTPGroup>
+            <InputOTPSlot index={0} />
+            <InputOTPSlot index={1} />
+            <InputOTPSlot index={2} />
+            <InputOTPSlot index={3} />
+            <InputOTPSlot index={4} />
+            <InputOTPSlot index={5} />
+          </InputOTPGroup>
+        </InputOTP>
         <Button type="submit" disabled={loading || code.length !== 6}>
           Prüfen
         </Button>

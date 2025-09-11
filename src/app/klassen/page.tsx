@@ -19,6 +19,7 @@ import { useSetClass } from "@/store/useClassStore";
 // AlertDialog removed in favor of unified Dialog like detail page
 import { toast } from "sonner";
 import { ROUTE_KLASSEN_BEITRETEN } from "@/constants/routes";
+import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
 type ClassItem = {
   class_id: string;
@@ -215,7 +216,7 @@ export default function ManageClass() {
   // Optional: Delete/leave class can be wired here when an API exists.
 
   return (
-    <div className="px-4 md:px-6 pb-4 md:pb-6">
+    <div className="px-4 md:px-6 pb-4 md:pb-6 h-full flex-1">
       <div className="flex flex-row justify-between items-center mb-4 md:mb-8">
         <div className="hidden md:flex flex-col">
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
@@ -242,7 +243,9 @@ export default function ManageClass() {
         </div>
       </div>
       {loading ? (
-        <div>Lade...</div>
+        <div className="flex flex-1 justify-center items-center h-full">
+          <Spinner />
+        </div>
       ) : classes.length === 0 ? (
         <div>Keine Klassen gefunden.</div>
       ) : (
