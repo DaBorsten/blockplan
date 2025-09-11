@@ -7,12 +7,15 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 
 export default function WelcomePage() {
   const { user } = useUser();
   const router = useRouter();
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
+  const initUser = useMutation(api.users.initUser);
 
   const isValidNickname = nickname.trim().length > 0;
 
@@ -29,17 +32,8 @@ export default function WelcomePage() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: trimmed }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        toast.error(errorData.error || "Fehler beim Speichern des Spitznamens");
-        return;
-      }
-      toast.success("Willkommen! Ihr Konto wurde erfolgreich initialisiert.");
+      await initUser({ nickname: trimmed });
+      toast.success("Willkommen! Dein Konto wurde initialisiert.");
       router.replace(ROUTE_STUNDENPLAN);
     } catch (error) {
       toast.error(
