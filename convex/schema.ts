@@ -26,16 +26,19 @@ export default defineSchema({
     color: v.string(),
   })
     .index("by_class", ["class_id"])
-    .index("by_class_teacher", ["class_id", "teacher"]),
+    .index("by_class_teacher", ["class_id", "teacher"])
+    .index("by_class_teacher_color", ["class_id", "teacher", "color"]),
 
   invitations: defineTable({
+    code: v.string(), // 6-stelliger Einladungs-Code
     user_id: v.id("users"),
     class_id: v.id("classes"),
-    expiration_date: v.number(),
+    expiration_date: v.number(), // ms timestamp
   })
     .index("by_class", ["class_id"])
     .index("by_user", ["user_id"])
-    .index("by_user_class", ["user_id", "class_id"]),
+    .index("by_user_class", ["user_id", "class_id"])
+    .index("by_code", ["code"]),
 
   weeks: defineTable({
     class_id: v.id("classes"),

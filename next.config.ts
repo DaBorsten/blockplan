@@ -6,7 +6,7 @@ const securityHeaders = [
     value: `
       default-src 'self';
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app https://challenges.cloudflare.com;
-      connect-src 'self' https://accounts.google.com https://apis.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app wss://*.convex.cloud;
+      connect-src 'self' https://accounts.google.com https://apis.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app wss://*.convex.cloud ws://127.0.0.1:3210 ws://192.168.178.45:3210;
       frame-src 'self' https://accounts.google.com https://clerk.bs1-blockplan.de https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app https://challenges.cloudflare.com;
       img-src 'self' data: https:;
       style-src 'self' 'unsafe-inline';
@@ -19,6 +19,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {
     reactCompiler: true,
     middlewarePrefetch: "flexible",

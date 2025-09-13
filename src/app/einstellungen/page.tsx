@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ModeToggle } from "@/components/theme-toggle";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@clerk/nextjs";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
 import { toast } from "sonner";
 
 export default function Settings() {
@@ -15,39 +17,29 @@ export default function Settings() {
   const [initialLoaded, setInitialLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [previousUserId, setPreviousUserId] = useState<string | undefined>();
+
+  const NO_ARGS = useMemo(() => ({}) as const, []);
+  const me = useQuery(api.users.me, user?.id ? NO_ARGS : "skip");
+  const initUser = useMutation(api.users.initUser);
+
   useEffect(() => {
-    const controller = new AbortController();
-    const run = async () => {
-      if (!user?.id) return;
-      try {
-        const res = await fetch("/api/user/me", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          console.error("Fehler beim Laden der Benutzerdaten:", res.status);
-          return;
-        }
-        const data = await res.json();
-        if (!initialLoaded) {
-          if (data?.data?.nickname) {
-            setNickname(data.data.nickname);
-            setInitialNickname(data.data.nickname);
-          }
-          setInitialLoaded(true);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name !== "AbortError") {
-          console.error(
-            "Netzwerkfehler beim Laden der Benutzerdaten:",
-            error.message,
-          );
-        }
+    if (!initialLoaded && me !== undefined) {
+      if (me?.nickname) {
+        setNickname(me.nickname);
+        setInitialNickname(me.nickname);
       }
-    };
-    run();
-    return () => controller.abort();
-  }, [user?.id, initialLoaded]);
+      setInitialLoaded(true);
+    }
+  }, [me, initialLoaded]);
+
+  useEffect(() => {
+    if (user?.id !== previousUserId) {
+      setInitialLoaded(false);
+      setInitialNickname("");
+      setPreviousUserId(user?.id);
+    }
+  }, [previousUserId, user?.id]);
 
   const save = async () => {
     if (!user?.id) return;
@@ -58,28 +50,15 @@ export default function Settings() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/user/me", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nickname: trimmed }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || `Fehler beim Speichern (Status: ${res.status})`;
-        toast.error(errorMessage);
-      } else {
-        toast.success("Erfolgreich gespeichert");
-        setNickname(trimmed);
-        setInitialNickname(trimmed);
-      }
+      await initUser({ nickname: trimmed });
+      toast.success("Erfolgreich gespeichert");
+      setNickname(trimmed);
+      setInitialNickname(trimmed);
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Fehler beim Speichern:", error.message);
-        toast.error("Netzwerkfehler beim Speichern");
-      } else {
-        throw error;
-      }
+      const message =
+        error instanceof Error ? error.message : "Unbekannter Fehler";
+      console.error("Fehler beim Speichern:", message);
+      toast.error(message || "Fehler beim Speichern");
     } finally {
       setLoading(false);
     }

@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "turso dev --db-file=blockplan.db -p 9000 & next dev --turbopack",
-    "dev:memory": "turso dev & next dev --turbopack",
+    "dev": "next dev --turbopack",
+    "convex": "convex dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."

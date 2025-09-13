@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,15 @@ import {
 } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { useSetClass } from "@/store/useClassStore";
+import { useSetClass, useCurrentClass } from "@/store/useClassStore";
+
 // AlertDialog removed in favor of unified Dialog like detail page
 import { toast } from "sonner";
 import { ROUTE_KLASSEN_BEITRETEN } from "@/constants/routes";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 
 type ClassItem = {
   class_id: string;
@@ -47,79 +51,46 @@ export default function ManageClass() {
   const { user } = useUser();
   const router = useRouter();
   const setKlasse = useSetClass();
-  const withParams = (url: string) => url; // no query params now
 
-  const fetchStats = useCallback(
-    async (classIds: string[], signal?: AbortSignal) => {
-      setStatsLoading(true);
-      try {
-        const res = await fetch(`/api/class/stats`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ class_ids: classIds }),
-          signal,
-        });
-        if (signal?.aborted) return;
-        if (!res.ok) {
-          console.error("Fehler beim Abrufen der Klassenstatistiken");
-          toast.error("Statistiken konnten nicht geladen werden");
-          return;
-        }
-        const data = await res.json();
-        setStats(data.data || []);
-      } catch (error) {
-        if (
-          signal?.aborted ||
-          (error instanceof Error && error.name === "AbortError")
-        )
-          return;
-        console.error("Fehler beim Abrufen der Statistiken:", error);
-        toast.error("Netzwerkfehler beim Laden der Statistiken");
-      } finally {
-        if (!signal?.aborted) {
-          setStatsLoading(false);
-        }
-      }
-    },
-    [],
-  );
+  const convexClasses = useQuery(api.classes.listClassesWithStats, {});
+  const createClassMutation = useMutation(api.classes.createClass);
+  const renameClassMutation = useMutation(api.classes.renameClass);
+  const removeOrLeaveMutation = useMutation(api.classes.removeOrLeave);
+  const meQuery = useQuery(api.users.me, {});
+  const currentClassId = useCurrentClass();
 
-  const fetchClasses = useCallback(
-    async (signal?: AbortSignal) => {
+  useEffect(() => {
+    if (convexClasses === undefined) {
       setLoading(true);
-      try {
-        const res = await fetch(`/api/class/classes`, { signal });
-        if (signal?.aborted) return;
-        const data = await res.json();
-        const result: ClassItem[] = data.data || [];
-        setClasses(result);
-        // After classes loaded, fetch stats
-        if (result.length) {
-          fetchStats(
-            result.map((c) => c.class_id),
-            signal,
-          );
-        } else {
-          setStats([]);
-        }
-      } catch (error) {
-        if (
-          signal?.aborted ||
-          (error instanceof Error && error.name === "AbortError")
-        ) {
-          return; // silently ignore aborts
-        }
-        console.error("Fehler beim Laden der Klassen:", error);
-        toast.error("Netzwerkfehler beim Laden der Klassen");
-      } finally {
-        if (!signal?.aborted) setLoading(false);
-      }
-    },
-    [fetchStats],
-  );
+      return;
+    }
+    setLoading(false);
+    const mappedRaw = convexClasses as Array<{
+      class_id: string;
+      class_title: string;
+      weeks?: number;
+      members?: number;
+    }>;
+    const mapped: ClassItem[] = mappedRaw.map((c) => ({
+      class_id: c.class_id,
+      class_title: c.class_title,
+    }));
+    setClasses(mapped);
+    // Directly map stats from the query result
+    const statsList: ClassStats[] = mappedRaw.map((c) => ({
+      class_id: c.class_id,
+      weeks: c.weeks ?? 0,
+      members: c.members ?? 0,
+    }));
+    // Replace local stats state (keeping existing shape)
+    setStats(statsList);
+  }, [convexClasses]);
 
   const [stats, setStats] = useState<ClassStats[]>([]);
-  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsLoading] = useState(false);
+
+  const [editLoading, setEditLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
   const statsMap = useMemo(() => {
     const m: Record<string, ClassStats> = {};
@@ -130,84 +101,47 @@ export default function ManageClass() {
   const plural = (n: number, one: string, many: string) =>
     `${n} ${n === 1 ? one : many}`;
 
-  // invites fetching removed (handled on details page)
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const controller = new AbortController();
-    // Wrap call in void to avoid unhandled promise rejections
-    void fetchClasses(controller.signal);
-    return () => controller.abort();
-  }, [user?.id, fetchClasses]);
-
-  // edit moved to details page
-
   const handleEditSave = async () => {
-    if (editId) {
-      const res = await fetch("/api/class/className", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ classID: editId, newClassName: editName }),
+    if (!editId || editLoading) return;
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast.error("Name darf nicht leer sein");
+      return;
+    }
+    setEditLoading(true);
+    try {
+      await renameClassMutation({
+        classId: editId as Id<"classes">,
+        newTitle: trimmed,
       });
-      if (!res.ok) {
-        toast.error("Fehler beim Umbenennen der Klasse");
-        return;
-      }
       toast.success("Klasse erfolgreich umbenannt");
       setEditId(null);
       setEditName("");
-      if (user?.id) fetchClasses();
       setEditOpen(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Fehler beim Umbenennen der Klasse");
+    } finally {
+      setEditLoading(false);
     }
   };
 
   const handleCreateSave = async () => {
-    if (!createName.trim() || !user?.id) return;
-
+    if (!createName.trim() || !user?.id || createLoading) return;
+    setCreateLoading(true);
     try {
-      setLoading(true);
-
-      // create class
-      const res = await fetch("/api/class", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ class: createName }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        toast.error(errorData.error || "Fehler beim Erstellen der Klasse");
-        return;
-      }
-
-      const data = await res.json();
-      const class_id = data?.class_id;
-
-      if (!class_id) {
-        console.error("Kein class_id in Antwort:", data);
-        toast.error("Unerwartete Serverantwort beim Erstellen der Klasse");
-        return;
-      }
-
-      // owner membership now auto-created server-side
-
-      // Optimistisch in Liste einfügen und direkt auswählen
-      const newClasses = [
-        { class_id, class_title: createName.trim() },
-        ...classes,
-      ];
-      setClasses(newClasses);
-      setKlasse(class_id);
-      // Stats neu laden
-      if (user?.id) fetchStats(newClasses.map((c) => c.class_id));
+      const trimmed = createName.trim();
+      const result = await createClassMutation({ title: trimmed });
+      setKlasse(result.class_id);
       setCreateOpen(false);
       setCreateName("");
-      toast.success("Klasse erfolgreich erstellt und ausgewählt");
-    } catch (err) {
-      console.error("Fehler beim Erstellen der Klasse:", err);
-      toast.error("Netzwerkfehler beim Erstellen der Klasse");
+      toast.success("Klasse erfolgreich erstellt");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Fehler beim Erstellen der Klasse",
+      );
     } finally {
-      setLoading(false);
+      setCreateLoading(false);
     }
   };
 
@@ -236,7 +170,7 @@ export default function ManageClass() {
           <Button
             variant="outline"
             className="whitespace-nowrap"
-            onClick={() => router.push(withParams(ROUTE_KLASSEN_BEITRETEN))}
+            onClick={() => router.push(ROUTE_KLASSEN_BEITRETEN)}
           >
             Klasse beitreten
           </Button>
@@ -451,34 +385,35 @@ export default function ManageClass() {
               className="cursor-pointer"
               disabled={leaveLoading || !pendingLeaveClass}
               onClick={async () => {
-                if (!user?.id || !pendingLeaveClass) return;
+                if (!pendingLeaveClass || !meQuery?.id) return;
                 setLeaveLoading(true);
                 try {
-                  const params = new URLSearchParams({
-                    class_id: pendingLeaveClass.class_id,
-                    target_user_id: user.id,
+                  const result = await removeOrLeaveMutation({
+                    classId: pendingLeaveClass.class_id as Id<"classes">,
+                    targetUserId: meQuery.id as Id<"users">,
                   });
-                  const res = await fetch(
-                    `/api/class/member?${params.toString()}`,
-                    { method: "DELETE" },
-                  );
-                  const data = await res.json().catch(() => ({}));
-                  if (!res.ok) {
-                    toast.error(
-                      data.error ||
-                        `Fehler beim Verlassen (Status: ${res.status})`,
-                    );
-                    return;
+                  if (currentClassId === pendingLeaveClass.class_id) {
+                    setKlasse(null);
                   }
-                  toast.success(
-                    `Klasse "${pendingLeaveClass.class_title}" erfolgreich verlassen`,
-                  );
+                  if (result?.deletedClass) {
+                    toast.success(
+                      `Klasse "${pendingLeaveClass.class_title}" gelöscht`,
+                    );
+                  } else {
+                    toast.success(
+                      `Klasse "${pendingLeaveClass.class_title}" verlassen`,
+                    );
+                  }
                   setLeaveOpen(false);
                   setPendingLeaveClass(null);
-                  if (user?.id) fetchClasses();
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Netzwerkfehler beim Verlassen der Klasse");
+                  // live query will update list
+                } catch (e) {
+                  console.error(e);
+                  toast.error(
+                    e instanceof Error
+                      ? e.message
+                      : "Fehler beim Verlassen der Klasse",
+                  );
                 } finally {
                   setLeaveLoading(false);
                 }

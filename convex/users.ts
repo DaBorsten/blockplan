@@ -1,4 +1,5 @@
-import { mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
@@ -43,5 +44,24 @@ export const initUser = mutation({
       tokenIdentifier,
       created: false,
     };
+  },
+});
+
+// Query: current user profile (id + nickname) or null if not initialized
+export const me = query({
+  args: {} as const,
+  handler: async (
+    ctx,
+  ): Promise<{ id: Id<"users">; nickname: string } | null> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const tokenIdentifier = identity.tokenIdentifier;
+    if (!tokenIdentifier) return null;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
+      .unique();
+    if (!user) return null;
+    return { id: user._id, nickname: user.nickname };
   },
 });

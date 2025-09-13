@@ -29,6 +29,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
+import { useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "@/../convex/_generated/dataModel";
 
 type FileItem = {
   id: string;
@@ -60,6 +63,7 @@ export default function Import() {
 
   const { classId } = useClassStore();
   const needsClass = !classId;
+  const importWeek = useMutation(api.notes.importWeekWithTimetable);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -234,23 +238,32 @@ export default function Import() {
           const response = await uploadFile(file);
 
           if (response) {
-            const weekRes = await fetch("/api/week", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+            try {
+              if (!classId) {
+                throw new Error("Keine Klasse ausgewählt");
+              }
+              // Convex Mutation Aufruf
+              await importWeek({
+                classId: classId as Id<"classes">,
+                title: displayName,
                 timetable: response,
-                week: displayName,
-                class_id: classId,
-              }),
-            });
-
-            if (!weekRes.ok) {
-              const errorData = await weekRes.json().catch(() => ({}));
-              const msg = errorData.error || `Week-Import fehlgeschlagen`;
-              failedFiles.push({ name: displayName, error: msg });
-            } else {
-              // Import erfolgreich - Datei-ID für Entfernung merken
+              });
               successfulFileIds.push(id);
+            } catch (e) {
+              let errMsg = "Unbekannter Fehler";
+              if (e instanceof Error) {
+                // Convex-spezifische Fehler könnten mehr Details enthalten
+                errMsg = e.message;
+                // Optional: Prüfen auf spezifische Fehlercodes oder -typen
+                if (e.message.includes("unauthorized")) {
+                  errMsg = "Keine Berechtigung für diese Aktion";
+                } else if (e.message.includes("invalid")) {
+                  errMsg = "Ungültige Daten im Stundenplan";
+                }
+              } else {
+                errMsg = String(e);
+              }
+              failedFiles.push({ name: displayName, error: errMsg });
             }
           }
         } catch (error: unknown) {
@@ -327,7 +340,7 @@ export default function Import() {
       // Fortschritt zurücksetzen
       setProgress({ current: 0, total: 0 });
     }
-  }, [isImporting, loading, needsClass, files, classId]);
+  }, [isImporting, loading, needsClass, files, classId, importWeek]);
 
   return (
     <div className="flex flex-col h-full px-4 md:px-6 pb-4 md:pb-6">

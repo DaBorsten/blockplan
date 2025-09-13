@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ import {
 import {
   Check,
   X,
-  RefreshCw,
   Trash2,
   Copy as CopyIcon,
   Crown,
@@ -34,6 +33,9 @@ import {
   Users,
 } from "lucide-react";
 import { TeacherColorsManager } from "@/components/TeacherColorsManager";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "@/../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/shadcn-io/spinner";
 
@@ -43,13 +45,34 @@ type Member = {
   nickname?: string | null;
 };
 
+type Invitation = {
+  id: string;
+  code: string;
+  expiration_date: string;
+  active: boolean;
+  user_id: string;
+  class_id: string;
+  can_delete?: boolean;
+};
+
 export default function ClassMembersPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useUser();
-  const [members, setMembers] = useState<Member[]>([]);
-  const [currentRole, setCurrentRole] = useState<Member["role"] | null>(null);
-  const [membersLoading, setMembersLoading] = useState(true);
+  const classIdQuery = id || null;
+
+  // Always invoke hooks to preserve order; pass a placeholder that will fail only if used.
+  const membersData = useQuery(
+    api.classes.listMembers,
+    classIdQuery ? { classId: classIdQuery as Id<"classes"> } : "skip",
+  );
+  const classMeta = useQuery(
+    api.classes.getClass,
+    classIdQuery ? { classId: classIdQuery as Id<"classes"> } : "skip",
+  );
+  const members = membersData?.members || [];
+  const currentRole = membersData?.currentRole || null;
+  const membersLoading = membersData === undefined;
   const [classTitle, setClassTitle] = useState<string>("");
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState("");
@@ -57,131 +80,60 @@ export default function ClassMembersPage() {
   type ExpiryPreset = "30m" | "1h" | "6h" | "12h" | "1d" | "7d" | "never";
   const [expiryPreset, setExpiryPreset] = useState<ExpiryPreset>("never");
   const [inviteLoading, setInviteLoading] = useState(false);
-  const [invites, setInvites] = useState<
-    Array<{ id: string; expiration_date: string; active: boolean }>
-  >([]);
-  // Refresh spinner control: ensure at least one full rotation and stop at cycle boundary
-  const [invitesSpinning, setInvitesSpinning] = useState(false);
-  const [invitesFetching, setInvitesFetching] = useState(false);
-  const [spinStartTs, setSpinStartTs] = useState<number | null>(null);
-  // Weeks management state
-  type Week = { week_id: string; week_title: string };
-  const [weeks, setWeeks] = useState<Week[]>([]);
-  const [weeksLoading, setWeeksLoading] = useState(false);
+  // Invitations state now powered by Convex live query
+  const invites = useQuery(
+    api.invitations.listInvitations,
+    classIdQuery ? { classId: classIdQuery as Id<"classes"> } : "skip",
+  );
+  const createInvitation = useMutation(api.invitations.createInvitation);
+  const deleteInvitation = useMutation(api.invitations.deleteInvitation);
+  // Weeks (Convex live)
+  type Week = { _id: string; title: string };
+  const weeksRaw = useQuery(
+    api.weeks.listWeeks,
+    classIdQuery ? { classId: classIdQuery as Id<"classes"> } : "skip",
+  );
+  const weeksLoading = weeksRaw === undefined && !!classIdQuery;
+  const weeks: Week[] = useMemo(() => weeksRaw || [], [weeksRaw]);
   const [weekEditId, setWeekEditId] = useState<string | null>(null);
   const [weekEditName, setWeekEditName] = useState("");
   const [weekEditOpen, setWeekEditOpen] = useState(false);
-  const [weeksFetched, setWeeksFetched] = useState(false);
 
   const NEVER_EXPIRES_DATE = "9999-12-31T23:59:59.000Z";
 
-  const loadMembers = async () => {
-    if (!id) return;
-    setMembersLoading(true);
-    try {
-      const res = await fetch(
-        `/api/class/member?class_id=${encodeURIComponent(id)}`,
-      );
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data?.error || "Fehler beim Laden der Mitglieder");
-        return;
-      }
-      setMembers(data.members || []);
-      setCurrentRole(data.currentRole || null);
-    } finally {
-      setMembersLoading(false);
-    }
-  };
-
+  // Sync class title from live query
   useEffect(() => {
-    loadMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, user?.id]);
+    if (classMeta?.title) setClassTitle(classMeta.title);
+  }, [classMeta?.title]);
 
-  useEffect(() => {
-    const getTitle = async () => {
-      if (!id) return;
-      try {
-        const res = await fetch(`/api/class?id=${encodeURIComponent(id)}`);
-        const data = await res.json();
-        if (res.ok && data?.data)
-          setClassTitle((data.data.title as string) || "");
-      } catch {
-        /* ignore */
-      }
-    };
-    getTitle();
-  }, [id]);
+  const renameClass = useMutation(api.classes.renameClass);
+  const deleteClass = useMutation(api.classes.deleteClass);
+  const updateMemberRole = useMutation(api.classes.updateMemberRole);
+  const removeOrLeaveMutation = useMutation(api.classes.removeOrLeave);
 
-  // Load invites when dialog opens
-  useEffect(() => {
-    if (inviteOpen) {
-      fetchInvites();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inviteOpen]);
-
-  const fetchInvites = async () => {
-    if (!id) return;
-    if (invitesFetching) return; // avoid overlapping fetches
-    setInvitesFetching(true);
-    if (!invitesSpinning) {
-      setInvitesSpinning(true);
-      setSpinStartTs(performance.now());
-    }
-    try {
-      const res = await fetch(
-        `/api/class/invitation?class_id=${encodeURIComponent(id as string)}`,
-      );
-      if (!res.ok) return;
-      const data = await res.json();
-      setInvites(data.data || []);
-    } finally {
-      // compute remaining time to finish current spin cycle and ensure min 1s total
-      const cycleMs = 1000; // matches Tailwind animate-spin default
-      const started = spinStartTs ?? performance.now();
-      const elapsed = performance.now() - started;
-      const ensureMin = Math.max(cycleMs - elapsed, 0);
-      const toCycleEnd = (cycleMs - (elapsed % cycleMs)) % cycleMs;
-      const delay = Math.max(ensureMin, toCycleEnd);
-      window.setTimeout(() => {
-        setInvitesSpinning(false);
-        setSpinStartTs(null);
-        setInvitesFetching(false);
-      }, Math.ceil(delay));
-    }
-  };
+  // Invites spinner mimic: show spinner until first query result
+  const invitesLoading = inviteOpen && invites === undefined;
 
   const handleEditSave = async () => {
-    if (!id) return;
-    const res = await fetch("/api/class/className", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ classID: id, newClassName: editName }),
-    });
-    if (res.ok) {
+    if (!classIdQuery) return;
+    try {
+      await renameClass({
+        classId: classIdQuery as Id<"classes">,
+        newTitle: editName,
+      });
       setEditOpen(false);
       setClassTitle(editName);
       toast.success("Klasse erfolgreich umbenannt");
-    } else {
-      const data = await res.json();
-      toast.error(data?.error || "Fehler beim Umbenennen");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Fehler beim Umbenennen");
     }
   };
 
   const handleCreateInvite = async () => {
-    if (!id) return;
+    if (!classIdQuery) return;
     try {
       setInviteLoading(true);
-      const body: {
-        class_id: string;
-        expires: boolean;
-        expiration_date?: string;
-      } = {
-        class_id: id as string,
-        expires: expiryPreset !== "never",
-      };
+      let expirationISO: string | undefined;
       if (expiryPreset !== "never") {
         const now = Date.now();
         const addMs: Record<Exclude<ExpiryPreset, "never">, number> = {
@@ -192,28 +144,31 @@ export default function ClassMembersPage() {
           "1d": 24 * 60 * 60 * 1000,
           "7d": 7 * 24 * 60 * 60 * 1000,
         };
-        body.expiration_date = new Date(
+        expirationISO = new Date(
           now + addMs[expiryPreset as Exclude<ExpiryPreset, "never">],
         ).toISOString();
       }
-      const res = await fetch("/api/class/invitation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      await createInvitation({
+        classId: classIdQuery as Id<"classes">,
+        expires: expiryPreset !== "never",
+        expirationISO,
       });
-      if (res.ok) fetchInvites();
+      toast.success("Einladung erstellt");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Fehler beim Erstellen");
     } finally {
       setInviteLoading(false);
     }
   };
 
   const handleDeleteInvite = async (inviteId: string) => {
-    if (!user?.id) return;
-    const res = await fetch(
-      `/api/class/invitation?id=${encodeURIComponent(inviteId)}`,
-      { method: "DELETE" },
-    );
-    if (res.ok) fetchInvites();
+    if (!classIdQuery) return;
+    try {
+      await deleteInvitation({ invitationId: inviteId as Id<"invitations"> });
+      toast.success("Einladung gelöscht");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Fehler beim Löschen");
+    }
   };
 
   const copyInviteLink = async (code: string) => {
@@ -256,101 +211,55 @@ export default function ClassMembersPage() {
   };
 
   const removeOrLeave = async (target: Member) => {
-    if (!id || !user?.id) return;
-    const res = await fetch(
-      `/api/class/member?class_id=${encodeURIComponent(
-        id,
-      )}&target_user_id=${encodeURIComponent(target.user_id)}`,
-      { method: "DELETE" },
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      toast.error(data?.error || "Aktion fehlgeschlagen");
-      return;
+    if (!classIdQuery) return;
+    try {
+      const res = await removeOrLeaveMutation({
+        classId: classIdQuery as Id<"classes">,
+        targetUserId: target.user_id as Id<"users">,
+      });
+      if (user?.id === target.user_id) {
+        if (res?.deletedClass) {
+          toast.success("Klasse gelöscht");
+          router.replace("/klassen");
+        } else {
+          router.replace("/");
+        }
+        return;
+      }
+      toast.success("Aktion erfolgreich");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Aktion fehlgeschlagen");
     }
-    if (target.user_id === user.id) {
-      router.replace("/");
-      return;
-    }
-    loadMembers();
   };
 
   const changeRole = async (target: Member, role: "admin" | "member") => {
-    if (!id || !user?.id) return;
-    const res = await fetch(`/api/class/member`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        class_id: id,
-        target_user_id: target.user_id,
+    if (!classIdQuery) return;
+    try {
+      await updateMemberRole({
+        classId: classIdQuery as Id<"classes">,
+        targetUserId: target.user_id as unknown as Id<"users">,
         role,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      toast.error(data?.error || "Rollenänderung fehlgeschlagen");
-      return;
-    } else {
+      });
       toast.success("Rolle erfolgreich geändert");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Rollenänderung fehlgeschlagen",
+      );
     }
-    loadMembers();
   };
 
-  const canPromote = (target: Member) => {
-    if (!currentRole) return false;
-    if (target.role !== "member") return false;
-    return currentRole === "owner" || currentRole === "admin";
-  };
-  const canDemote = (target: Member) => {
-    if (!currentRole) return false;
-    if (target.role !== "admin") return false;
-    return currentRole === "owner";
-  };
+  // promote/demote helpers replaced by unified dropdown logic
 
   const [activeTab, setActiveTab] = useState<
     "wochen" | "mitglieder" | "farben"
   >("mitglieder");
 
-  // Weeks fetch (requires class id + user id similar to manage page logic which used search param 'class')
-  const fetchWeeks = useCallback(async () => {
-    if (!id) {
-      setWeeks([]);
-      setWeeksFetched(false);
-      return;
-    }
-    setWeeksLoading(true);
-    try {
-      const params = new URLSearchParams({
-        class_id: id as string,
-      });
-      const res = await fetch(`/api/week/weeks?${params.toString()}`);
-      const data = await res.json();
-      setWeeks((data.data as Week[]) || []);
-      setWeeksFetched(true);
-    } finally {
-      setWeeksLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (activeTab === "wochen" && !weeksFetched && !weeksLoading) fetchWeeks();
-  }, [activeTab, fetchWeeks, weeksFetched, weeksLoading]);
-
-  // Preload weeks once user & class id available so count is accurate before switching tab
-  useEffect(() => {
-    if (id && !weeksFetched && !weeksLoading) fetchWeeks();
-  }, [id, fetchWeeks, weeksFetched, weeksLoading]);
-
-  // Reset weeks state when class changes
-  useEffect(() => {
-    setWeeks([]);
-    setWeeksFetched(false);
-  }, [id]);
+  // (Removed manual fetch logic – Convex liefert Live-Daten)
 
   const groupedWeeks = useMemo(() => {
     const map: Record<string, Week[]> = {};
     for (const w of weeks) {
-      const title = w.week_title || "";
+      const title = w.title || "";
       const idx = title.lastIndexOf("_");
       const key = idx > 0 ? title.slice(0, idx) : title;
       (map[key] ||= []).push(w);
@@ -381,8 +290,8 @@ export default function ClassMembersPage() {
     });
     for (const [, items] of sections) {
       items.sort((x, y) => {
-        const mx = x.week_title.match(/_(\d+)$/);
-        const my = y.week_title.match(/_(\d+)$/);
+        const mx = x.title.match(/_(\d+)$/);
+        const my = y.title.match(/_(\d+)$/);
         const nx = mx ? parseInt(mx[1], 10) : -Infinity;
         const ny = my ? parseInt(my[1], 10) : -Infinity;
         return ny - nx;
@@ -424,36 +333,35 @@ export default function ClassMembersPage() {
     setWeekEditOpen(true);
   };
 
+  const renameWeekMutation = useMutation(api.weeks.renameWeek);
+  const deleteWeekMutation = useMutation(api.weeks.deleteWeek);
+
   const saveWeekEdit = async () => {
     if (!weekEditId) return;
-    const res = await fetch("/api/week/weekName", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ weekID: weekEditId, newWeekName: weekEditName }),
-    });
-
-    if (res.ok) {
+    try {
+      await renameWeekMutation({
+        weekId: weekEditId as Id<"weeks">,
+        newTitle: weekEditName,
+      });
       setWeekEditOpen(false);
       setWeekEditId(null);
       setWeekEditName("");
       toast.success("Woche erfolgreich umbenannt");
-      fetchWeeks();
-    } else {
-      const data = await res.json();
-      toast.error(data?.error || "Fehler beim Umbenennen der Woche");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Fehler beim Umbenennen der Woche",
+      );
     }
   };
 
   const deleteWeek = async (wid: string) => {
-    const res = await fetch(`/api/timetable/week?weekId=${wid}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
+    try {
+      await deleteWeekMutation({ weekId: wid as Id<"weeks"> });
       toast.success("Woche erfolgreich gelöscht");
-      fetchWeeks();
-    } else {
-      const data = await res.json();
-      toast.error(data?.error || "Fehler beim Löschen der Woche");
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Fehler beim Löschen der Woche",
+      );
     }
   };
 
@@ -473,7 +381,7 @@ export default function ClassMembersPage() {
                 {classTitle || ""}
               </span>
             </h1>
-            {currentRole === "owner" && (
+            {(currentRole === "owner" || currentRole === "admin") && (
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -502,7 +410,9 @@ export default function ClassMembersPage() {
               </div>
             )}
           </div>
-          {(currentRole === "owner" || currentRole === "admin") && (
+          {(currentRole === "owner" ||
+            currentRole === "admin" ||
+            currentRole === "member") && (
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => setInviteOpen(true)}
@@ -512,38 +422,43 @@ export default function ClassMembersPage() {
                 <Users className="w-4 h-4" />
                 <span className="hidden md:inline">Einladungen</span>
               </Button>
-              <Button
-                variant="destructive"
-                size="default"
-                className="shrink-0"
-                onClick={() => setDeleteOpen(true)}
-                aria-label="Klasse löschen"
-                title="Klasse löschen"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden md:inline">Löschen</span>
-              </Button>
+              {currentRole === "owner" && (
+                <Button
+                  variant="destructive"
+                  size="default"
+                  className="shrink-0"
+                  onClick={() => setDeleteOpen(true)}
+                  aria-label="Klasse löschen"
+                  title="Klasse löschen"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span className="hidden md:inline">Löschen</span>
+                </Button>
+              )}
             </div>
           )}
         </div>
         <div className="flex gap-2 p-1 -m-1 overflow-x-auto">
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-              className="w-full"
-            >
-              <TabsList className="overflow-x-auto flex max-w-full">
-                <TabsTrigger value="mitglieder" className="flex items-center gap-1">
-                  Mitglieder{membersLoading ? "" : ` (${members.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="wochen" className="flex items-center gap-1">
-                  Wochen{weeksLoading ? "" : ` (${weeks.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="farben" className="flex items-center gap-1">
-                  Farben <Palette className="w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+            className="w-full"
+          >
+            <TabsList className="overflow-x-auto flex max-w-full">
+              <TabsTrigger
+                value="mitglieder"
+                className="flex items-center gap-1"
+              >
+                Mitglieder{membersLoading ? "" : ` (${members.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="wochen" className="flex items-center gap-1">
+                Wochen{weeksLoading ? "" : ` (${weeks.length})`}
+              </TabsTrigger>
+              <TabsTrigger value="farben" className="flex items-center gap-1">
+                Farben <Palette className="w-4 h-4" />
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto space-y-6 p-4 md:p-6">
@@ -555,7 +470,7 @@ export default function ClassMembersPage() {
               </div>
             ) : (
               <ul className="divide-y rounded-md border">
-                {members.map((m) => (
+                {members.map((m: Member) => (
                   <li
                     key={m.user_id}
                     className="flex items-center justify-between p-3"
@@ -591,28 +506,28 @@ export default function ClassMembersPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {canPromote(m) && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => changeRole(m, "admin")}
+                      {/* Role selection dropdown */}
+                      {currentRole === "owner" && m.role !== "owner" && (
+                        <Select
+                          value={m.role === "admin" ? "admin" : "member"}
+                          onValueChange={(val) => {
+                            if (val === m.role) return;
+                            changeRole(m, val as "admin" | "member");
+                          }}
                         >
-                          Zu Admin machen
-                        </Button>
-                      )}
-                      {canDemote(m) && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => changeRole(m, "member")}
-                        >
-                          Zu Mitglied machen
-                        </Button>
+                          <SelectTrigger className="h-8 w-[140px] text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="member">Mitglied</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
                       )}
                       {canRemove(m) && (
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="destructive"
+                          size="default"
                           onClick={() => openConfirm(m)}
                         >
                           {user?.id === m.user_id
@@ -647,7 +562,7 @@ export default function ClassMembersPage() {
                     </h3>
                     <ul className="grid gap-3">
                       {items.map((week) => (
-                        <li key={week.week_id} className="block">
+                        <li key={week._id} className="block">
                           <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div
@@ -655,24 +570,22 @@ export default function ClassMembersPage() {
                                 aria-hidden
                               >
                                 <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border">
-                                  {week.week_title
-                                    ? week.week_title.split(" ")[0]
-                                    : "W"}
+                                  {week.title ? week.title.split(" ")[0] : "W"}
                                 </div>
                               </div>
                               <div className="min-w-0">
                                 <div
                                   className="text-sm font-medium truncate"
-                                  title={week.week_title}
+                                  title={week.title}
                                 >
-                                  {week.week_title}
+                                  {week.title}
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Button
                                 onClick={() =>
-                                  handleWeekEdit(week.week_id, week.week_title)
+                                  handleWeekEdit(week._id, week.title)
                                 }
                                 size="sm"
                                 className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
@@ -779,7 +692,7 @@ export default function ClassMembersPage() {
             <DialogDescription>
               Diese Aktion löscht die Woche{" "}
               <span className="font-medium">
-                „{pendingWeek?.week_title || "(ohne Titel)"}“
+                „{pendingWeek?.title || "(ohne Titel)"}“
               </span>{" "}
               dauerhaft. Fortfahren?
             </DialogDescription>
@@ -804,7 +717,7 @@ export default function ClassMembersPage() {
                 if (!pendingWeek) return;
                 try {
                   setWeekDeleteLoading(true);
-                  await deleteWeek(pendingWeek.week_id);
+                  await deleteWeek(pendingWeek._id);
                   setWeekDeleteOpen(false);
                   setPendingWeek(null);
                 } finally {
@@ -820,7 +733,7 @@ export default function ClassMembersPage() {
       </Dialog>
 
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[70vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Einladungslinks verwalten</DialogTitle>
             <DialogDescription>
@@ -828,25 +741,28 @@ export default function ClassMembersPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-3">
-            <div className="flex items-center gap-2">
-              <Select
-                value={expiryPreset}
-                onValueChange={(v: ExpiryPreset) => setExpiryPreset(v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Ablauf" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="30m">30 Minuten</SelectItem>
-                  <SelectItem value="1h">1 Stunde</SelectItem>
-                  <SelectItem value="6h">6 Stunden</SelectItem>
-                  <SelectItem value="12h">12 Stunden</SelectItem>
-                  <SelectItem value="1d">1 Tag</SelectItem>
-                  <SelectItem value="7d">7 Tage</SelectItem>
-                  <SelectItem value="never">Nie</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="flex flex-col gap-3 flex-1 min-h-0">
+            <div className="flex flex-row gap-2 flex-1 min-w-0 items-end w-full">
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                <p className="font-medium">Ablaufzeit</p>
+                <Select
+                  value={expiryPreset}
+                  onValueChange={(v: ExpiryPreset) => setExpiryPreset(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ablauf" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30m">30 Minuten</SelectItem>
+                    <SelectItem value="1h">1 Stunde</SelectItem>
+                    <SelectItem value="6h">6 Stunden</SelectItem>
+                    <SelectItem value="12h">12 Stunden</SelectItem>
+                    <SelectItem value="1d">1 Tag</SelectItem>
+                    <SelectItem value="7d">7 Tage</SelectItem>
+                    <SelectItem value="never">Nie</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 onClick={handleCreateInvite}
                 disabled={inviteLoading}
@@ -856,59 +772,75 @@ export default function ClassMembersPage() {
                 <Check className="w-4 h-4" />
                 Erstellen
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchInvites}
-                disabled={invitesSpinning || invitesFetching}
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${invitesSpinning ? "animate-spin" : ""}`}
-                />{" "}
-                Aktualisieren
-              </Button>
             </div>
-
-            <div className="border rounded-md divide-y">
-              {invites.length > 0 ? (
-                invites.map((inv) => (
-                  <div
-                    key={inv.id}
-                    className="px-3 py-2 flex items-center justify-between text-sm"
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-mono text-xs break-all">
-                        {inv.id}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {inv.expiration_date === NEVER_EXPIRES_DATE
-                          ? "Kein Ablauf"
-                          : new Date(inv.expiration_date).toLocaleString()}
-                      </span>
+            <div className="border rounded-md divide-y flex-1 overflow-y-auto min-h-0">
+              {invitesLoading ? (
+                <div className="px-3 py-4 flex justify-center">
+                  <Spinner />
+                </div>
+              ) : invites && invites.length > 0 ? (
+                invites.map((inv: Invitation) => {
+                  const isPermanent =
+                    inv.expiration_date === NEVER_EXPIRES_DATE;
+                  const expirationTs = isPermanent
+                    ? Infinity
+                    : new Date(inv.expiration_date).getTime();
+                  const now = Date.now();
+                  const expired = !isPermanent && expirationTs < now;
+                  const expText = isPermanent
+                    ? "Kein Ablauf"
+                    : new Date(inv.expiration_date).toLocaleString();
+                  const expColor = expired
+                    ? "text-amber-500"
+                    : "text-emerald-500"; // orange for expired, green for valid
+                  const ariaLabel = isPermanent
+                    ? "Einladung läuft nicht ab"
+                    : expired
+                      ? `Einladung abgelaufen am ${expText}`
+                      : `Einladung gültig bis ${expText}`;
+                  return (
+                    <div
+                      key={inv.id}
+                      className="px-3 py-2 flex items-center justify-between text-sm"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-mono text-xs break-all">
+                          {inv.code}
+                        </span>
+                        <span
+                          className={`${expColor} text-[12px]`}
+                          aria-label={ariaLabel}
+                        >
+                          {expText}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="cursor-pointer"
+                          onClick={() => copyInviteLink(inv.code)}
+                          title="Link kopieren"
+                          aria-label="Link kopieren"
+                        >
+                          <CopyIcon className="w-4 h-4" />
+                        </Button>
+                        {inv.can_delete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="cursor-pointer"
+                            onClick={() => handleDeleteInvite(inv.id)}
+                            title="Löschen"
+                            aria-label="Einladung löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="cursor-pointer"
-                        onClick={() => copyInviteLink(inv.id)}
-                        title="Link kopieren"
-                        aria-label="Link kopieren"
-                      >
-                        <CopyIcon className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="cursor-pointer"
-                        onClick={() => handleDeleteInvite(inv.id)}
-                        title="Löschen"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="px-3 py-2 text-sm text-muted-foreground">
                   Keine Einladungen vorhanden.
@@ -942,22 +874,15 @@ export default function ClassMembersPage() {
               size="sm"
               className="cursor-pointer"
               onClick={async () => {
-                if (!id || !user?.id) return;
+                if (!classIdQuery) return;
                 try {
-                  const params = new URLSearchParams({ id: id as string });
-                  const res = await fetch(`/api/class?${params.toString()}`, {
-                    method: "DELETE",
-                  });
-                  const data = await res.json().catch(() => ({}));
-                  if (!res.ok) {
-                    toast.error(data.error || "Löschen fehlgeschlagen");
-                    return;
-                  }
+                  await deleteClass({ classId: classIdQuery as Id<"classes"> });
                   toast.success("Klasse gelöscht");
                   router.replace("/klassen");
                 } catch (e) {
-                  console.error(e);
-                  toast.error("Netzwerkfehler beim Löschen");
+                  toast.error(
+                    e instanceof Error ? e.message : "Löschen fehlgeschlagen",
+                  );
                 }
               }}
             >
@@ -1014,8 +939,8 @@ export default function ClassMembersPage() {
               {confirmLoading
                 ? "Bitte warten…"
                 : user?.id === pendingTarget?.user_id
-                ? "Verlassen"
-                : "Entfernen"}
+                  ? "Verlassen"
+                  : "Entfernen"}
             </Button>
           </DialogFooter>
         </DialogContent>

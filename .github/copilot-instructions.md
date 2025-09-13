@@ -1,59 +1,92 @@
-# AI Assistant Project Instructions (blockplan)
-
-These instructions orient AI coding agents working in this repository. Focus on applying the concrete patterns below; avoid generic boilerplate.
+# Blockplan - AI Coding Agent Instructions
 
 ## Architecture Overview
-- Framework: Next.js App Router (React 19, `next@15.x`) with Clerk for auth and Turso (libSQL) as the database.
-- Data layer: Direct SQL via `@libsql/client` (`src/lib/tursoClient.ts`). Simple helper `mapRows` in `src/utils/db.ts` converts result sets.
-- Auth: Centralized helper in `src/lib/auth.ts` (`requireAuthUserId`, `getAuthUserId`). API routes (in `src/app/api/**`) call `requireAuthUserId` early.
-- State management: Multiple small Zustand stores in `src/store/*` (e.g. `useClassStore`, `useWeekStore`). Stores persist via `zustand/middleware/persist` with dedicated storage keys. Changing a class resets related week state.
-- UI: TailwindCSS (v4) + shadcn/radix primitives under `src/components/ui/*`. Custom higher-order components live in `src/components/` (e.g. `TeacherColorsManager`, `AppShell`).
-- Routing & protection: Global `src/middleware.ts` applies Clerk auth & CORS. Protected route patterns listed in `isProtectedRoute` must redirect unauthenticated users.
-- Timetable & weeks: Weeks grouped and sorted client-side in class view (`src/app/klassen/[id]/page.tsx`) using naming conventions (e.g. `10 KW12_2`). Deletion & rename use dedicated API endpoints.
 
-## Conventions & Patterns
-- API Route Layout: Each file in `src/app/api/.../route.ts` exports HTTP verb functions (GET/POST/etc). Always validate inputs & auth near the top. Return `NextResponse.json` with minimal shape `{ data }` or `{ error }`.
-- Auth Errors: Throwing in `requireAuthUserId` should map to 401. Other permission failures return 403 with a concise error string.
-- Invitation Logic: In `api/class/invitation/route.ts` owners create/delete; owners or admins (helper `ensureOwnerOrAdmin`) can list invites. Reuse that pattern for similar role expansions.
-- Role Checks: Fetch role from `user_class` table once; prefer small helper functions rather than inlining the same query.
-- UI Dialogs: Use `Dialog`, `DialogContent`, `DialogHeader`, `DialogFooter` pattern. Avoid `window.confirm`; custom dialogs already exist (see week deletion, member removal).
-- Toasts: Use `toast.success|error|info` (sonner). Provide German user-facing messages; keep them short.
-- State Reset on Context Switch: When changing `classId`, immediately clear dependent week state (`useWeekStore`). Follow this cascading reset approach for any new dependent stores.
-- Sorting Weeks: Client grouping logic extracts grade and KW numbers; maintain parity if adding new derived sorting (extend extractionMap rather than rewriting logic).
-- Styling: Prefer Tailwind utility classes. Accent highlight: `bg-primary/10 text-primary rounded-md px-2 py-0.5` (see highlighted class title).
-- Persistence Keys: Use short, kebab/flat names (`class-storage`, `week-storage`). Increment `version` when shape changes and add migration if needed.
+**Stack**: Next.js 15 (App Router) + Convex (realtime backend) + Clerk (auth) + TailwindCSS + shadcn/ui
 
-## Workflows
-- Dev server (DB + Next): `bun dev` (delegates to `turso dev` + `next dev --turbopack`). Keep that combined pattern when adjusting scripts.
-- Lint: `bun run lint` (ESLint 9 + Next config). Fix only the touched code region; do not mass-format unrelated areas.
-- Build: `bun run build` should remain clean; avoid adding Node APIs unsupported by Edge unless `export const runtime = "nodejs"` is present (as in invitation route).
-- Database: Uses a local SQLite replica file `blockplan.db` during development spun up by Turso. Keep schema-altering SQL in dedicated migration scripts (none present yet—add under `db/migrations/` if introducing).
+**Data Flow**: 
+- Frontend → Convex queries/mutations (live reactive)
+- Authentication: Clerk sessions → Convex auth integration
+- State: Zustand stores (`useClassStore`, `useWeekStore`, `useGroupStore`) with persistence
+- Migration in progress: Legacy Turso/libSQL API routes → pure Convex backend
 
-## Adding / Modifying API Endpoints
-- Always import and call `requireAuthUserId` early.
-- Validate required query/body params explicitly; return `400` if missing.
-- Authorization: centralize role logic in a helper; don't scatter raw role comparisons.
-- Output: Keep stable field names; clients expect `data` arrays or objects, not nested envelopes.
+## Key Components & Patterns
 
-## Frontend Interaction Patterns
-- Lists with dynamic fetch: Maintain loading + revalidation flags (e.g. `invitesSpinning`, `invitesFetching`) to prevent overlapping requests.
-- Optimistic updates: Only apply when trivial; otherwise refetch via existing `fetch*` method (weeks, invites, members pattern).
-- Accessibility: Buttons use `aria-label` when icon-only. Mirror existing patterns.
-- Sticky Headers: Class page uses a `sticky top-0 backdrop-blur` header; match that style for other long-scroll panes.
+### Authentication & Routing
+- **Middleware**: `src/middleware.ts` protects routes, redirects unauthenticated to `/login`
+- **Layout Split**: `SignedInWrapper` (sidebar app) vs `PublicPageWrapper` (marketing pages)
+- **User Flow**: Clerk signup → `/willkommen` (nickname setup) → main app
+- **Guards**: `NicknameGuard` ensures Convex user exists before accessing protected routes
 
-## When Extending Features
-- Reuse existing role checks & dialog UI.
-- Follow German localization for user-visible text.
-- Keep server messages concise; no stack traces to the client.
-- Add new shared utilities under `src/utils` or `src/lib` (lib = integration clients, utils = pure helpers).
+### Data Layer (Convex)
+- **Schema**: `convex/schema.ts` - users, classes, user_classes (roles), weeks, timetables, invitations, etc.
+- **Auth Pattern**: `getCurrentUser(ctx)` helper for mutations, queries use `ctx.auth.getUserIdentity()`
+- **Permissions**: Role-based (owner/admin/member) with membership checks in mutations
+- **Live Queries**: Frontend uses `useQuery(api.X.Y, args)` for reactive data
 
-## Examples
-- Auth pattern: `const userId = requireAuthUserId(req);`
-- Role gate: `const auth = await ensureOwnerOrAdmin(userId, class_id); if(!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });`
-- Dialog structure: See week delete confirmation in `src/app/klassen/[id]/page.tsx`.
+### State Management
+- **Class Selection**: `useClassStore` persists current class, triggers week store reset on change
+- **URL State**: Migrated away from query params to Zustand stores with localStorage persistence
+- **Component Sync**: `ClassRouteSync` component handles route-based class ID synchronization
 
-## Do / Avoid
-- Do: Keep changes minimal & scoped; reuse helpers.
-- Avoid: Introducing new state containers if an existing store can extend; duplicating role SQL; raw `window.confirm`.
+### Legacy API (Being Removed)
+- **Pattern**: `src/app/api/**` REST routes with `requireAuthUserId(req)` auth helper
+- **Database**: Direct libSQL/Turso queries with `turso.execute()`
+- **Migration Status**: Most functionality moved to Convex, API routes marked for deletion
 
-Provide diffs only for touched files and preserve unrelated code.
+## Development Workflows
+
+### Local Development
+```bash
+bun run dev          # Next.js only
+bun run convex       # Convex backend (separate terminal)
+```
+
+### Key File Patterns
+- **Pages**: `src/app/*/page.tsx` - client components with `"use client"`
+- **Components**: `src/components/` - reusable UI, often with `"use client"`
+- **Convex**: `convex/*.ts` - queries/mutations with proper auth patterns
+- **Stores**: `src/store/use*Store.ts` - Zustand with persistence middleware
+
+### Styling
+- **TailwindCSS**: Utility-first, custom theme in `tailwind.config.ts`
+- **shadcn/ui**: Component library in `src/components/ui/`
+- **Theming**: Dark/light mode with `next-themes`, Clerk theming integration
+
+## Critical Patterns
+
+### Convex Auth Integration
+```typescript
+// In mutations/queries
+const user = await getCurrentUser(ctx); // throws if unauthenticated
+// In React
+const me = useQuery(api.users.me, {});
+```
+
+### Permission Checks
+```typescript
+// Convex mutations check membership + role
+const membership = await ctx.db.query("user_classes")
+  .withIndex("by_user_class", q => q.eq("user_id", user._id).eq("class_id", classId))
+  .unique();
+if (!membership || membership.role !== "owner") throw new Error("FORBIDDEN");
+```
+
+### State Store Updates
+```typescript
+// Class change triggers week reset
+setClass: (id) => {
+  if (currentClassId !== id) {
+    set({ classId: id });
+    useWeekStore.getState().clearWeek(); // cross-store communication
+  }
+}
+```
+
+### Component Architecture
+- **Layout**: `AppShell` → `SignedInWrapper` → sidebar + main content
+- **Guards**: `NicknameGuard`, `ClassRouteSync` as layout-level components
+- **Modals**: `Dialog` from shadcn/ui, state managed in parent components
+
+## Migration Context
+Currently removing legacy Turso/libSQL infrastructure in favor of pure Convex. When working on data-related features, prefer Convex patterns over API routes. Check `convex/` folder first for existing queries/mutations before creating new ones.

@@ -3,17 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 // Dialog removed in favor of info card
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { toast } from "sonner";
-import { GraduationCap, Users } from "lucide-react";
+import { Crown, GraduationCap, Users } from "lucide-react";
 import {
   InputOTP,
   InputOTPGroup,
@@ -22,101 +18,102 @@ import {
 import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 import { useClassStore } from "@/store/useClassStore";
+import { Id } from "../../../../convex/_generated/dataModel";
 
 export default function ClassJoinPage() {
   const [code, setCode] = useState("");
   const [classInfo, setClassInfo] = useState<{
-    class_id: string;
+    class_id: Id<"classes"> | null;
     class_title: string;
   } | null>(null);
   const [classMeta, setClassMeta] = useState<{
     ownerNickname: string | null;
     memberCount: number;
   } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [alreadyMember, setAlreadyMember] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Separate state: checking = verifying invitation code, accepting = joining class
+  const [checking, setChecking] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const { user } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const prefillHandled = useRef(false);
 
   const { setClass } = useClassStore();
 
+  const acceptMutation = useMutation(api.invitations.acceptInvitation);
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+  const lastProcessedCode = useRef<string | null>(null);
+  const checked = useQuery(
+    api.invitations.checkInvitation,
+    pendingCode ? { code: pendingCode } : { code: "__NO_CODE__" },
+  );
+
   const checkCode = useCallback(
-    async (override?: string) => {
+    (override?: string) => {
       const codeToUse = (override ?? code).trim();
-      if (!codeToUse) return;
+      if (codeToUse.length !== 6) return;
+      setErrorMessage(null);
+      setAlreadyMember(false);
+      setChecking(true);
+      setClassInfo(null);
+      setClassMeta(null);
+      // allow re-processing same code by resetting last processed marker
+      lastProcessedCode.current = null;
+      setPendingCode(codeToUse);
+    },
+    [code],
+  );
+
+  // Helper to sync code into URL (?code=XXXXXX); replaces history to avoid stack spam
+  const updateCodeParam = useCallback(
+    (value: string) => {
       try {
-        setLoading(true);
-        const res = await fetch(
-          `/api/class/invitation/check?code=${encodeURIComponent(codeToUse)}`,
-        );
-        if (!res.ok) {
-          setClassInfo(null);
-          setClassMeta(null);
-          if (res.status === 404) {
-            toast.error("Ungültiger Code");
-          } else if (res.status === 401) {
-            toast.error("Nicht autorisiert");
-          } else {
-            toast.error("Fehler beim Überprüfen des Codes");
-          }
-          return;
-        }
-        const data = await res.json();
-        if (!data.valid) {
-          // clear previous result if any
-          setClassInfo(null);
-          setClassMeta(null);
-          toast.error("Ungültiger oder abgelaufener Code");
-          return;
-        }
-        if (data.isMember) {
-          toast.info("Sie sind bereits Mitglied dieser Klasse");
-          router.replace(`/?class=${data.class_id}`);
-          return;
-        }
-        setClassInfo({
-          class_id: data.class_id,
-          class_title: data.class_title,
-        });
-        // fetch members to show owner and count
-        const memRes = await fetch(
-          `/api/class/member?class_id=${encodeURIComponent(data.class_id)}`,
-        );
-        if (!memRes.ok) {
-          console.error("Fehler beim Abrufen der Klassenmitglieder");
-          setClassMeta({
-            ownerNickname: null,
-            memberCount: 0,
-          });
-          return;
-        }
-        const mem = await memRes.json();
-        const members: Array<{ role: string; nickname: string | null }> =
-          mem?.members || [];
-        const owner = members.find((m) => m.role === "owner");
-        setClassMeta({
-          ownerNickname: owner?.nickname ?? null,
-          memberCount: members.length,
-        });
-      } catch (error) {
-        // network or other error: clear previous result
-        setClassInfo(null);
-        setClassMeta(null);
-        if (error instanceof TypeError && error.message.includes("fetch")) {
-          toast.error(
-            "Netzwerkfehler. Bitte überprüfen Sie Ihre Internetverbindung.",
-          );
+        const params = new URLSearchParams(searchParams.toString());
+        if (value) {
+          params.set("code", value);
         } else {
-          console.error("Fehler beim Überprüfen des Codes:", error);
-          toast.error("Prüfung fehlgeschlagen");
+          params.delete("code");
         }
-      } finally {
-        setLoading(false);
+        const qs = params.toString();
+        const target = qs ? `${pathname}?${qs}` : pathname;
+        router.replace(target, { scroll: false });
+      } catch (e) {
+        // silent – URL update is non-critical
+        console.warn("Failed to update code param", e);
       }
     },
-    [code, router],
+    [router, pathname, searchParams],
   );
+
+  // React to query result
+  useEffect(() => {
+    if (!checking) return;
+    if (pendingCode && checked !== undefined) {
+      // Avoid double-processing same code result
+      if (lastProcessedCode.current === pendingCode) return;
+      lastProcessedCode.current = pendingCode;
+      setChecking(false);
+      if (!checked.valid) {
+        setClassInfo(null);
+        setClassMeta(null);
+        setErrorMessage("Kein Treffer: Code ungültig oder abgelaufen");
+        return;
+      }
+      // Immer Klasseninfos setzen, auch wenn schon Mitglied, damit UI Button-Status anzeigen kann
+      setAlreadyMember(!!checked.isMember);
+      setClassInfo({
+        class_id: checked.class_id,
+        class_title: checked.class_title,
+      });
+      setClassMeta({
+        ownerNickname: checked.owner_nickname ?? null,
+        memberCount: checked.member_count ?? 0,
+      });
+    }
+  }, [checked, pendingCode, checking, router]);
 
   // Prefill code from ?code= and auto-check when valid
   useEffect(() => {
@@ -138,102 +135,116 @@ export default function ClassJoinPage() {
   }, [searchParams, checkCode, user?.id]);
 
   const accept = async () => {
-    if (!classInfo || !user?.id) return;
-    setLoading(true);
+    if (!classInfo || !user?.id || !pendingCode || accepting || alreadyMember)
+      return;
+    setAccepting(true);
     try {
-      const res = await fetch(`/api/class/invitation/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data?.error || "Beitritt fehlgeschlagen");
+      const res = await acceptMutation({ code: pendingCode });
+      if (!res.joined && !res.alreadyMember) {
+        toast.error("Beitritt fehlgeschlagen");
         return;
       }
-      toast.success("Klasse beigetreten");
-      setClass(data.class_id);
-      // Trigger sidebar refresh by navigating with the new class in query
-      router.replace(`${ROUTE_STUNDENPLAN}?class=${data.class_id}`);
+      if (res.alreadyMember) {
+        toast.info("Bereits Mitglied");
+        setAlreadyMember(true);
+      } else {
+        toast.success("Klasse beigetreten");
+      }
+      setClass(res.class_id);
+      router.replace(`${ROUTE_STUNDENPLAN}?class=${res.class_id}`);
     } catch (error) {
       console.error("Fehler beim Beitreten:", error);
       toast.error("Ein unerwarteter Fehler ist aufgetreten");
     } finally {
-      setLoading(false);
+      setAccepting(false);
     }
   };
 
   return (
-    <div className="px-4 md:px-6 pb-4 md:pb-6">
-      <h1 className="text-2xl font-semibold mb-4">Klasse beitreten</h1>
-      <form
-        className="flex gap-3 items-center flex-wrap"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!loading && code.length === 6) void checkCode();
-        }}
-      >
-        <InputOTP
-          maxLength={6}
-          pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
-          value={code}
-          onChange={(v) => {
-            const up = v.toUpperCase();
-            setCode(up);
-            if (up.length === 6 && !loading) void checkCode(up);
-          }}
-        >
-          <InputOTPGroup>
-            <InputOTPSlot index={0} />
-            <InputOTPSlot index={1} />
-            <InputOTPSlot index={2} />
-            <InputOTPSlot index={3} />
-            <InputOTPSlot index={4} />
-            <InputOTPSlot index={5} />
-          </InputOTPGroup>
-        </InputOTP>
-        <Button type="submit" disabled={loading || code.length !== 6}>
-          Prüfen
-        </Button>
-      </form>
+    <div className="flex min-h-[70vh] items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-xl border border-border/60 shadow-sm bg-gradient-to-br from-background to-background/70">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-xl">Klasse beitreten</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Gib den 6-stelligen Einladungscode ein.
+          </p>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-4">
+          <div className="flex flex-col gap-2 items-center w-full">
+            <InputOTP
+              maxLength={6}
+              pattern={REGEXP_ONLY_DIGITS_AND_CHARS}
+              value={code}
+              onChange={(v) => {
+                const up = v.toUpperCase();
+                setCode(up);
+                setErrorMessage(null);
+                setClassInfo(null);
+                setClassMeta(null);
+                setAlreadyMember(false);
+                updateCodeParam(up);
+                if (up.length === 6 && !checking && !accepting) checkCode(up);
+              }}
+            >
+              <InputOTPGroup>
+                <InputOTPSlot index={0} />
+                <InputOTPSlot index={1} />
+                <InputOTPSlot index={2} />
+                <InputOTPSlot index={3} />
+                <InputOTPSlot index={4} />
+                <InputOTPSlot index={5} />
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
 
-      {/* Ergebnis-Kachel */}
-      {classInfo && classMeta && (
-        <div className="mt-6 max-w-xl">
-          <Card className="border border-border/60 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-background to-background/60">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                <GraduationCap className="h-6 w-6" />
-              </div>
-              <div className="flex-1">
-                <CardTitle className="text-lg leading-tight">
-                  {classInfo.class_title}
-                </CardTitle>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Besitzer:{" "}
-                  <span className="font-medium">
-                    {classMeta.ownerNickname ?? "Unbekannt"}
-                  </span>
+          {/* Ergebnis / Fehlerbereich */}
+          {errorMessage && !checking && (
+            <div className="w-full mt-3 text-center text-sm text-destructive">
+              {errorMessage}
+            </div>
+          )}
+
+          {classInfo && classMeta && !errorMessage && (
+            <Card className="w-full mt-2 border border-border/60 bg-background/70 p-0">
+              <div className="flex items-center gap-4 p-4">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary">
+                  <GraduationCap className="h-6 w-6" />
                 </div>
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="text-base font-medium leading-tight truncate">
+                    {classInfo.class_title}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Crown className="h-3.5 w-3.5" />
+                      <span className="font-medium">
+                        {classMeta.ownerNickname ?? "Unbekannt"}
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3.5 w-3.5" />
+                      {classMeta.memberCount}{" "}
+                      {classMeta.memberCount === 1 ? "Mitglied" : "Mitglieder"}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  onClick={accept}
+                  disabled={accepting || checking || alreadyMember}
+                  variant={alreadyMember ? "secondary" : undefined}
+                  className="self-center shrink-0"
+                >
+                  {alreadyMember
+                    ? "Beigetreten"
+                    : accepting
+                      ? "Beitreten…"
+                      : "Beitreten"}
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>
-                  {classMeta.memberCount}{" "}
-                  {classMeta.memberCount === 1 ? "Mitglied" : "Mitglieder"}
-                </span>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={() => accept()} disabled={loading}>
-                Beitreten
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      )}
+            </Card>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

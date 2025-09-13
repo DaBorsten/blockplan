@@ -1,42 +1,38 @@
-"use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "@/../convex/_generated/dataModel";
 
-export type TeacherColorRecord = { id?: string; teacher: string; color: string };
+export type TeacherColorRecord = {
+  id?: string;
+  teacher: string;
+  color: string;
+};
 
-export function useTeacherColors(classId: string | undefined) {
-  const [data, setData] = useState<TeacherColorRecord[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function useTeacherColors(classId: Id<"classes"> | undefined) {
+  const data = useQuery(
+    api.teacherColors.listTeacherColors,
+    classId ? { classId } : "skip",
+  );
 
-  const load = useCallback(async () => {
-  if (!classId) return;
-    setLoading(true);
-    setError(null);
-    try {
-  const res = await fetch(`/api/class/teacherColors?class_id=${classId}`);
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Fehler beim Laden");
-      if (Array.isArray(json.data)) setData(json.data as TeacherColorRecord[]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unbekannter Fehler");
-    } finally {
-      setLoading(false);
-    }
-  }, [classId]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const getColor = useCallback(
-    (teacher: string | null | undefined): string | null => {
-      if (!teacher) return null;
-      return (
-        data.find((t) => t.teacher === teacher)?.color ?? null
-      );
-    },
+  const colorByTeacher = useMemo(
+    () =>
+      new Map<string, string>((data ?? []).map((d) => [d.teacher, d.color])),
     [data],
   );
 
-  return { data, loading, error, reload: load, getColor };
+  const getColor = useCallback(
+    (teacher: string | null | undefined): string | null =>
+      teacher ? (colorByTeacher.get(teacher) ?? null) : null,
+
+    [colorByTeacher],
+  );
+
+  return {
+    data: data ?? [],
+    loading: classId ? data === undefined : false,
+    error: null,
+    reload: () => {},
+    getColor,
+  };
 }

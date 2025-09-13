@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import { Bug, Calendar, CloudDownload, School, Settings } from "lucide-react";
+import { Calendar, CloudDownload, School, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ClassSelectionCombobox } from "./classSelection";
@@ -24,7 +24,6 @@ import {
   ROUTE_STUNDENPLAN,
   ROUTE_KLASSEN,
   ROUTE_IMPORTIEREN,
-  ROUTE_DEV,
   ROUTE_EINSTELLUNGEN,
 } from "@/constants/routes";
 const items = [
@@ -42,11 +41,6 @@ const items = [
     title: "Importieren",
     url: ROUTE_IMPORTIEREN,
     icon: CloudDownload,
-  },
-  {
-    title: "DEV",
-    url: ROUTE_DEV,
-    icon: Bug,
   },
   {
     title: "Einstellungen",

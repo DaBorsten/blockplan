@@ -5,47 +5,43 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Pencil, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { v4 as uuid } from "uuid";
 import { Spinner } from "./ui/shadcn-io/spinner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 type RowState = {
-  id?: string;
+  id?: Id<"colors">;
   teacher: string;
   color: string;
   _editing?: boolean;
 };
 
 interface Props {
-  classId: string;
+  classId: string | null;
 }
 
 export function TeacherColorsManager({ classId }: Props) {
-  const [items, setItems] = useState<RowState[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const colorsData = useQuery(
+    api.teacherColors.listTeacherColors,
+    classId ? { classId: classId as Id<"classes"> } : "skip",
+  );
+  const saveColors = useMutation(api.teacherColors.saveTeacherColors);
+  const deleteColor = useMutation(api.teacherColors.deleteTeacherColor);
 
-  async function load(): Promise<void> {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/class/teacherColors?class_id=${classId}`);
-      const data = await res.json();
-      if (Array.isArray(data.data)) {
-        type Row = { id?: string; teacher: string; color: string };
-        setItems((data.data as Row[]).map((r) => ({ ...r, _editing: false })));
-      }
-    } catch {
-      toast.error("Fehler beim Laden");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [items, setItems] = useState<RowState[]>([]);
+  const [saving, setSaving] = useState(false);
+  const loading = colorsData === undefined;
 
   useEffect(() => {
-    if (classId) {
-      void load();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only depends on classId and is recreated when it changes
-  }, [classId]);
+    if (!colorsData) return;
+    setItems(
+      colorsData.map((r) => ({
+        ...r,
+        _editing: false,
+      })),
+    );
+  }, [colorsData]);
 
   function updateItem(idx: number, patch: Partial<RowState>) {
     setItems((prev) =>
@@ -56,7 +52,7 @@ export function TeacherColorsManager({ classId }: Props) {
   function addRow() {
     setItems((prev) => [
       ...prev,
-      { id: uuid(), teacher: "", color: "#ffffff", _editing: true },
+      { teacher: "", color: "#ffffff", _editing: true },
     ]);
   }
 
@@ -66,13 +62,14 @@ export function TeacherColorsManager({ classId }: Props) {
       return;
     }
     try {
-      const res = await fetch(
-        `/api/class/teacherColors?id=${encodeURIComponent(
-          id,
-        )}&class_id=${classId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) throw new Error();
+      if (!classId) {
+        toast.error("Keine Klasse gewählt");
+        return;
+      }
+      await deleteColor({
+        classId: classId as Id<"classes">,
+        colorId: id as Id<"colors">,
+      });
       toast.success("Gelöscht");
       setItems((prev) => prev.filter((it) => it.id !== id));
     } catch (e: unknown) {
@@ -80,40 +77,51 @@ export function TeacherColorsManager({ classId }: Props) {
     }
   }
 
-  async function save() {
-    setSaving(true);
+  async function saveItems(itemsToSave: RowState[]) {
+    if (!classId) {
+      toast.error("Keine Klasse gewählt");
+      return;
+    }
+
     try {
-      const payload = {
-        class_id: classId,
-        items: items.map((it) => ({
-          id: it.id,
+      await saveColors({
+        classId: classId as Id<"classes">,
+        items: itemsToSave.map((it) => ({
+          id: it.id ? (it.id as unknown as Id<"colors">) : undefined,
           teacher: it.teacher.trim(),
           color: it.color,
         })),
-      };
-      const res = await fetch(`/api/class/teacherColors`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
-      toast.success("Gespeichert");
-      if (data.data)
-        setItems(
-          data.data.map(
-            (d: { id?: string; teacher: string; color: string }) => ({
-              ...d,
-              _editing: false,
-            }),
-          ),
-        );
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Speichern fehlgeschlagen";
-      toast.error(message);
+      throw new Error("Speichern fehlgeschlagen", { cause: err });
+    }
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await saveItems(items);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Speichern fehlgeschlagen",
+      );
     } finally {
       setSaving(false);
+    }
+  }
+
+  // Save only one row (used when pressing Fertig) for quicker feedback
+  async function saveSingle(index: number) {
+    const row = items[index];
+    if (!row) return;
+
+    try {
+      await saveItems([row]);
+      updateItem(index, { _editing: false });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
+    } finally {
+      toast.success("Gespeichert");
     }
   }
 
@@ -167,6 +175,7 @@ export function TeacherColorsManager({ classId }: Props) {
                     value={item.color}
                     onChange={(e) => updateItem(idx, { color: e.target.value })}
                     className="absolute inset-0 opacity-0 cursor-pointer"
+                    disabled={editing && !item.teacher.trim()}
                     aria-label="Farbe"
                   />
                   <span
@@ -201,7 +210,8 @@ export function TeacherColorsManager({ classId }: Props) {
                       size="sm"
                       variant="secondary"
                       className="flex items-center gap-1"
-                      onClick={() => updateItem(idx, { _editing: false })}
+                      onClick={() => saveSingle(idx)}
+                      disabled={!item.teacher.trim()}
                     >
                       <CheckIcon />
                       <span className="hidden md:inline">Fertig</span>

@@ -2,7 +2,10 @@
 
 import { GroupSelect } from "@/components/GroupSelection";
 import { WeekSelectionCombobox } from "@/components/weekSelection";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@/../convex/_generated/dataModel";
+import { api } from "@/../convex/_generated/api.js";
 import Timetable from "@/components/timetable";
 import NotesActionsDropdown from "@/components/NotesActionsDropdown";
 import ModeLockButton from "@/components/ModeLockButton";
@@ -24,37 +27,55 @@ export default function TimetablePage() {
   );
   const [activeNotes, setActiveNotes] = useState<string | null>(null);
   const [isEditNotesModalOpen, setIsEditNotesModalOpen] = useState(false);
-  const [notesUpdated, setNotesUpdated] = useState(false);
+  const lastLessonIdRef = useRef<string | null>(null);
 
-  // Notizen per API laden, wenn Lesson angeklickt wird
+  const liveEntry = useQuery(
+    api.timetable.getEntry,
+    isEditNotesModalOpen && activeClickedLesson?.id
+      ? { entryId: activeClickedLesson.id as Id<"timetables"> }
+      : "skip",
+  );
+
+  // Track if user already modified current dialog content to avoid overwriting while typing
+  const userTouchedRef = useRef(false);
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    const abortController = new AbortController();
-    const fetchNotes = async () => {
-      if (activeClickedLesson) {
-        try {
-          const res = await fetch(
-            `/api/week/notes?lessonId=${activeClickedLesson.id}`,
-            { signal: abortController.signal },
-          );
-          if (!res.ok) {
-            throw new Error(`Fehler beim Laden der Notizen: ${res.status}`);
-          }
-          const data = await res.json();
-          setActiveNotes(data.notes ?? "");
-        } catch (error) {
-          if (error instanceof Error && error.name === "AbortError") return;
-          console.error("Fehler beim Laden der Notizen:", error);
-          toast.error("Notizen konnten nicht geladen werden");
-          setActiveNotes("");
-        }
-      } else {
-        setActiveNotes("");
-      }
-    };
-    if (isEditNotesModalOpen) {
-      fetchNotes();
+    if (!isEditNotesModalOpen) return;
+    const lessonId = activeClickedLesson?.id ?? null;
+    if (lessonId !== lastLessonIdRef.current) {
+      lastLessonIdRef.current = lessonId;
+      userTouchedRef.current = false; // fresh lesson -> allow initial sync
+      setActiveNotes(activeClickedLesson?.notes ?? "");
+    } else if (activeClickedLesson && activeNotes === "") {
+      // Same lesson reopened but we previously had empty; seed from lesson object (already re-rendered with icon)
+      setActiveNotes(activeClickedLesson.notes ?? "");
     }
-  }, [activeClickedLesson, isEditNotesModalOpen, notesUpdated]);
+  }, [isEditNotesModalOpen, activeClickedLesson, activeNotes]);
+
+  // Reopen same lesson case: if dialog was closed and reopens with same lesson id, force one fresh sync
+  useEffect(() => {
+    if (isEditNotesModalOpen && !wasOpenRef.current) {
+      // just opened -> bump refresh key to force convex recompute (guards stale cached empty entry)
+      if (activeClickedLesson) {
+        userTouchedRef.current = false;
+        setActiveNotes(activeClickedLesson.notes ?? "");
+      }
+    }
+    wasOpenRef.current = isEditNotesModalOpen;
+  }, [isEditNotesModalOpen, activeClickedLesson]);
+
+  // When liveEntry changes (server push) sync only if user has not started editing
+  useEffect(() => {
+    if (!isEditNotesModalOpen || !activeClickedLesson) return;
+    if (!liveEntry || liveEntry.notes === undefined) return; // loading
+    if (userTouchedRef.current) return; // user editing
+    const incoming = liveEntry.notes ?? "";
+    const current = activeNotes ?? "";
+    if (incoming === current) return;
+    setActiveNotes(incoming);
+    setEditNotes(incoming);
+  }, [liveEntry, isEditNotesModalOpen, activeClickedLesson, activeNotes]);
 
   // Notizen-Dialog-Logik
   const [editNotes, setEditNotes] = useState<string | null>(null);
@@ -62,32 +83,25 @@ export default function TimetablePage() {
     setEditNotes(activeNotes);
   }, [activeNotes]);
 
+  // Externe Updates nachdem User noch nicht getippt hat werden oben abgefangen; hier kein zusätzlicher Overwrite nötig.
+
   const [isSaving, setIsSaving] = useState(false);
 
+  const updateLessonNotes = useMutation(api.notes.updateLessonNotes);
   const handleSaveNotes = async () => {
     if (!activeClickedLesson) return;
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/week/notes`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          lessonId: activeClickedLesson.id,
-          notes: editNotes ?? "",
-        }),
+      await updateLessonNotes({
+        lessonId: activeClickedLesson.id as Id<"timetables">,
+        notes: editNotes ?? undefined,
       });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${res.status}`);
-      }
       toast.success("Notizen gespeichert.");
       setIsEditNotesModalOpen(false);
-      setNotesUpdated((v) => !v);
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Unbekannter Fehler";
+        error instanceof Error ? error.message : String(error);
       toast.error(`Fehler beim Speichern der Notizen: ${errorMessage}`);
-      console.error("Fehler beim Speichern der Notizen:", error);
     } finally {
       setIsSaving(false);
     }
@@ -144,7 +158,13 @@ export default function TimetablePage() {
           </DialogHeader>
           <Textarea
             value={editNotes ?? ""}
-            onChange={(e) => setEditNotes(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next !== (editNotes ?? "")) {
+                userTouchedRef.current = true;
+                setEditNotes(e.target.value);
+              }
+            }}
             placeholder="Notizen eintragen..."
             rows={6}
           />

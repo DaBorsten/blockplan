@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
@@ -15,6 +15,10 @@ import { useTeacherColors } from "@/hooks/useTeacherColors";
 import { getTimesForTimetable } from "@/utils/times";
 import { useModeStore } from "@/store/useModeStore";
 import { toast } from "sonner";
+import { useQuery } from "convex/react";
+import type { Id } from "@/../convex/_generated/dataModel";
+// Note: path requires .js because convex generates ESM with extension
+import { api } from "@/../convex/_generated/api.js";
 
 type TimetableProps = {
   setActiveClickedLesson: (lesson: Lesson | null) => void;
@@ -33,8 +37,58 @@ export default function Timetable({
   const classId = useCurrentClass();
   const { getColor } = useTeacherColors(classId ?? undefined);
 
+  const groupExpansionMap: Record<number, number[]> = {
+    1: [1, 2, 3],
+    2: [1, 2],
+    3: [1, 3],
+  };
+
+  // Live timetable entries for selected week + group (single group filter)
+  const groupExpansion = groupExpansionMap[group] ?? [group];
+  const timetableRaw = useQuery(
+    api.timetable.listTimetable,
+    weekID && group
+      ? { weekId: weekID as Id<"weeks">, groups: groupExpansion }
+      : ("skip" as const),
+  );
+
+  interface TimetableEntry {
+    _id: string;
+    week_id: string;
+    day: string;
+    hour: number;
+    startTime?: string;
+    endTime?: string;
+    subject?: string;
+    teacher?: string;
+    room?: string;
+    notes?: string;
+    groups?: number[];
+  }
+
+  const timeTableData = useMemo<Lesson[]>(() => {
+    if (!timetableRaw) return [];
+    return (timetableRaw as unknown as TimetableEntry[]).flatMap((entry) => {
+      const groups: number[] = Array.isArray(entry.groups)
+        ? (entry.groups as number[])
+        : [];
+      return groups.map((g) => ({
+        id: String(entry._id),
+        subject: String(entry.subject ?? ""),
+        teacher: String(entry.teacher ?? ""),
+        room: String(entry.room ?? ""),
+        notes: entry.notes ? String(entry.notes) : null,
+        hour: Number(entry.hour),
+        startTime: String(entry.startTime ?? ""),
+        endTime: String(entry.endTime ?? ""),
+        group: g === 1 || g === 2 || g === 3 ? g : 1,
+        week_id: String(entry.week_id),
+        day: String(entry.day),
+      }));
+    });
+  }, [timetableRaw]);
+
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const [timeTableData, setTimeTableData] = useState<Lesson[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const theadRef = useRef<HTMLTableSectionElement>(null);
@@ -57,35 +111,6 @@ export default function Timetable({
     const adjustedDayIndex = dayIndex >= 5 ? 0 : dayIndex;
     setCurrentDayIndex(adjustedDayIndex);
   }, []);
-
-  // Lade Stundenplandaten wenn sich weekID, group oder classId ändert
-  useEffect(() => {
-    const loadTimetableData = async () => {
-      if (!weekID || !group || group < 1 || group > 3 || !classId) {
-        setTimeTableData([]);
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `/api/timetable/week?weekId=${weekID}&group=${group}`,
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        setTimeTableData(result.data || []);
-      } catch (error) {
-        console.error("Fehler beim Laden der Stundenplandaten:", error);
-        toast.error("Stundenplandaten konnten nicht geladen werden");
-        setTimeTableData([]);
-      }
-    };
-
-    loadTimetableData();
-  }, [weekID, group, classId]);
 
   // Dynamische Zeilenhöhe: alle Zeilen gleich hoch und füllen den Container
   const recomputeRowHeight = useCallback(() => {
@@ -389,35 +414,33 @@ export default function Timetable({
                             return (
                               <button
                                 key={idx}
-                                onClick={async () => {
+                                onClick={() => {
                                   if (mode === "notes") {
-                                    const res = await fetch(
-                                      `/api/week/notes?lessonId=${lesson.id}`,
-                                    );
-                                    const data = await res.json();
-                                    const savedNotes = data.notes;
-                                    setActiveNotes(savedNotes);
+                                    setActiveNotes(lesson.notes ?? null);
                                     setActiveClickedLesson(lesson);
                                     setIsEditNotesModalOpen(true);
-                                  } else {
-                                    if (!lesson.notes) return;
-                                    // Zeige eine kurze Notification ("Notizen kopiert!") beim Kopieren
-                                    try {
-                                      await navigator.clipboard.writeText(
-                                        `${lesson.subject}/${lesson.teacher}: ${
-                                          lesson.notes ?? ""
-                                        }`,
-                                      );
-                                      // Notification API (sonner) Beispiel:
+                                    return;
+                                  }
+                                  if (!lesson.notes) return;
+                                  const text = `${lesson.subject}/${lesson.teacher}: ${lesson.notes}`;
+                                  if (!navigator.clipboard) {
+                                    toast.error(
+                                      "Clipboard API nicht verfügbar",
+                                    );
+                                    return;
+                                  }
+                                  navigator.clipboard
+                                    .writeText(text)
+                                    .then(() => {
                                       toast.success("Notizen kopiert!");
-                                    } catch (e: unknown) {
+                                    })
+                                    .catch((e) => {
                                       console.error(
-                                        "Kopieren fehlgeschlagen",
+                                        "Kopieren fehlgeschlagen:",
                                         e,
                                       );
                                       toast.error("Kopieren fehlgeschlagen!");
-                                    }
-                                  }
+                                    });
                                 }}
                                 className="flex flex-1 h-full rounded px-1 py-1 items-center justify-between cursor-pointer border-0 text-xs"
                                 style={

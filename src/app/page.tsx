@@ -1,14 +1,15 @@
 "use client";
 
-import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, StickyNote, Share2, Loader2 } from "lucide-react";
+import { CalendarDays, StickyNote, Share2 } from "lucide-react";
 import Link from "next/link";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
-import { Authenticated, Unauthenticated } from "convex/react";
+import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LandingPage() {
-  const { isLoaded } = useUser();
+  const { isLoading } = useConvexAuth();
 
   return (
     <main className="flex-1 flex items-center justify-center px-6">
@@ -21,16 +22,13 @@ export default function LandingPage() {
           Klassen zusammen.
         </p>
         <div className="flex items-center justify-center gap-3">
-          {!isLoaded ? (
-            <div
-              className="flex items-center gap-2"
+          {isLoading ? (
+            <Skeleton
+              className="h-10 w-40"
               role="status"
               aria-live="polite"
               aria-busy="true"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-muted-foreground">Lädt...</span>
-            </div>
+            />
           ) : (
             <>
               <Unauthenticated>
