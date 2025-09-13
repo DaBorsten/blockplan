@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import { Bug, Calendar, CloudDownload, School, Settings } from "lucide-react";
+import { Calendar, CloudDownload, School, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ClassSelectionCombobox } from "./classSelection";
@@ -24,7 +24,6 @@ import {
   ROUTE_STUNDENPLAN,
   ROUTE_KLASSEN,
   ROUTE_IMPORTIEREN,
-  ROUTE_DEV,
   ROUTE_EINSTELLUNGEN,
 } from "@/constants/routes";
 const items = [
@@ -42,11 +41,6 @@ const items = [
     title: "Importieren",
     url: ROUTE_IMPORTIEREN,
     icon: CloudDownload,
-  },
-  {
-    title: "DEV",
-    url: ROUTE_DEV,
-    icon: Bug,
   },
   {
     title: "Einstellungen",
@@ -72,8 +66,8 @@ export function AppSidebar() {
                   pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={active}>
-                        <Link href={item.url}>
+                    <SidebarMenuButton asChild isActive={active} size="lg">
+                      <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
                       </Link>
@@ -91,6 +85,7 @@ export function AppSidebar() {
             <SidebarMenuButton
               asChild
               isActive={pathname === "/datenschutzhinweis"}
+              size="lg"
             >
               <Link href="/datenschutzhinweis">
                 <span>Datenschutzhinweis</span>
@@ -99,7 +94,11 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             {" "}
-            <SidebarMenuButton asChild isActive={pathname === "/impressum"}>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/impressum"}
+              size="lg"
+            >
               <Link href="/impressum">
                 <span>Impressum</span>
               </Link>

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { fetchWeekIDsWithNames } from "@/utils/weeks";
 import { Check, ChevronsUpDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -22,6 +21,9 @@ import {
 // query params handled via nuqs hooks
 import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
 import { useCurrentClass } from "@/store/useClassStore";
+import { useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 export function WeekSelectionCombobox() {
   const weekID = useCurrentWeek();
@@ -29,25 +31,24 @@ export function WeekSelectionCombobox() {
   const setWeekID = useSetWeek();
 
   const [open, setOpen] = React.useState(false);
-  const [weeks, setWeeks] = React.useState<
-    { label: string; value: string | null }[]
-  >([]);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const fetchWeeks = async () => {
-      setLoading(true);
-      if (classID) {
-        const result = await fetchWeekIDsWithNames(classID);
-        const filtered = (result || []).filter((w) => w.value !== null);
-        setWeeks([{ label: "Keine Woche", value: null }, ...filtered]);
-      } else {
-        setWeeks([{ label: "Keine Woche", value: null }]);
-      }
-      setLoading(false);
-    };
-    fetchWeeks();
-  }, [classID]);
+  const weeksRaw = useQuery(
+    api.weeks.listWeeks,
+    classID ? { classId: classID as Id<"classes"> } : "skip",
+  );
+  const loading = weeksRaw === undefined && !!classID;
+  const weeks = React.useMemo(() => {
+    if (!classID) return [{ label: "Keine Woche", value: null }];
+    if (weeksRaw === undefined) return [{ label: "Lädt…", value: weekID }];
+    const mapped = weeksRaw
+      .map((w) => ({ label: w.title, value: w._id as string }))
+      .sort((a, b) =>
+        b.label.localeCompare(a.label, "de-DE", {
+          numeric: true,
+          sensitivity: "base",
+        }),
+      );
+    return [{ label: "Keine Woche", value: null }, ...mapped];
+  }, [weeksRaw, classID, weekID]);
 
   const handleWeekChange = (weekId: string | null | string) => {
     const nextWeek = weekId && weekId.length > 0 ? (weekId as string) : null;
@@ -66,14 +67,14 @@ export function WeekSelectionCombobox() {
           {weekID
             ? weeks.find((w) => w.value === weekID)?.label
             : loading
-            ? "Lade Wochen..."
-            : "Woche wählen"}
+              ? "Lädt..."
+              : "Woche wählen"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[150px] p-0">
         <Command>
-          <CommandInput placeholder="Woche suchen..." className="h-9" />
+          <CommandInput placeholder="Suchen" className="h-9" />
           <CommandList>
             <CommandEmpty>Keine Woche</CommandEmpty>
             <CommandGroup>

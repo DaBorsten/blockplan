@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useWeekStore } from "./useWeekStore";
+import { Id } from "../../convex/_generated/dataModel";
 
 // Class Store
 type ClassState = {
-  classId: string | null;
-  setClass: (id: string | null) => void;
+  classId: Id<"classes"> | null;
+  setClass: (id: Id<"classes"> | null) => void;
   clearClass: () => void;
 };
 

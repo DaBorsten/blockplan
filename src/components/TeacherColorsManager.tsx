@@ -5,43 +5,43 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Pencil, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { v4 as uuid } from "uuid";
+import { Spinner } from "./ui/shadcn-io/spinner";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
-type RowState = { id?: string; teacher: string; color: string; _editing?: boolean };
+type RowState = {
+  id?: Id<"colors">;
+  teacher: string;
+  color: string;
+  _editing?: boolean;
+};
 
 interface Props {
-  classId: string;
+  classId: string | null;
 }
 
 export function TeacherColorsManager({ classId }: Props) {
-  const [items, setItems] = useState<RowState[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const colorsData = useQuery(
+    api.teacherColors.listTeacherColors,
+    classId ? { classId: classId as Id<"classes"> } : "skip",
+  );
+  const saveColors = useMutation(api.teacherColors.saveTeacherColors);
+  const deleteColor = useMutation(api.teacherColors.deleteTeacherColor);
 
-  async function load(): Promise<void> {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/class/teacherColors?class_id=${classId}`,
-      );
-      const data = await res.json();
-      if (Array.isArray(data.data)) {
-        type Row = { id?: string; teacher: string; color: string };
-        setItems((data.data as Row[]).map((r) => ({ ...r, _editing: false })));
-      }
-    } catch {
-      toast.error("Fehler beim Laden");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [items, setItems] = useState<RowState[]>([]);
+  const [saving, setSaving] = useState(false);
+  const loading = colorsData === undefined;
 
   useEffect(() => {
-    if (classId) {
-      void load();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load only depends on classId and is recreated when it changes
-  }, [classId]);
+    if (!colorsData) return;
+    setItems(
+      colorsData.map((r) => ({
+        ...r,
+        _editing: false,
+      })),
+    );
+  }, [colorsData]);
 
   function updateItem(idx: number, patch: Partial<RowState>) {
     setItems((prev) =>
@@ -52,7 +52,7 @@ export function TeacherColorsManager({ classId }: Props) {
   function addRow() {
     setItems((prev) => [
       ...prev,
-      { id: uuid(), teacher: "", color: "#ffffff", _editing: true },
+      { teacher: "", color: "#ffffff", _editing: true },
     ]);
   }
 
@@ -62,11 +62,14 @@ export function TeacherColorsManager({ classId }: Props) {
       return;
     }
     try {
-      const res = await fetch(
-        `/api/class/teacherColors?id=${encodeURIComponent(id)}&class_id=${classId}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) throw new Error();
+      if (!classId) {
+        toast.error("Keine Klasse gewählt");
+        return;
+      }
+      await deleteColor({
+        classId: classId as Id<"classes">,
+        colorId: id as Id<"colors">,
+      });
       toast.success("Gelöscht");
       setItems((prev) => prev.filter((it) => it.id !== id));
     } catch (e: unknown) {
@@ -74,67 +77,81 @@ export function TeacherColorsManager({ classId }: Props) {
     }
   }
 
+  async function saveItems(itemsToSave: RowState[]) {
+    if (!classId) {
+      toast.error("Keine Klasse gewählt");
+      return;
+    }
+
+    try {
+      await saveColors({
+        classId: classId as Id<"classes">,
+        items: itemsToSave.map((it) => ({
+          id: it.id ? it.id : undefined,
+          teacher: it.teacher.trim(),
+          color: it.color,
+        })),
+      });
+    } catch (err) {
+      throw new Error("Speichern fehlgeschlagen", { cause: err });
+    }
+  }
+
   async function save() {
     setSaving(true);
     try {
-      const payload = {
-        class_id: classId,
-        items: items.map((it) => ({ id: it.id, teacher: it.teacher.trim(), color: it.color })),
-      };
-      const res = await fetch(`/api/class/teacherColors`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
-      toast.success("Gespeichert");
-      if (data.data)
-        setItems(
-          data.data.map((d: { id?: string; teacher: string; color: string }) => ({
-            ...d,
-            _editing: false,
-          })),
-        );
+      await saveItems(items);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Speichern fehlgeschlagen";
-      toast.error(message);
+      toast.error(
+        err instanceof Error ? err.message : "Speichern fehlgeschlagen",
+      );
     } finally {
       setSaving(false);
     }
   }
 
+  // Save only one row (used when pressing Fertig) for quicker feedback
+  async function saveSingle(index: number) {
+    const row = items[index];
+    if (!row) return;
+
+    try {
+      await saveItems([row]);
+      updateItem(index, { _editing: false });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Speichern fehlgeschlagen");
+    } finally {
+      toast.success("Gespeichert");
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h3 className="text-lg font-semibold">Farben & Kürzel</h3>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={addRow}
-            className="flex items-center gap-1"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden md:inline">Neu</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={save}
-            disabled={saving}
-            className="flex items-center gap-1"
-          >
-            <Save className="w-4 h-4" />
-            <span className="hidden md:inline">
-              {saving ? "Speichert..." : "Speichern"}
-            </span>
-          </Button>
-        </div>
+    <div className="space-y-4 h-full flex-1">
+      <div className="flex flex-col gap-2 flex-wrap sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          variant="outline"
+          size="default"
+          onClick={addRow}
+          className="flex items-center gap-1"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Neu</span>
+        </Button>
+        <Button
+          size="default"
+          onClick={save}
+          disabled={saving}
+          className="flex items-center gap-1"
+        >
+          <Save className="w-4 h-4" />
+          <span>{saving ? "Speichert..." : "Speichern"}</span>
+        </Button>
       </div>
       <Separator />
       {loading ? (
-        <div className="text-sm text-muted-foreground">Lade...</div>
+        <div className="flex flex-1 justify-center items-center h-full">
+          <Spinner />
+        </div>
       ) : (
         <div className="space-y-2">
           {items.length === 0 && (
@@ -158,13 +175,13 @@ export function TeacherColorsManager({ classId }: Props) {
                     value={item.color}
                     onChange={(e) => updateItem(idx, { color: e.target.value })}
                     className="absolute inset-0 opacity-0 cursor-pointer"
+                    disabled={editing && !item.teacher.trim()}
                     aria-label="Farbe"
                   />
                   <span
-                    className="h-10 w-10 rounded-full border ring-2 ring-background"
+                    className="h-10 w-10 rounded-full ring-2 ring-background"
                     style={{
                       background: item.color,
-                      borderColor: "hsl(var(--border))",
                       boxShadow:
                         "0 0 0 2px var(--background), 0 0 0 3px var(--foreground)",
                     }}
@@ -193,7 +210,8 @@ export function TeacherColorsManager({ classId }: Props) {
                       size="sm"
                       variant="secondary"
                       className="flex items-center gap-1"
-                      onClick={() => updateItem(idx, { _editing: false })}
+                      onClick={() => saveSingle(idx)}
+                      disabled={!item.teacher.trim()}
                     >
                       <CheckIcon />
                       <span className="hidden md:inline">Fertig</span>
@@ -229,5 +247,18 @@ export function TeacherColorsManager({ classId }: Props) {
 }
 
 function CheckIcon() {
-  return <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>;
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-4 h-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
 }

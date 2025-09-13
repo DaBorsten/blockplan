@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { fetchUserClassesWithNames } from "@/utils/classes";
 import { Check, ChevronsUpDown, School } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,29 +14,59 @@ import {
 } from "./ui/dropdown-menu";
 // updateUrl replaced by nuqs hooks
 import { useCurrentClass, useSetClass } from "@/store/useClassStore";
+import { useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { usePathname, useRouter } from "next/navigation";
+import { Id } from "../../convex/_generated/dataModel";
 
 export function ClassSelectionCombobox() {
-  
   const classID = useCurrentClass();
   const setClassID = useSetClass();
-  const [classes, setClasses] = React.useState<
-    { label: string; value: string | null }[]
-  >([]);
-  const { user } = useUser();
+  // Clerk user available if later needed for role-based filtering
+
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Safe Query (liefert { initialized, classes })
+  const queryArgs = React.useMemo(() => ({}) as const, []);
+  const classesSafe = useQuery(api.classes.listClassesSafe, queryArgs);
+
+  // Redirect wenn User nicht initialisiert
+  React.useEffect(() => {
+    if (!classesSafe) return; // loading
+    if (!classesSafe.initialized && !pathname?.startsWith("/willkommen")) {
+      // Falls Clerk angemeldet aber kein DB-User => redirect willkommen
+      router.replace("/willkommen");
+    }
+  }, [classesSafe, pathname, router]);
+
+  const isLoading = classesSafe === undefined;
+  const isInitializing = classesSafe !== undefined && !classesSafe.initialized;
+  const classes = React.useMemo(() => {
+    if (isLoading) return [] as { label: string; value: string | null }[]; // separate rendering branch
+    if (isInitializing) return [{ label: "Init…", value: null }];
+    const mapped = classesSafe!.classes
+      .map((c) => ({ label: c.class_title, value: c.class_id as string }))
+      .sort((a, b) => a.label.localeCompare(b.label, "de"));
+    return [{ label: "Keine Klasse", value: null }, ...mapped];
+  }, [isLoading, isInitializing, classesSafe]);
 
   React.useEffect(() => {
-    const load = async () => {
-      if (!user?.id) return;
-  const result = await fetchUserClassesWithNames();
-      setClasses(result || []);
-    };
-    load();
-    // Also reload when class query changes so new joins appear immediately
-  }, [user?.id, classID]);
+    if (isLoading || isInitializing) return;
+    const valid = new Set(classes.map((c) => c.value));
+    if (classID && !valid.has(classID)) {
+      setClassID(null);
+    }
+  }, [isLoading, isInitializing, classes, classID, setClassID]);
 
-  const handleClassChange = (classId: string | null) => {
+  const handleClassChange = (classId: Id<"classes"> | null) => {
     setClassID(classId);
   };
+
+  const selectedLabel = React.useMemo(
+    () => classes.find((w) => w.value === classID)?.label,
+    [classes, classID],
+  );
 
   return (
     <SidebarMenu>
@@ -53,34 +82,55 @@ export function ClassSelectionCombobox() {
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-medium">Klasse</span>
-                <span className="">
-                  {classes.find((w) => w.value === classID)?.label}
+                <span className="min-h-[1rem] inline-flex items-center">
+                  {isLoading ? (
+                    <Skeleton className="h-4 w-20" />
+                  ) : isInitializing ? (
+                    <span className="text-muted-foreground">Init…</span>
+                  ) : (
+                    (selectedLabel ?? (
+                      <span className="text-muted-foreground">(Keine)</span>
+                    ))
+                  )}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width)"
+            className="w-[--radix-dropdown-menu-trigger-width]"
             align="start"
           >
-            {classes.map((classItem) => (
-              <DropdownMenuItem
-                key={classItem.value ?? "none"}
-                onSelect={() => {
-                  if (classItem.value === classID) return;
-                  handleClassChange(classItem.value);
-                }}
-              >
-                {classItem.label}
-                <Check
-                  className={cn(
-                    "ml-auto",
-                    classID === classItem.value ? "opacity-100" : "opacity-0",
-                  )}
-                />
-              </DropdownMenuItem>
-            ))}
+            {isLoading && (
+              <div className="p-2 flex flex-col gap-2 w-48">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+            )}
+            {!isLoading &&
+              classes.map((classItem) => (
+                <DropdownMenuItem
+                  key={classItem.value ?? "__none__"}
+                  onSelect={(e) => {
+                    if (classItem.value === classID) {
+                      e.preventDefault();
+                      return;
+                    }
+                    handleClassChange(classItem.value as Id<"classes"> | null);
+                  }}
+                  disabled={isInitializing}
+                >
+                  {classItem.label}
+                  <Check
+                    className={cn(
+                      "ml-auto",
+                      classID === classItem.value ? "opacity-100" : "opacity-0",
+                    )}
+                    aria-hidden="true"
+                  />
+                </DropdownMenuItem>
+              ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

@@ -11,12 +11,13 @@ const extractFileName = (fullName: string): string => {
   return fullName;
 };
 
-import React, { useRef, useState } from "react";
-import { AlertTriangle, Loader2, Upload } from "lucide-react";
+import React, { useRef, useState, useCallback } from "react";
+import { AlertTriangle, Loader2, Upload, FileDown } from "lucide-react";
 import Dropzone from "@/components/Dropzone";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +29,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
+import { useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "@/../convex/_generated/dataModel";
 
 type FileItem = {
   id: string;
@@ -48,10 +52,18 @@ export default function Import() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number }>({
+    current: 0,
+    total: 0,
+  });
+  const [isDragOverFileList, setIsDragOverFileList] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const lastImportTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { classId } = useClassStore();
   const needsClass = !classId;
+  const importWeek = useMutation(api.notes.importWeekWithTimetable);
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList) return;
@@ -88,7 +100,47 @@ export default function Import() {
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    setIsDragOverFileList(false);
     handleFiles(e.dataTransfer.files);
+  };
+
+  const handleDragEnterFileList = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // Nur reagieren, wenn Dateien gezogen werden (nicht Text/andere)
+    if (
+      e.dataTransfer.types.includes("Files") &&
+      !e.dataTransfer.types.includes("text/plain")
+    ) {
+      setIsDragOverFileList(true);
+    }
+  };
+
+  const handleDragLeaveFileList = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // Prüfen ob wir wirklich das Container verlassen (nicht nur in ein Kind-Element)
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (
+      x <= rect.left ||
+      x >= rect.right ||
+      y <= rect.top ||
+      y >= rect.bottom
+    ) {
+      setIsDragOverFileList(false);
+    }
+  };
+
+  const handleDragOverFileList = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    // Nur reagieren, wenn Dateien gezogen werden (nicht Text/andere)
+    if (
+      !e.dataTransfer.types.includes("Files") ||
+      e.dataTransfer.types.includes("text/plain")
+    ) {
+      return;
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -146,6 +198,150 @@ export default function Import() {
     throw new Error("Keine Datei ausgewählt");
   }
 
+  const handleImport = useCallback(async () => {
+    const now = Date.now();
+
+    // Debounce-Schutz: 1 Sekunde zwischen Import-Versuchen
+    if (now - lastImportTimeRef.current < 1000) {
+      return;
+    }
+
+    // Einfacher Schutz gegen doppelte Ausführung
+    if (isImporting || loading) {
+      return;
+    }
+
+    if (needsClass) {
+      toast.warning("Bitte wählen Sie zuerst eine Klasse aus.");
+      return;
+    }
+    if (files.length === 0) {
+      toast.error("Keine Dateien zum Importieren ausgewählt.");
+      return;
+    }
+
+    // Timestamp für diese Import-Session setzen
+    lastImportTimeRef.current = now;
+    const importSessionId = now;
+
+    setIsImporting(true);
+    setLoading(true);
+    setProgress({ current: 0, total: files.length });
+
+    const successfulFileIds: string[] = [];
+    const failedFiles: Array<{ name: string; error: string }> = [];
+
+    try {
+      for (const fileItem of files) {
+        const { id, file, displayName } = fileItem;
+        try {
+          const response = await uploadFile(file);
+
+          if (response) {
+            try {
+              if (!classId) {
+                throw new Error("Keine Klasse ausgewählt");
+              }
+              // Convex Mutation Aufruf
+              await importWeek({
+                classId: classId as Id<"classes">,
+                title: displayName,
+                timetable: response,
+              });
+              successfulFileIds.push(id);
+            } catch (e) {
+              let errMsg = "Unbekannter Fehler";
+              if (e instanceof Error) {
+                // Convex-spezifische Fehler könnten mehr Details enthalten
+                errMsg = e.message;
+                // Optional: Prüfen auf spezifische Fehlercodes oder -typen
+                if (e.message.includes("unauthorized")) {
+                  errMsg = "Keine Berechtigung für diese Aktion";
+                } else if (e.message.includes("invalid")) {
+                  errMsg = "Ungültige Daten im Stundenplan";
+                }
+              } else {
+                errMsg = String(e);
+              }
+              failedFiles.push({ name: displayName, error: errMsg });
+            }
+          }
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          failedFiles.push({ name: displayName, error: err.message });
+        }
+
+        // Fortschritt erhöhen, unabhängig vom Erfolg
+        setProgress((p) => ({
+          ...p,
+          current: Math.min(p.current + 1, p.total),
+        }));
+      }
+
+      // Nur erfolgreich importierte Dateien entfernen
+      if (successfulFileIds.length > 0) {
+        setFiles((prevFiles) =>
+          prevFiles.filter((f) => !successfulFileIds.includes(f.id)),
+        );
+      }
+
+      // Eine einzige zusammenfassende Toast-Nachricht mit Session-basierter ID
+      const totalFiles = files.length;
+      const successCount = successfulFileIds.length;
+      const errorCount = failedFiles.length;
+
+      // Session-basierte Toast-ID verhindert Duplikate innerhalb einer Session
+      const IMPORT_RESULT_TOAST_ID = `import-result-${importSessionId}`;
+
+      if (errorCount === 0) {
+        // Alle erfolgreich
+        const fileText = totalFiles === 1 ? "Datei" : "Dateien";
+        toast.success(
+          `${
+            totalFiles === 1 ? "" : `Alle ${totalFiles} `
+          }${fileText} erfolgreich importiert!`,
+          { id: IMPORT_RESULT_TOAST_ID },
+        );
+      } else if (successCount > 0) {
+        // Teilweise erfolgreich
+        if (totalFiles === 1) {
+          toast.error(`Datei konnte nicht importiert werden.`, {
+            id: IMPORT_RESULT_TOAST_ID,
+          });
+        } else if (successCount === 1) {
+          toast.warning(
+            `1 Datei von ${totalFiles} importiert. ${errorCount} fehlgeschlagen.`,
+            { id: IMPORT_RESULT_TOAST_ID },
+          );
+        } else {
+          toast.warning(
+            `${successCount} Dateien von ${totalFiles} importiert. ${errorCount} fehlgeschlagen.`,
+            { id: IMPORT_RESULT_TOAST_ID },
+          );
+        }
+      } else {
+        // Alle fehlgeschlagen
+        const fileText =
+          totalFiles === 1
+            ? "Datei konnte"
+            : `Alle ${totalFiles} Dateien konnten`;
+        toast.error(`${fileText} nicht importiert werden.`, {
+          id: IMPORT_RESULT_TOAST_ID,
+        });
+      }
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      toast.error(`Unerwarteter Fehler beim Importieren: ${err.message}`, {
+        id: `import-error-${importSessionId}`,
+      });
+    } finally {
+      setLoading(false);
+      setIsImporting(false);
+      // Fortschritt zurücksetzen
+      setProgress({ current: 0, total: 0 });
+    }
+  }, [isImporting, loading, needsClass, files, classId, importWeek]);
+
   return (
     <div className="flex flex-col h-full px-4 md:px-6 pb-4 md:pb-6">
       <div className="mb-4 md:mb-8 flex-shrink-0">
@@ -172,26 +368,41 @@ export default function Import() {
       </div>
 
       <div className="flex flex-1 min-h-0 flex-col items-center justify-center w-full">
+        {/* Verstecktes Input-Element - immer gerendert */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
+        />
+
         {/* Dropzone oder Dateiliste */}
         <div className="relative w-full flex-1 min-h-0 flex flex-col items-center justify-center">
           {files.length === 0 ? (
             <Dropzone
-              onFiles={loading || needsClass ? () => {} : handleFiles}
               onClick={loading || needsClass ? () => {} : openFileDialog}
               onDrop={loading || needsClass ? () => {} : handleDrop}
-              fileInputRef={fileInputRef}
               text="Dateien hierher ziehen zum Hochladen"
               supportedFiles="PDF"
-              accept="application/pdf"
             />
           ) : (
             <div
-              className={`scrollable flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed border-border rounded-2xl overflow-y-auto ${
-                loading ? "opacity-60 pointer-events-none" : ""
-              }`}
+              className={`relative scrollable flex-1 w-full flex p-4 md:p-6 flex-col gap-3 min-h-0 border-2 border-dashed rounded-2xl overflow-y-auto overflow-hidden ${
+                isDragOverFileList
+                  ? "border-primary bg-primary/5"
+                  : "border-border"
+              } ${loading ? "opacity-60 pointer-events-none" : ""}`}
               onDrop={loading || needsClass ? undefined : handleDrop}
               onDragOver={
-                loading || needsClass ? undefined : (e) => e.preventDefault()
+                loading || needsClass ? undefined : handleDragOverFileList
+              }
+              onDragEnter={
+                loading || needsClass ? undefined : handleDragEnterFileList
+              }
+              onDragLeave={
+                loading || needsClass ? undefined : handleDragLeaveFileList
               }
             >
               {files.map((f) => (
@@ -228,7 +439,7 @@ export default function Import() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Dateiname ändern</DialogTitle>
+                        <DialogTitle>Importname ändern</DialogTitle>
                       </DialogHeader>
                       <Label htmlFor="editName">Neuer Name</Label>
                       <Input
@@ -269,6 +480,45 @@ export default function Import() {
                   </Button>
                 </div>
               ))}
+
+              {/* Drag Overlay für Dateiliste */}
+              {isDragOverFileList && (
+                <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm rounded-2xl flex items-center justify-center z-20">
+                  <div className="text-center">
+                    <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                      <FileDown
+                        className="w-10 h-10 text-primary"
+                        style={{
+                          animation: "gentle-bounce 1s ease-in-out infinite",
+                        }}
+                      />
+                    </div>
+                    <h3 className="text-primary font-semibold text-xl">
+                      Weitere Dateien hinzufügen
+                    </h3>
+                  </div>
+
+                  {/* CSS für sanfte Bounce-Animation */}
+                  <style jsx>{`
+                    @keyframes gentle-bounce {
+                      0%,
+                      20%,
+                      53%,
+                      80%,
+                      100% {
+                        transform: translateY(0);
+                      }
+                      40%,
+                      43% {
+                        transform: translateY(-6px);
+                      }
+                      70% {
+                        transform: translateY(-3px);
+                      }
+                    }
+                  `}</style>
+                </div>
+              )}
             </div>
           )}
           {loading && (
@@ -278,7 +528,21 @@ export default function Import() {
               aria-live="polite"
               aria-label="Import läuft"
             >
-              <Loader2 className="animate-spin w-16 h-16 text-primary" />
+              <div className="w-full max-w-md mx-auto p-4">
+                <div className="flex items-center gap-3 mb-3 justify-center text-sm text-muted-foreground">
+                  <Loader2 className="animate-spin w-5 h-5 text-primary" />
+                  <span>
+                    Import läuft… {progress.current}/{progress.total}
+                  </span>
+                </div>
+                <Progress
+                  value={
+                    progress.total
+                      ? Math.round((progress.current / progress.total) * 100)
+                      : 0
+                  }
+                />
+              </div>
             </div>
           )}
         </div>
@@ -295,53 +559,8 @@ export default function Import() {
         </Button>
         <Button
           className="flex-1 cursor-pointer"
-          disabled={files.length === 0 || loading || needsClass}
-          onClick={async () => {
-            if (needsClass) {
-              toast.warning("Bitte wählen Sie zuerst eine Klasse aus.");
-              return;
-            }
-            if (files.length === 0) {
-              toast.error("Keine Dateien zum Importieren ausgewählt.");
-              return;
-            }
-            setLoading(true);
-            try {
-              for (const { file, displayName } of files) {
-                const response = await uploadFile(file);
-
-                if (response) {
-                  const weekRes = await fetch("/api/week", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      timetable: response,
-                      week: displayName,
-                      class_id: classId,
-                    }),
-                  });
-
-                  if (!weekRes.ok) {
-                    const errorData = await weekRes.json().catch(() => ({}));
-                    const msg =
-                      errorData.error ||
-                      `Week-Import fehlgeschlagen für ${displayName}`;
-                    toast.error(msg);
-                    throw new Error(msg);
-                  }
-                }
-              }
-
-              toast.success("Import abgeschlossen!");
-              setFiles([]);
-            } catch (error: unknown) {
-              const err =
-                error instanceof Error ? error : new Error(String(error));
-              toast.error(`Fehler beim Importieren. ${err.message}`);
-            } finally {
-              setLoading(false);
-            }
-          }}
+          disabled={files.length === 0 || loading || needsClass || isImporting}
+          onClick={handleImport}
         >
           Importieren
         </Button>

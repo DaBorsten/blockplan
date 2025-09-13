@@ -17,7 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchWeekIDsWithNames } from "@/utils/weeks";
+// Convex
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import type { Id } from "@/../convex/_generated/dataModel";
 import type { Group } from "@/types/group";
 import { toast } from "sonner";
 import { Calendar, Users2, Loader2, CheckCircle2, XCircle } from "lucide-react";
@@ -44,9 +47,23 @@ export default function NotesTransferDialog({
   classId,
   initialGroup,
 }: Props) {
-  const [weeks, setWeeks] = useState<{ label: string; value: string | null }[]>(
-    [],
+  const classWeeks = useQuery(
+    api.weeks.listWeeks,
+    open && classId ? { classId: classId as Id<"classes"> } : "skip",
   );
+  const weeks = useMemo(() => {
+    if (!classWeeks) return [] as { label: string; value: string }[];
+    const mapped = classWeeks.map((w) => ({
+      label: w.title,
+      value: w._id as string,
+    }));
+    const collator = new Intl.Collator("de-DE", {
+      numeric: true,
+      sensitivity: "base",
+    });
+    mapped.sort((a, b) => collator.compare(b.label, a.label));
+    return mapped;
+  }, [classWeeks]);
   const [sourceWeekId, setSourceWeekId] = useState<string | null>(null);
   const [targetWeekIdState, setTargetWeekIdState] = useState<string | null>(
     null,
@@ -54,32 +71,16 @@ export default function NotesTransferDialog({
   const [group, setGroup] = useState<Group>(1);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [totalCount, setTotalCount] = useState<number | null>(null);
-  const [loadingWeeks, setLoadingWeeks] = useState(false);
+  const loadingWeeks = classWeeks === undefined;
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Initialize defaults when weeks load and dialog opens
   useEffect(() => {
-    const loadWeeks = async () => {
-      if (!classId) return;
-      setLoadingWeeks(true);
-      try {
-        const data = await fetchWeekIDsWithNames(classId);
-        const list = (data || []).filter((w) => w.value);
-        setWeeks(list as { label: string; value: string | null }[]);
-        if (open) {
-          // Set defaults only when dialog is open
-          setSourceWeekId((prev) => prev ?? list[0]?.value ?? null);
-          setTargetWeekIdState((prev) => prev ?? targetWeekId);
-        }
-      } catch (e) {
-        console.error("Wochen laden fehlgeschlagen", e);
-        toast.error("Wochen konnten nicht geladen werden");
-      } finally {
-        setLoadingWeeks(false);
-      }
-    };
-    if (open) loadWeeks();
-  }, [open, classId, targetWeekId]);
+    if (!open || !weeks.length) return;
+    setSourceWeekId((prev) => prev ?? weeks[0]?.value ?? null);
+    setTargetWeekIdState((prev) => prev ?? targetWeekId ?? null);
+  }, [open, weeks, targetWeekId, sourceWeekId]);
 
   // Reset group and counters on dialog open
   useEffect(() => {
@@ -100,55 +101,42 @@ export default function NotesTransferDialog({
     [sourceWeekId, targetWeekIdState, group],
   );
 
-  useEffect(() => {
-    const run = async () => {
-      if (!canPreview) {
-        setPreviewCount(null);
-        setTotalCount(null);
-        return;
-      }
-      setLoadingPreview(true);
-      try {
-        const params = new URLSearchParams({
-          sourceWeekId: sourceWeekId!,
-          targetWeekId: targetWeekIdState!,
-          group: String(group),
-        });
-        const res = await fetch(
-          `/api/week/notes/transfer?${params.toString()}`,
-        );
-        const json = await res.json();
-        if (res.ok) {
-          setPreviewCount(json.transferableCount ?? 0);
-          setTotalCount(json.totalCount ?? null);
-        } else {
-          setPreviewCount(null);
-          setTotalCount(null);
-          console.error(json.error || "Preview failed");
+  const preview = useQuery(
+    api.notes.transferPreview,
+    open && canPreview
+      ? {
+          sourceWeekId: sourceWeekId as Id<"weeks">,
+          targetWeekId: targetWeekIdState! as Id<"weeks">,
+          group: group,
         }
-      } finally {
-        setLoadingPreview(false);
-      }
-    };
-    run();
-  }, [canPreview, sourceWeekId, targetWeekIdState, group]);
+      : "skip",
+  );
+  useEffect(() => {
+    if (!canPreview) {
+      setLoadingPreview(false);
+      setPreviewCount(null);
+      return;
+    }
+    setLoadingPreview(preview === undefined);
+    if (preview) {
+      setPreviewCount(preview.transferableCount ?? 0);
+    }
+  }, [preview, canPreview]);
 
+  const transferMutation = useMutation(api.notes.transferNotes);
   const onSubmit = async () => {
-    if (!canPreview) return;
+    if (!canPreview || !sourceWeekId || !targetWeekIdState) {
+      toast.error("Bitte Quelle, Ziel und Gruppe korrekt auswählen.");
+      return;
+    }
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/week/notes/transfer`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceWeekId: sourceWeekId!,
-          targetWeekId: targetWeekIdState!,
-          group: group,
-        }),
+      const res = await transferMutation({
+        sourceWeekId: sourceWeekId as Id<"weeks">,
+        targetWeekId: targetWeekIdState as Id<"weeks">,
+        group,
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Transfer failed");
-      const count = json.updatedCount ?? 0;
+      const count = res.updatedCount ?? 0;
       toast.success(`${count} Notizen übertragen.`);
       onOpenChange(false);
     } catch (e: unknown) {
@@ -192,7 +180,7 @@ export default function NotesTransferDialog({
                 <SelectContent>
                   <SelectGroup>
                     {weeks.map((w) => (
-                      <SelectItem key={w.value!} value={w.value!}>
+                      <SelectItem key={w.value} value={w.value}>
                         {w.label}
                       </SelectItem>
                     ))}
@@ -222,7 +210,7 @@ export default function NotesTransferDialog({
                 <SelectContent>
                   <SelectGroup>
                     {weeks.map((w) => (
-                      <SelectItem key={w.value!} value={w.value!}>
+                      <SelectItem key={w.value} value={w.value}>
                         {w.label}
                       </SelectItem>
                     ))}
