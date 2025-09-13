@@ -20,7 +20,7 @@ export const listWeeks = query({
       .withIndex("by_class", (q) => q.eq("class_id", classId))
       .order("asc")
       .collect();
-    return weeks.map((w) => ({ _id: w._id, title: w.title }));
+    return weeks.map((w) => ({ id: w._id, title: w.title }));
   },
 });
 
