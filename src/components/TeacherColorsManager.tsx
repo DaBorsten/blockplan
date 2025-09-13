@@ -87,7 +87,7 @@ export function TeacherColorsManager({ classId }: Props) {
       await saveColors({
         classId: classId as Id<"classes">,
         items: itemsToSave.map((it) => ({
-          id: it.id ? (it.id as unknown as Id<"colors">) : undefined,
+          id: it.id ? it.id : undefined,
           teacher: it.teacher.trim(),
           color: it.color,
         })),
