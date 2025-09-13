@@ -55,7 +55,7 @@ export default function NotesTransferDialog({
     if (!classWeeks) return [] as { label: string; value: string }[];
     const mapped = classWeeks.map((w) => ({
       label: w.title,
-      value: w._id as string,
+      value: w.id as string,
     }));
     const collator = new Intl.Collator("de-DE", {
       numeric: true,

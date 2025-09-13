@@ -40,7 +40,7 @@ export function WeekSelectionCombobox() {
     if (!classID) return [{ label: "Keine Woche", value: null }];
     if (weeksRaw === undefined) return [{ label: "Lädt…", value: weekID }];
     const mapped = weeksRaw
-      .map((w) => ({ label: w.title, value: w._id as string }))
+      .map((w) => ({ label: w.title, value: w.id as string }))
       .sort((a, b) =>
         b.label.localeCompare(a.label, "de-DE", {
           numeric: true,

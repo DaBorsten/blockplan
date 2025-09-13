@@ -88,7 +88,7 @@ export default function ClassMembersPage() {
   const createInvitation = useMutation(api.invitations.createInvitation);
   const deleteInvitation = useMutation(api.invitations.deleteInvitation);
   // Weeks (Convex live)
-  type Week = { _id: string; title: string };
+  type Week = { id: string; title: string };
   const weeksRaw = useQuery(
     api.weeks.listWeeks,
     classIdQuery ? { classId: classIdQuery as Id<"classes"> } : "skip",
@@ -562,7 +562,7 @@ export default function ClassMembersPage() {
                     </h3>
                     <ul className="grid gap-3">
                       {items.map((week) => (
-                        <li key={week._id} className="block">
+                        <li key={week.id} className="block">
                           <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div
@@ -585,7 +585,7 @@ export default function ClassMembersPage() {
                             <div className="flex items-center gap-2">
                               <Button
                                 onClick={() =>
-                                  handleWeekEdit(week._id, week.title)
+                                  handleWeekEdit(week.id, week.title)
                                 }
                                 size="sm"
                                 className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
@@ -717,7 +717,7 @@ export default function ClassMembersPage() {
                 if (!pendingWeek) return;
                 try {
                   setWeekDeleteLoading(true);
-                  await deleteWeek(pendingWeek._id);
+                  await deleteWeek(pendingWeek.id);
                   setWeekDeleteOpen(false);
                   setPendingWeek(null);
                 } finally {

@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { randomInt } from "crypto";
 
 const NEVER_EXPIRES_DATE = new Date("9999-12-31T23:59:59.000Z");
 const NEVER_EXPIRES_TIMESTAMP = NEVER_EXPIRES_DATE.getTime();
@@ -24,7 +23,7 @@ function genCode(length = 6) {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // ohne I,O,1,0
   let out = "";
   for (let i = 0; i < length; i++) {
-    out += alphabet[randomInt(alphabet.length)];
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return out;
 }
