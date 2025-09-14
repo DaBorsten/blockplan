@@ -14,5 +14,3 @@ export const PROTECTED_PATH_PREFIXES: readonly string[] = [
   ROUTE_IMPORTIEREN,
   ROUTE_EINSTELLUNGEN,
 ];
-
-export type ProtectedPathPrefix = (typeof PROTECTED_PATH_PREFIXES)[number];

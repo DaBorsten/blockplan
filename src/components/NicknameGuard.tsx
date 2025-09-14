@@ -22,7 +22,7 @@ function isProtectedPath(pathname: string | null): boolean {
 
 // (Validierung entfällt, da Convex typisiert ist)
 
-export default function NicknameGuard() {
+export function NicknameGuard() {
   const { user, isSignedIn } = useUser();
   const router = useRouter();
   const pathname = usePathname();

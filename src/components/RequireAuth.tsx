@@ -3,7 +3,7 @@ import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 
-export default function RequireAuth() {
+export function RequireAuth() {
   const pathname = usePathname();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 py-20 text-center">

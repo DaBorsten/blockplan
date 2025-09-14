@@ -2,10 +2,11 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
-import { Colors } from "@/constants/Colors";
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
 import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
 // nuqs hooks for query params
 import { Lesson } from "@/types/timetableData";
 import { useCurrentWeek } from "@/store/useWeekStore";
@@ -26,11 +27,12 @@ type TimetableProps = {
   setIsEditNotesModalOpen: (open: boolean) => void;
 };
 
-export default function Timetable({
+export function Timetable({
   setActiveClickedLesson,
   setActiveNotes,
   setIsEditNotesModalOpen,
 }: TimetableProps) {
+  const { resolvedTheme } = useTheme();
   const weekID = useCurrentWeek();
   const group = useCurrentGroup();
   const { mode } = useModeStore();
@@ -88,21 +90,19 @@ export default function Timetable({
     });
   }, [timetableRaw]);
 
+  // layout constants
+  const TIME_COL_PX = 72;
+  const MIN_DAY_COL_PX = 200;
+
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const theadRef = useRef<HTMLTableSectionElement>(null);
   const [rowHeight, setRowHeight] = useState<number>(64); // px
-  const [dayColWidth, setDayColWidth] = useState<number>(250);
+  const [dayColWidth, setDayColWidth] = useState<number>(MIN_DAY_COL_PX);
   const [visibleDayCount, setVisibleDayCount] = useState<number>(5);
   const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
   const didInitialScrollRef = useRef<boolean>(false);
-
-  // layout constants
-  const TIME_COL_PX = 64;
-  const MIN_DAY_COL_PX = 250;
-
-  const colorScheme = "dark";
 
   // Setze aktuellen Tag
   useEffect(() => {
@@ -283,25 +283,19 @@ export default function Timetable({
           </colgroup>
           <thead ref={theadRef}>
             <tr>
-              <th
-                className="bg-secondary w-16 px-1 py-2 text-center font-bold text-sm sticky left-0 top-0 z-30"
-                style={{
-                  boxShadow: `inset -1px 0 ${Colors[colorScheme].textInputDisabled}, inset 0 -1px ${Colors[colorScheme].textInputDisabled}`,
-                }}
-              >
+              <th className="bg-secondary w-16 px-1 py-2 text-center font-bold text-sm sticky left-0 top-0 z-30 shadow-[inset_-1px_0_theme(colors.gray.500),_inset_0_-1px_theme(colors.gray.500)] dark:shadow-[inset_-1px_0_theme(colors.gray.600),_inset_0_-1px_theme(colors.gray.600)]">
                 Stunde
               </th>
               {allDays.map((day) => (
                 <th
                   key={day}
-                  className="px-1 py-2 text-center font-bold text-sm sticky top-0 z-20 bg-background"
+                  className="px-1 py-2 text-center font-bold text-sm sticky top-0 z-20 bg-background shadow-[inset_0_-1px_theme(colors.gray.500)] dark:shadow-[inset_0_-1px_theme(colors.gray.600)]"
                   style={{
                     scrollSnapAlign: "start",
                     scrollSnapStop: "always",
                     width: dayColWidth,
                     transition: "width 200ms ease",
                     willChange: "width",
-                    boxShadow: `inset 0 -1px ${Colors[colorScheme].textInputDisabled}`,
                   }}
                 >
                   {day}
@@ -336,13 +330,7 @@ export default function Timetable({
                   <td
                     className={`bg-secondary text-center box-border p-1 ${
                       isLast ? "" : "border-b"
-                    } min-h-16 text-xs border-b-[var(--hour-border)] sticky left-0 z-20`}
-                    style={
-                      {
-                        "--hour-border": Colors[colorScheme].textInputDisabled,
-                        boxShadow: `inset -1px 0 ${Colors[colorScheme].textInputDisabled}`,
-                      } as React.CSSProperties
-                    }
+                    } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_theme(colors.gray.500)] dark:shadow-[inset_-1px_0_theme(colors.gray.600)]`}
                   >
                     <div className="flex flex-col justify-center h-full">
                       <div className="text-xs text-tertiary">
@@ -371,13 +359,7 @@ export default function Timetable({
                           key={`${day}-${hour}`}
                           className={`text-center box-border p-1 ${
                             isLast ? "" : "border-b"
-                          } min-h-16 border-b-[var(--empty-border)]`}
-                          style={
-                            {
-                              "--empty-border":
-                                Colors[colorScheme].textInputDisabled,
-                            } as React.CSSProperties
-                          }
+                          } min-h-16 border-gray-500 dark:border-gray-600`}
                         >
                           <div
                             className="h-full flex items-center justify-center text-muted-foreground select-none"
@@ -394,22 +376,33 @@ export default function Timetable({
                         key={`${day}-${hour}`}
                         className={`box-border p-1 ${
                           isLast ? "" : "border-b"
-                        } min-h-16 border-b-[var(--cell-border)]`}
-                        style={
-                          {
-                            "--cell-border":
-                              Colors[colorScheme].textInputDisabled,
-                          } as React.CSSProperties
-                        }
+                        } min-h-16 border-gray-500 dark:border-gray-600`}
                       >
                         <div className="flex gap-1 flex-nowrap items-stretch h-full">
                           {hourData.lessons.map((lesson, idx) => {
-                            const bgColor =
-                              getColor(lesson.teacher) ||
-                              Colors[colorScheme].textInputBackground;
-                            const textColor = isColorDark(bgColor)
-                              ? "white"
-                              : "black";
+                            const rawColor = getColor(lesson.teacher) || null;
+                            const hasCustomColor = !!rawColor;
+                            // Wenn es eine echte Farbdefinition (hex/rgb) gibt, nutzen wir inline style + Kontrastermittlung.
+                            // Sonst Tailwind Fallback + Theme-basierte Textfarbe.
+                            let inlineStyle: React.CSSProperties | undefined;
+                            let textColorClass: string;
+                            let iconColor: string | undefined;
+
+                            if (hasCustomColor) {
+                              const dark = isColorDark(rawColor!);
+                              inlineStyle = { background: rawColor! };
+                              textColorClass = dark
+                                ? "text-white"
+                                : "text-black";
+                              iconColor = dark ? "white" : "black";
+                            } else {
+                              // Fallback: neutrale Oberfläche (bg-muted) und Text abhängig vom Theme für ausreichend Kontrast
+                              const darkMode = resolvedTheme === "dark";
+                              textColorClass = darkMode
+                                ? "text-white"
+                                : "text-black";
+                              iconColor = darkMode ? "white" : "black";
+                            }
 
                             return (
                               <button
@@ -442,13 +435,14 @@ export default function Timetable({
                                       toast.error("Kopieren fehlgeschlagen!");
                                     });
                                 }}
-                                className="flex flex-1 h-full rounded px-1 py-1 items-center justify-between cursor-pointer border-0 text-xs"
-                                style={
-                                  {
-                                    background: bgColor,
-                                    color: textColor,
-                                  } as React.CSSProperties
-                                }
+                                className={cn(
+                                  "flex flex-1 h-full rounded px-1 py-1 items-center justify-between cursor-pointer text-xs transition-colors border border-gray-700/40",
+                                  hasCustomColor
+                                    ? undefined
+                                    : "bg-neutral-400 dark:bg-neutral-600",
+                                  textColorClass,
+                                )}
+                                style={inlineStyle}
                               >
                                 <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5">
                                   <span className="font-bold text-xs truncate">
@@ -456,7 +450,7 @@ export default function Timetable({
                                   </span>
                                   {lesson.room && (
                                     <span className="flex items-center gap-1 text-xs truncate">
-                                      <MapPin size={14} color={textColor} />
+                                      <MapPin size={14} color={iconColor} />
                                       {lesson.room}
                                     </span>
                                   )}
@@ -465,13 +459,13 @@ export default function Timetable({
                                   lesson.notes?.length > 0 &&
                                   (mode === "notes" ? (
                                     <LucideNotebookText
-                                      color={textColor}
+                                      color={iconColor}
                                       size={20}
                                       className="self-center flex-shrink-0 ml-1"
                                     />
                                   ) : (
                                     <Copy
-                                      color={textColor}
+                                      color={iconColor}
                                       size={20}
                                       className="self-center flex-shrink-0 ml-1"
                                     />

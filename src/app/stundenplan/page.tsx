@@ -1,14 +1,14 @@
 "use client";
 
-import { GroupSelect } from "@/components/GroupSelection";
-import { WeekSelectionCombobox } from "@/components/weekSelection";
+import { GroupSelection } from "@/components/GroupSelection";
+import { WeekSelectionCombobox } from "@/components/WeekSelectionCombobox";
 import { useEffect, useState, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@/../convex/_generated/dataModel";
 import { api } from "@/../convex/_generated/api.js";
-import Timetable from "@/components/timetable";
-import NotesActionsDropdown from "@/components/NotesActionsDropdown";
-import ModeLockButton from "@/components/ModeLockButton";
+import { Timetable } from "@/components/Timetable";
+import { NotesActionsDropdown } from "@/components/NotesActionsDropdown";
+import { ModeLockButton } from "@/components/ModeLockButton";
 import {
   Dialog,
   DialogContent,
@@ -120,25 +120,29 @@ export default function TimetablePage() {
         </div>
 
         {/* Mobile: controls split left/right */}
-        <div className="flex w-full items-center justify-between md:hidden">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex w-full items-start justify-between md:hidden gap-2 flex-nowrap">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <div className="overflow-hidden">
               <WeekSelectionCombobox />
             </div>
-            <GroupSelect />
+            <GroupSelection />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-nowrap">
             <ModeLockButton />
             <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
           </div>
         </div>
 
         {/* Desktop: original grouping */}
-        <div className="hidden md:flex flex-wrap gap-4 items-center">
-          <WeekSelectionCombobox />
-          <GroupSelect />
-          <ModeLockButton />
-          <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
+        <div className="hidden md:flex flex-nowrap gap-4 items-start">
+          <div className="flex flex-wrap gap-2">
+            <WeekSelectionCombobox />
+            <GroupSelection />
+          </div>
+          <div className="flex flex-nowrap gap-2">
+            <ModeLockButton />
+            <NotesActionsDropdown getNotes={() => editNotes ?? ""} />
+          </div>
         </div>
       </div>
 

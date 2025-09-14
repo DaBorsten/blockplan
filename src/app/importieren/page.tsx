@@ -13,7 +13,7 @@ const extractFileName = (fullName: string): string => {
 
 import React, { useRef, useState, useCallback } from "react";
 import { AlertTriangle, Loader2, Upload, FileDown } from "lucide-react";
-import Dropzone from "@/components/Dropzone";
+import { Dropzone } from "@/components/Dropzone";
 import { Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -40,7 +40,7 @@ const groupOptions: { label: string; value: Group }[] = [
   { label: "Gruppe B", value: 3 },
 ];
 
-export default function NotesTransferDialog({
+export function NotesTransferDialog({
   open,
   onOpenChange,
   targetWeekId,

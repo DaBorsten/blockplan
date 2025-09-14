@@ -10,7 +10,7 @@ import {
 import { Copy, Send, Ellipsis } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useModeStore } from "@/store/useModeStore";
-import NotesTransferDialog from "@/components/NotesTransferDialog";
+import { NotesTransferDialog } from "@/components/NotesTransferDialog";
 // Selection state from Zustand store
 import { useCurrentWeek } from "@/store/useWeekStore";
 import { useCurrentGroup } from "@/store/useGroupStore";
@@ -25,7 +25,7 @@ type Props = {
   getNotes: () => string | null | undefined;
 };
 
-export default function NotesActionsDropdown({ getNotes }: Props) {
+export function NotesActionsDropdown({ getNotes }: Props) {
   useModeStore();
   const weekID = useCurrentWeek();
   const classID = useCurrentClass();

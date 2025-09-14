@@ -43,8 +43,3 @@ export type TimetableForClassForImport = {
   Donnerstag: DayScheduleForImport;
   Freitag: DayScheduleForImport;
 };
-
-export type TimetableForImport = {
-  class: string;
-  timetable: TimetableForClassForImport;
-};

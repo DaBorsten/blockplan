@@ -17,7 +17,7 @@ import {
 import { Calendar, CloudDownload, School, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { ClassSelectionCombobox } from "./classSelection";
+import { ClassSelectionCombobox } from "./ClassSelectionCombobox";
 
 // Icons already imported individually above; route constants added below.
 import {
