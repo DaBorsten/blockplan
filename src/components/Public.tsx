@@ -11,7 +11,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-export default function Public({ children }: Props) {
+export function Public({ children }: Props) {
   return (
     <>
       {/* Skip link for keyboard and screen reader users */}

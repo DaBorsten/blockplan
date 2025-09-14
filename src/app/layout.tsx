@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeToaster } from "@/components/ThemeToaster";
-import AppShell from "@/components/AppShell";
-import ClerkThemingProvider from "@/components/ClerkThemingProvider";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
+import { AppShell } from "@/components/AppShell";
+import { ClerkThemingProvider } from "@/components/ClerkThemingProvider";
+import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

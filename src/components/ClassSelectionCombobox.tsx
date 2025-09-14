@@ -80,17 +80,22 @@ export function ClassSelectionCombobox() {
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <School className="size-4 text-white" />
               </div>
-              <div className="flex flex-col gap-0.5 leading-none">
+              <div className="flex flex-col gap-0.5 leading-none min-w-0">
                 <span className="font-medium">Klasse</span>
-                <span className="min-h-[1rem] inline-flex items-center">
+                <span className="min-h-[1rem] inline-flex items-center min-w-0 max-w-full">
                   {isLoading ? (
                     <Skeleton className="h-4 w-20" />
                   ) : isInitializing ? (
                     <span className="text-muted-foreground">Init…</span>
+                  ) : selectedLabel ? (
+                    <span
+                      className="block overflow-hidden text-ellipsis whitespace-nowrap min-w-0 max-w-full"
+                      title={selectedLabel}
+                    >
+                      {selectedLabel}
+                    </span>
                   ) : (
-                    (selectedLabel ?? (
-                      <span className="text-muted-foreground">(Keine)</span>
-                    ))
+                    <span className="text-muted-foreground">(Keine)</span>
                   )}
                 </span>
               </div>
@@ -98,14 +103,15 @@ export function ClassSelectionCombobox() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width]"
+            className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-[var(--radix-dropdown-menu-trigger-width)]"
             align="start"
+            side="bottom"
           >
             {isLoading && (
-              <div className="p-2 flex flex-col gap-2 w-48">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-4 w-24" />
+              <div className=" flex flex-1 gap-1 flex-col">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
               </div>
             )}
             {!isLoading &&

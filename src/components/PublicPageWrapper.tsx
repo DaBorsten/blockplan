@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { usePathname } from "next/navigation";
-import Public from "@/components/Public";
+import { Public } from "@/components/Public";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
 export function PublicPageWrapper({ children }: { children: React.ReactNode }) {

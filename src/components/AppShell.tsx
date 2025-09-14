@@ -4,16 +4,11 @@ import { usePathname } from "next/navigation";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 import { SignedInWrapper } from "@/components/SignedInWrapper";
 import { PublicPageWrapper } from "@/components/PublicPageWrapper";
-import dynamic from "next/dynamic";
-import React from "react";
+import { ReactNode } from "react";
 import { Spinner } from "./ui/shadcn-io/spinner";
+import { RequireAuth } from "@/components/RequireAuth";
 
-const RequireAuth = dynamic(() => import("@/components/RequireAuth"), {
-  loading: () => <Spinner />,
-  ssr: false,
-});
-
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
   const pathname = usePathname();
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
@@ -42,5 +37,3 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return <SignedInWrapper>{children}</SignedInWrapper>;
 }
-
-export default AppShell;

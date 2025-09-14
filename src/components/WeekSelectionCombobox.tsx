@@ -62,14 +62,23 @@ export function WeekSelectionCombobox() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[150px] justify-between"
+          className="w-[150px] justify-between flex items-center gap-2 min-w-0"
         >
-          {weekID
-            ? weeks.find((w) => w.value === weekID)?.label
-            : loading
-              ? "Lädt..."
-              : "Woche wählen"}
-          <ChevronsUpDown className="opacity-50" />
+          <span
+            className="flex-1 min-w-0 truncate text-left"
+            title={
+              weekID
+                ? weeks.find((w) => w.value === weekID)?.label || undefined
+                : undefined
+            }
+          >
+            {weekID
+              ? weeks.find((w) => w.value === weekID)?.label
+              : loading
+                ? "Lädt..."
+                : "Woche wählen"}
+          </span>
+          <ChevronsUpDown className="opacity-50 flex-shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[150px] p-0">
@@ -78,28 +87,32 @@ export function WeekSelectionCombobox() {
           <CommandList>
             <CommandEmpty>Keine Woche</CommandEmpty>
             <CommandGroup>
-              {weeks.map((week) => (
-                <CommandItem
-                  key={week.value ?? "none"}
-                  value={week.value ?? ""}
-                  onSelect={(currentValue) => {
-                    if (currentValue === (weekID ?? "")) {
+              {weeks.map((week) => {
+                const isActive = weekID === week.value;
+                return (
+                  <CommandItem
+                    key={week.value ?? "none"}
+                    // Für die Suche soll der Label-Text verwendet werden, nicht die ID
+                    value={week.label}
+                    onSelect={() => {
+                      if (isActive) {
+                        setOpen(false);
+                        return;
+                      }
                       setOpen(false);
-                      return;
-                    }
-                    setOpen(false);
-                    handleWeekChange(currentValue);
-                  }}
-                >
-                  {week.label}
-                  <Check
-                    className={cn(
-                      "ml-auto",
-                      weekID === week.value ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                </CommandItem>
-              ))}
+                      handleWeekChange(week.value ?? null);
+                    }}
+                  >
+                    {week.label}
+                    <Check
+                      className={cn(
+                        "ml-auto",
+                        isActive ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                  </CommandItem>
+                );
+              })}
             </CommandGroup>
           </CommandList>
         </Command>

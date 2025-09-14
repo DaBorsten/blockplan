@@ -312,9 +312,6 @@ export const importWeekWithTimetable = mutation({
   handler: async (ctx, { classId, title, timetable }) => {
     const member = await getMembership(ctx, classId);
     if (!member) throw new Error("Keine Berechtigung");
-    // allow any member to import? align with createWeek (owner/admin). We'll restrict to owner/admin for consistency.
-    if (member.role !== "owner" && member.role !== "admin")
-      throw new Error("Keine Berechtigung");
     const weekId = await ctx.db.insert("weeks", { class_id: classId, title });
     // timetable: { day -> hour -> [lessons] }
     const timetableData = timetable?.timetable || {};
