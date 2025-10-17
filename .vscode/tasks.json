@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Typecheck (bun tsc)",
+			"type": "shell",
+			"command": "bun",
+			"args": [
+				"x",
+				"tsc",
+				"--noEmit"
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Lint (bun eslint)",
+			"type": "shell",
+			"command": "bun",
+			"args": [
+				"x",
+				"eslint",
+				"."
+			],
+			"isBackground": false,
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"group": "build"
+		}
+	]
+}
