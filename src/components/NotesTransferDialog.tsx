@@ -53,15 +53,13 @@ export function NotesTransferDialog({
   );
   const weeks = useMemo(() => {
     if (!classWeeks) return [] as { label: string; value: string }[];
-    const mapped = classWeeks.map((w) => ({
-      label: w.title,
-      value: w.id as string,
-    }));
-    const collator = new Intl.Collator("de-DE", {
-      numeric: true,
-      sensitivity: "base",
-    });
-    mapped.sort((a, b) => collator.compare(b.label, a.label));
+    const mapped = classWeeks
+      .map((w) => ({
+        label: w.title,
+        value: w.id as string,
+        createdAt: w.createdAt,
+      }))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return mapped;
   }, [classWeeks]);
   const [sourceWeekId, setSourceWeekId] = useState<string | null>(null);

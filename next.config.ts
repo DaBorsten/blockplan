@@ -47,9 +47,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  reactCompiler: true,
   experimental: {
-    reactCompiler: true,
-    middlewarePrefetch: "flexible",
+    proxyPrefetch: "flexible",
   },
   async headers() {
     return [

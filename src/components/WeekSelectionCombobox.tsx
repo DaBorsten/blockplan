@@ -40,13 +40,12 @@ export function WeekSelectionCombobox() {
     if (!classID) return [{ label: "Leer", value: null }];
     if (weeksRaw === undefined) return [{ label: "Lädt…", value: weekID }];
     const mapped = weeksRaw
-      .map((w) => ({ label: w.title, value: w.id as string }))
-      .sort((a, b) =>
-        b.label.localeCompare(a.label, "de-DE", {
-          numeric: true,
-          sensitivity: "base",
-        }),
-      );
+      .map((w) => ({
+        label: w.title,
+        value: w.id as string,
+        createdAt: w.createdAt,
+      }))
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return [{ label: "Leer", value: null }, ...mapped];
   }, [weeksRaw, classID, weekID]);
 
