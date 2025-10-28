@@ -301,7 +301,7 @@ export default function TimetablePage() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Klassen Notizen bearbeiten</DialogTitle>
           </DialogHeader>
