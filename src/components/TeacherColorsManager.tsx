@@ -3,7 +3,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Pencil, Plus, Trash2, SearchIcon, RotateCw } from "lucide-react";
+import {
+  Pencil,
+  Plus,
+  Trash2,
+  SearchIcon,
+  RotateCw,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "./ui/shadcn-io/spinner";
 import { useQuery, useMutation } from "convex/react";
@@ -232,7 +239,7 @@ export function TeacherColorsManager({ classId }: Props) {
                           onClick={() => saveSingle(idx)}
                           disabled={!item.teacher.trim()}
                         >
-                          <CheckIcon />
+                          <Check className="w-4 h-4" />
                           <span className="hidden md:inline">Fertig</span>
                         </Button>
                       ) : (
@@ -264,22 +271,5 @@ export function TeacherColorsManager({ classId }: Props) {
         </div>
       )}
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      className="w-4 h-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M20 6 9 17l-5-5" />
-    </svg>
   );
 }

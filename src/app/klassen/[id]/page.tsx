@@ -34,6 +34,7 @@ import {
   Users,
   SearchIcon,
   UserRoundX,
+  PencilLine,
 } from "lucide-react";
 import { TeacherColorsManager } from "@/components/TeacherColorsManager";
 import { useQuery, useMutation, useConvex } from "convex/react";
@@ -453,19 +454,7 @@ export default function ClassMembersPage() {
                 }}
                 aria-label="Klasse umbenennen"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-4 h-4"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                </svg>
+                <PencilLine className="w-4 h-4" />
               </Button>
             )}
           </div>
@@ -693,19 +682,7 @@ export default function ClassMembersPage() {
                                 }
                                 size={isMobile ? "icon" : "sm"}
                               >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="w-4 h-4"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M12 20h9" />
-                                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                </svg>
+                                <PencilLine className="w-4 h-4" />
                                 <span className="hidden md:inline">
                                   Bearbeiten
                                 </span>
@@ -715,20 +692,7 @@ export default function ClassMembersPage() {
                                 onClick={() => openWeekDelete(week)}
                                 size={isMobile ? "icon" : "sm"}
                               >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="w-4 h-4"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <path d="M3 6h18" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
+                                <Trash2 className="w-4 h-4" />
                                 <span className="hidden md:inline">
                                   Löschen
                                 </span>
