@@ -4,7 +4,7 @@ import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
 import { isColorDark } from "@/utils/colorDark";
-import { Copy, LucideNotebookText, MapPin } from "lucide-react"; // lucide-react für Web
+import { Copy, LucideNotebookText, MapPin } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 // nuqs hooks for query params

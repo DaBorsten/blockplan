@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
-  Pencil,
   Plus,
   Trash2,
   SearchIcon,
   RotateCw,
   Check,
+  PencilLine,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "./ui/shadcn-io/spinner";
@@ -152,7 +152,7 @@ export function TeacherColorsManager({ classId }: Props) {
           aria-label="Neue Lehrerkürzel-Farbe hinzufügen"
         >
           <Plus className="w-4 h-4" />
-          <span>Neuen Lehrer hinzufügen</span>
+          <span>Lehrer hinzufügen</span>
         </Button>
         <Button
           variant="outline"
@@ -249,7 +249,7 @@ export function TeacherColorsManager({ classId }: Props) {
                           className="flex items-center gap-1"
                           onClick={() => updateItem(idx, { _editing: true })}
                         >
-                          <Pencil className="w-4 h-4" />
+                          <PencilLine className="w-4 h-4" />
                           <span className="hidden md:inline">Bearbeiten</span>
                         </Button>
                       )}

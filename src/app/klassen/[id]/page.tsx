@@ -23,8 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Check,
-  X,
   Trash2,
   Copy as CopyIcon,
   Crown,
@@ -680,6 +678,7 @@ export default function ClassMembersPage() {
                                 onClick={() =>
                                   handleWeekEdit(week.id, week.title)
                                 }
+                                variant="outline"
                                 size={isMobile ? "icon" : "sm"}
                               >
                                 <PencilLine className="w-4 h-4" />
@@ -745,11 +744,9 @@ export default function ClassMembersPage() {
           </div>
           <DialogFooter className="flex-row gap-2 justify-end">
             <Button variant="outline" onClick={() => setEditOpen(false)}>
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button onClick={handleEditSave} disabled={!editName.trim()}>
-              <Check className="w-4 h-4" />
               Speichern
             </Button>
           </DialogFooter>
@@ -804,7 +801,6 @@ export default function ClassMembersPage() {
               className="cursor-pointer"
               disabled={weekDeleteLoading}
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
@@ -829,7 +825,6 @@ export default function ClassMembersPage() {
                 }
               }}
             >
-              <Trash2 className="w-4 h-4" />
               {weekDeleteLoading ? "Bitte warten…" : "Löschen"}
             </Button>
           </DialogFooter>
@@ -874,7 +869,6 @@ export default function ClassMembersPage() {
                 className="cursor-pointer"
                 aria-label="Einladung erstellen"
               >
-                <Check className="w-4 h-4" />
                 Erstellen
               </Button>
             </div>
@@ -1016,7 +1010,6 @@ export default function ClassMembersPage() {
               }}
               className="cursor-pointer"
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
@@ -1040,7 +1033,6 @@ export default function ClassMembersPage() {
                 }
               }}
             >
-              <Trash2 className="w-4 h-4" />
               Löschen
             </Button>
           </DialogFooter>
@@ -1080,7 +1072,6 @@ export default function ClassMembersPage() {
               className="cursor-pointer"
               disabled={confirmLoading}
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
@@ -1138,7 +1129,6 @@ export default function ClassMembersPage() {
               size="sm"
               className="cursor-pointer"
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
@@ -1147,7 +1137,6 @@ export default function ClassMembersPage() {
               className="cursor-pointer"
               disabled={!weekEditName.trim()}
             >
-              <Check className="w-4 h-4" />
               Speichern
             </Button>
           </DialogFooter>

@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, X, School, LogOut, SearchIcon } from "lucide-react";
+import { School, LogOut, SearchIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -206,7 +206,7 @@ export default function ManageClass() {
 
                 <div className="flex items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="icon"
                     title={`Klasse ${cls.class_title} verlassen`}
                     onClick={() => {
@@ -261,7 +261,6 @@ export default function ManageClass() {
               size="sm"
               className="cursor-pointer"
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
@@ -270,7 +269,6 @@ export default function ManageClass() {
               className="cursor-pointer"
               disabled={!createName.trim()}
             >
-              <Check className="w-4 h-4" />
               Erstellen
             </Button>
           </DialogFooter>
@@ -311,7 +309,6 @@ export default function ManageClass() {
               onClick={() => setLeaveOpen(false)}
               disabled={leaveLoading}
             >
-              <X className="w-4 h-4" />
               Abbrechen
             </Button>
             <Button
