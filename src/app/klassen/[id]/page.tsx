@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export default function ClassMembersPage() {
   const { user } = useUser();
   const classIdQuery = id || null;
   const convex = useConvex();
+  const isMobile = useIsMobile();
 
   // Access control: pre-check to avoid throwing in live queries
   const [access, setAccess] = useState<"unknown" | "granted" | "denied">(
@@ -474,7 +476,7 @@ export default function ClassMembersPage() {
               <Button
                 onClick={() => setInviteOpen(true)}
                 variant="outline"
-                size="default"
+                size={isMobile ? "icon" : "default"}
               >
                 <Users className="w-4 h-4" />
                 <span className="hidden md:inline">Einladungen</span>
@@ -482,7 +484,7 @@ export default function ClassMembersPage() {
               {currentRole === "owner" && (
                 <Button
                   variant="destructive"
-                  size="default"
+                  size={isMobile ? "icon" : "default"}
                   className="shrink-0"
                   onClick={() => setDeleteOpen(true)}
                   aria-label="Klasse löschen"
@@ -606,7 +608,7 @@ export default function ClassMembersPage() {
                       {canRemove(m) && (
                         <Button
                           variant="destructive"
-                          size="default"
+                          size={isMobile ? "icon" : "default"}
                           onClick={() => openConfirm(m)}
                         >
                           <UserRoundX className="w-4 h-4" />
@@ -689,8 +691,7 @@ export default function ClassMembersPage() {
                                 onClick={() =>
                                   handleWeekEdit(week.id, week.title)
                                 }
-                                size="sm"
-                                className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
+                                size={isMobile ? "icon" : "sm"}
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -712,8 +713,7 @@ export default function ClassMembersPage() {
                               <Button
                                 variant="destructive"
                                 onClick={() => openWeekDelete(week)}
-                                size="sm"
-                                className="p-2 rounded-md w-9 h-9 md:w-auto md:h-auto md:px-3 cursor-pointer"
+                                size={isMobile ? "icon" : "sm"}
                               >
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -1177,7 +1177,12 @@ export default function ClassMembersPage() {
               <X className="w-4 h-4" />
               Abbrechen
             </Button>
-            <Button onClick={saveWeekEdit} size="sm" className="cursor-pointer" disabled={!weekEditName.trim()}>
+            <Button
+              onClick={saveWeekEdit}
+              size="sm"
+              className="cursor-pointer"
+              disabled={!weekEditName.trim()}
+            >
               <Check className="w-4 h-4" />
               Speichern
             </Button>

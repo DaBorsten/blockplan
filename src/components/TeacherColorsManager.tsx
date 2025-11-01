@@ -9,6 +9,7 @@ import { Spinner } from "./ui/shadcn-io/spinner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type RowState = {
   id?: Id<"colors">;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function TeacherColorsManager({ classId }: Props) {
+  const isMobile = useIsMobile();
   const colorsData = useQuery(
     api.teacherColors.listTeacherColors,
     classId ? { classId: classId as Id<"classes"> } : "skip",
@@ -135,7 +137,7 @@ export function TeacherColorsManager({ classId }: Props) {
 
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <div className="flex flex-col gap-2 flex-wrap flex-shrink-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 flex-wrap shrink-0 sm:flex-row sm:items-center sm:justify-between">
         <Button
           size="lg"
           onClick={addRow}
@@ -224,7 +226,7 @@ export function TeacherColorsManager({ classId }: Props) {
                     <div className="flex items-center gap-2">
                       {editing ? (
                         <Button
-                          size="sm"
+                          size={isMobile ? "icon" : "sm"}
                           variant="secondary"
                           className="flex items-center gap-1"
                           onClick={() => saveSingle(idx)}
@@ -235,7 +237,7 @@ export function TeacherColorsManager({ classId }: Props) {
                         </Button>
                       ) : (
                         <Button
-                          size="sm"
+                          size={isMobile ? "icon" : "sm"}
                           variant="outline"
                           className="flex items-center gap-1"
                           onClick={() => updateItem(idx, { _editing: true })}
@@ -245,7 +247,7 @@ export function TeacherColorsManager({ classId }: Props) {
                         </Button>
                       )}
                       <Button
-                        size="sm"
+                        size={isMobile ? "icon" : "sm"}
                         variant="destructive"
                         className="flex items-center gap-1"
                         onClick={() => remove(item.id, idx)}
