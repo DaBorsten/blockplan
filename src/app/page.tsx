@@ -24,7 +24,7 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-3">
           {isLoading ? (
             <Skeleton
-              className="h-11 w-40"
+              className="h-11 sm:h-10 w-40"
               role="status"
               aria-live="polite"
               aria-busy="true"
