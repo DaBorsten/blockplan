@@ -167,7 +167,9 @@ export function NotesTransferDialog({
               >
                 <SelectTrigger
                   disabled={loadingWeeks}
-                  className="w-full truancate"
+                  className="
+                    w-full 
+                    truncate"
                   aria-label="Quellwoche auswählen"
                 >
                   <SelectValue
@@ -176,8 +178,8 @@ export function NotesTransferDialog({
                     }
                   />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup className="w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]">
+                <SelectContent className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)">
+                  <SelectGroup>
                     {weeks.map((w) => (
                       <SelectItem key={w.value} value={w.value}>
                         {w.label}
@@ -198,7 +200,9 @@ export function NotesTransferDialog({
               >
                 <SelectTrigger
                   disabled={loadingWeeks}
-                  className="w-full truancate"
+                  className="
+                    w-full
+                    truncate"
                   aria-label="Ziel Woche auswählen"
                 >
                   <SelectValue
@@ -207,7 +211,7 @@ export function NotesTransferDialog({
                     }
                   />
                 </SelectTrigger>
-                <SelectContent className="w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]">
+                <SelectContent className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)">
                   <SelectGroup>
                     {weeks.map((w) => (
                       <SelectItem key={w.value} value={w.value}>
@@ -245,7 +249,10 @@ export function NotesTransferDialog({
               <SelectTrigger className="w-full overflow-hidden text-ellipsis">
                 <SelectValue placeholder="Gruppe wählen" />
               </SelectTrigger>
-              <SelectContent align="end">
+              <SelectContent
+                align="end"
+                className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
+              >
                 <SelectGroup>
                   {groupOptions.map((opt) => (
                     <SelectItem key={opt.value} value={String(opt.value)}>

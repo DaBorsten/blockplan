@@ -30,13 +30,15 @@ export function GroupSelection() {
     >
       <SelectTrigger
         aria-label="Gruppenauswahl"
-        className="min-w-[5rem] w-auto"
+        className="
+          w-auto 
+          h-auto"
       >
         <SelectValue placeholder="Wählen" />
       </SelectTrigger>
       <SelectContent
         align="center"
-        className="min-w-[var(--radix-select-trigger-width)]"
+        className="min-w-(--radix-select-trigger-width)"
       >
         <SelectGroup>
           {options.map((opt) => (

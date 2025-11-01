@@ -565,10 +565,10 @@ export default function Import() {
           )}
         </div>
       </div>
-      <div className="w-full flex flex-col sm:flex-row gap-3 mt-4 flex-shrink-0 max-w-5xl self-center">
+      <div className="w-full flex flex-col sm:flex-row gap-3 mt-4 shrink-0 max-w-5xl self-center justify-end">
         <Button
           variant="default"
-          className="flex-1 cursor-pointer"
+          className="cursor-pointer"
           onClick={openFileDialog}
           disabled={needsClass || loading}
         >
@@ -576,7 +576,7 @@ export default function Import() {
           <span>Dateien auswählen</span>
         </Button>
         <Button
-          className="flex-1 cursor-pointer"
+          className="cursor-pointer"
           disabled={files.length === 0 || loading || needsClass || isImporting}
           onClick={handleImport}
         >

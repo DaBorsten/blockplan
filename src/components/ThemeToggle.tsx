@@ -19,11 +19,11 @@ export function ModeToggle() {
       value={theme ?? "system"}
       onValueChange={(val: string) => setTheme(val)}
     >
-      <SelectTrigger aria-label="Theme wählen" className="w-[140px]">
+      <SelectTrigger aria-label="Theme wählen" className="w-35">
         <SelectValue placeholder="Theme" className="flex items-center gap-2" />
       </SelectTrigger>
       <SelectContent
-        className="w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)] p-0"
+        className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width) p-0"
         align="start"
       >
         <SelectItem value="light" className="flex items-center gap-2">

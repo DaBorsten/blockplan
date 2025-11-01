@@ -597,7 +597,7 @@ export default function ClassMembersPage() {
                           <SelectTrigger className="h-8 w-[110px] text-sm">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="min-w-[var(--radix-select-trigger-width)] w-[var(--radix-select-trigger-width)]">
+                          <SelectContent className="min-w-(--radix-select-trigger-width) w-(--radix-select-trigger-width)">
                             <SelectItem value="member">Mitglied</SelectItem>
                             <SelectItem value="admin">Admin</SelectItem>
                           </SelectContent>

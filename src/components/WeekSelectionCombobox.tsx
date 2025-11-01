@@ -61,7 +61,7 @@ export function WeekSelectionCombobox() {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[110px] justify-between flex items-center gap-2 min-w-0"
+          className="w-30 justify-between flex items-center gap-2 min-w-0"
         >
           <span
             className="flex-1 min-w-0 truncate text-left"
@@ -77,12 +77,11 @@ export function WeekSelectionCombobox() {
                 ? "Lädt..."
                 : "Leer"}
           </span>
-          <ChevronsUpDown className="opacity-50 flex-shrink-0" />
+          <ChevronsUpDown className="opacity-50 shrink-0" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[110px] p-0">
+      <PopoverContent className="w-(--radix-popover-trigger-width) p-0">
         <Command>
-          <CommandInput placeholder="Suchen" className="h-9" />
           <CommandList>
             <CommandEmpty>Leer</CommandEmpty>
             <CommandGroup>

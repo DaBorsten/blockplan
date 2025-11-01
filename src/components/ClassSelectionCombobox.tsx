@@ -69,7 +69,7 @@ export function ClassSelectionCombobox() {
               </div>
               <div className="flex flex-col gap-0.5 leading-none min-w-0">
                 <span className="font-medium">Klasse</span>
-                <span className="min-h-[1rem] inline-flex items-center min-w-0 max-w-full">
+                <span className="min-h-4 inline-flex items-center min-w-0 max-w-full">
                   {isLoading ? (
                     <Skeleton className="h-4 w-20" />
                   ) : isInitializing ? (
@@ -90,7 +90,7 @@ export function ClassSelectionCombobox() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="min-w-[var(--radix-dropdown-menu-trigger-width)] w-[var(--radix-dropdown-menu-trigger-width)]"
+            className="min-w-(--radix-dropdown-menu-trigger-width) w-(--radix-dropdown-menu-trigger-width)"
             align="start"
             side="bottom"
           >
