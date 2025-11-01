@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
 import { useAutoLatestWeek } from "@/store/usePreferencesStore";
 import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function TimetablePage() {
   const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(

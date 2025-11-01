@@ -12,7 +12,7 @@ import {
   PencilLine,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Spinner } from "./ui/shadcn-io/spinner";
+import { Spinner } from "./ui/spinner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";

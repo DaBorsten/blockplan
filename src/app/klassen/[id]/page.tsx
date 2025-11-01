@@ -39,7 +39,7 @@ import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import type { Id } from "@/../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/ui/spinner";
 
 type Member = {
   user_id: string;

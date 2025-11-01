@@ -20,7 +20,7 @@ import { useSetClass, useCurrentClass } from "@/store/useClassStore";
 // AlertDialog removed in favor of unified Dialog like detail page
 import { toast } from "sonner";
 import { ROUTE_KLASSEN_BEITRETEN } from "@/constants/routes";
-import { Spinner } from "@/components/ui/shadcn-io/spinner";
+import { Spinner } from "@/components/ui/spinner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
