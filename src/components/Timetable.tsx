@@ -409,7 +409,7 @@ export function Timetable({
           <thead ref={theadRef}>
             <tr>
               <th
-                className="bg-secondary px-1 py-2 text-center font-bold text-sm lg:text-base sticky left-0 top-0 z-30 shadow-[inset_-1px_0_theme(colors.gray.500),_inset_0_-1px_theme(colors.gray.500)] dark:shadow-[inset_-1px_0_theme(colors.gray.600),_inset_0_-1px_theme(colors.gray.600)]"
+                className="bg-secondary px-1 py-2 text-center font-bold text-sm lg:text-base sticky left-0 top-0 z-30 shadow-[inset_-1px_0_var(--color-gray-500),inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600),inset_0_-1px_var(--color-gray-600)]"
                 style={{
                   width: TIME_COL_PX,
                   minWidth: TIME_COL_PX,
@@ -421,7 +421,7 @@ export function Timetable({
               {allDays.map((day) => (
                 <th
                   key={day}
-                  className="px-1 py-2 text-center font-bold text-sm lg:text-base sticky top-0 z-20 bg-background shadow-[inset_0_-1px_theme(colors.gray.500)] dark:shadow-[inset_0_-1px_theme(colors.gray.600)]"
+                  className="px-1 py-2 text-center font-bold text-sm lg:text-base sticky top-0 z-20 bg-background shadow-[inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_0_-1px_var(--color-gray-600)]"
                   style={{
                     scrollSnapAlign: "start",
                     scrollSnapStop: "always",
@@ -462,7 +462,7 @@ export function Timetable({
                   <td
                     className={`bg-secondary text-center box-border p-1 ${
                       isLast ? "" : "border-b"
-                    } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_theme(colors.gray.500)] dark:shadow-[inset_-1px_0_theme(colors.gray.600)]`}
+                    } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
                     style={{
                       width: TIME_COL_PX,
                       minWidth: TIME_COL_PX,
@@ -605,13 +605,13 @@ export function Timetable({
                                     <LucideNotebookText
                                       color={iconColor}
                                       size={20}
-                                      className="self-center flex-shrink-0 ml-1"
+                                      className="self-center shrink-0 ml-1"
                                     />
                                   ) : (
                                     <Copy
                                       color={iconColor}
                                       size={20}
-                                      className="self-center flex-shrink-0 ml-1"
+                                      className="self-center shrink-0 ml-1"
                                     />
                                   ))}
                               </button>

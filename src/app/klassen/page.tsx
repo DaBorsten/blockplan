@@ -121,7 +121,7 @@ export default function ManageClass() {
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6 h-full flex flex-col">
-      <div className="flex flex-row justify-between items-center mb-4 md:mb-8 flex-shrink-0">
+      <div className="flex flex-row justify-between items-center mb-4 md:mb-8 shrink-0">
         <div className="hidden md:flex flex-col">
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
             Klassen verwalten

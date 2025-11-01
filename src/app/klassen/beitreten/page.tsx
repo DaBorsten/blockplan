@@ -136,7 +136,7 @@ export default function ClassJoinPage() {
   return (
     <div className="flex min-h-[70vh] items-center justify-center px-4 py-8">
       <Card
-        className={`w-full max-w-xl border  shadow-sm bg-gradient-to-br from-background to-background/70 ${error ? "border-destructive" : "border-border/60"}`}
+        className={`w-full max-w-xl border  shadow-sm bg-linear-to-br from-background to-background/70 ${error ? "border-destructive" : "border-border/60"}`}
       >
         <CardHeader className="space-y-1">
           <CardTitle className="text-xl">Klasse beitreten</CardTitle>

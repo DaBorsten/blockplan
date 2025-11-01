@@ -340,7 +340,7 @@ export default function Import() {
 
   return (
     <div className="flex flex-col h-full px-4 md:px-6 pb-4 md:pb-6">
-      <div className="mb-4 md:mb-8 flex-shrink-0 ">
+      <div className="mb-4 md:mb-8 shrink-0 ">
         <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
           Importieren
         </h2>
