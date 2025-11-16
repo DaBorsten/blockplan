@@ -12,13 +12,12 @@ export const DEFAULT_TEACHER_COLORS = [
   { teacher: "PaMa", color: "#0070C0" },
   { teacher: "ReEv", color: "#0083B3" },
   { teacher: "ReRo", color: "#FF0000" },
-  { teacher: "ScCh", color: "#38352D" },
+  { teacher: "ScCh", color: "#FFC000" },
   { teacher: "WaFl", color: "#FCE4D6" },
   { teacher: "WaMa", color: "#00B0F0" },
   { teacher: "WeCh", color: "#203764" },
   { teacher: "HiSt", color: "#FFB2FF" },
   { teacher: "BaMa", color: "#BFDBEF" },
-  { teacher: "ZaFl", color: "#FFFFFF" },
 ] as const satisfies ReadonlyArray<{ teacher: string; color: `#${string}` }>;
 
 export type TeacherCode = (typeof DEFAULT_TEACHER_COLORS)[number]["teacher"];
