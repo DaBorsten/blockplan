@@ -5,10 +5,7 @@ import Link from "next/link";
 
 export function RequireAuth() {
   return (
-    <div
-      className="flex flex-col"
-      style={{ minHeight: "var(--app-safe-vh)" }}
-    >
+    <div className="min-h-screen flex flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-20 text-center">
         <div className="space-y-2 max-w-md px-4">
           <h1 className="text-2xl font-semibold tracking-tight">
