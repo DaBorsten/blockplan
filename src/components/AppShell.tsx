@@ -30,7 +30,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Während Clerk noch lädt: Loader minimal – verhindert falschen Public Snapshot.
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+      <div
+        className="flex items-center justify-center text-sm text-muted-foreground"
+        style={{ minHeight: "var(--app-safe-vh)" }}
+      >
         <Spinner />
       </div>
     );
@@ -51,7 +54,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (isSignedIn && isProtectedPath(pathname) && me === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+      <div
+        className="flex items-center justify-center text-sm text-muted-foreground"
+        style={{ minHeight: "var(--app-safe-vh)" }}
+      >
         <Spinner />
       </div>
     );

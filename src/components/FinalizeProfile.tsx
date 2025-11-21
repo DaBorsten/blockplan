@@ -52,7 +52,10 @@ export function FinalizeProfile() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className="flex flex-col"
+      style={{ minHeight: "var(--app-safe-vh)" }}
+    >
       <header className="flex items-center justify-between p-4 md:p-6 h-16">
         <Link
           href="/"
