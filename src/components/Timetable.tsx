@@ -403,7 +403,7 @@ export function Timetable({
   }, [timeTableData]);
 
   return (
-    <div className="h-full border border-solid border-border rounded-lg overflow-hidden relative">
+    <div className="timetable-container h-full border border-solid border-border rounded-lg overflow-hidden relative">
       <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         <table
           className="h-full border-collapse bg-background table-fixed"

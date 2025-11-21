@@ -125,8 +125,14 @@
 html,
 body,
 #__next {
-  overscroll-behavior-y: auto;
+    overscroll-behavior-y: auto;
   overscroll-behavior-x: none;
+}
+
+/* Timetable: iOS-Bounce nur innerhalb des Stundenplans unterbinden */
+.timetable-container [data-slot="scroll-area-viewport"] {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scrollable,
