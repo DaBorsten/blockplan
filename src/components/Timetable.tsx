@@ -219,9 +219,31 @@ export function Timetable({
         const today = new Date().getDay();
         const dow = today === 0 ? 6 : today - 1; // 0..6 => Mon=0..Sun=6
         const initialIndex = dow >= 5 ? 0 : dow; // weekend -> Monday
-        // Use the current computed column width for accurate alignment
-        const targetLeft = dayColWidth * initialIndex;
-        el.scrollTo({ left: targetLeft, behavior: "auto" });
+        // Warte bis Layout stabil ist und Spaltenbreiten gesetzt sind
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            // Bestimme linke Position des gewählten Day-Headers
+            const thead = theadRef.current;
+            const headerRow = thead?.querySelector("tr");
+            const headers = headerRow?.querySelectorAll<HTMLTableCellElement>(
+              "th",
+            );
+            const dayHeader = headers?.[initialIndex + 1]; // +1 wegen Zeitspalte
+            let targetLeft = dayColWidth * initialIndex;
+            if (dayHeader) {
+              // Offset relativ zum Scroll-Content; ziehe Zeitspalte ab
+              targetLeft = Math.max(0, dayHeader.offsetLeft - TIME_COL_PX);
+            }
+            // iOS/Safari Workaround: während des programmatic scrolls Snap deaktivieren
+            const prevSnap = el.style.scrollSnapType;
+            el.style.scrollSnapType = "none";
+            el.scrollTo({ left: targetLeft, behavior: "auto" });
+            // Re-enable snapping im nächsten Frame
+            requestAnimationFrame(() => {
+              el.style.scrollSnapType = prevSnap || "x mandatory";
+            });
+          });
+        });
       }
     }
 
