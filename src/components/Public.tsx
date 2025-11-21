@@ -21,7 +21,7 @@ export function Public({ children }: Props) {
       >
         Zum Inhalt springen
       </a>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-dvh flex flex-col">
         <header className="flex items-center justify-between p-4 md:p-6 h-16">
           <Link
             href="/"

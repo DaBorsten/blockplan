@@ -42,7 +42,7 @@ export function SignedInWrapper({ children }: Props) {
       <NuqsAdapter>
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset className="flex flex-col h-screen">
+          <SidebarInset className="flex flex-col h-dvh">
             <StoresValidityGuard>
               <header
                 className="flex shrink-0 items-center justify-between px-4 md:px-6 sticky top-0 z-10 bg-background gap-4 h-16"
