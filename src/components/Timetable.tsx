@@ -225,8 +225,9 @@ export function Timetable({
             // Bestimme linke Position des gewählten Day-Headers
             const thead = theadRef.current;
             const headerRow = thead?.querySelector("tr");
-            const headers =
-              headerRow?.querySelectorAll<HTMLTableCellElement>("th");
+            const headers = headerRow?.querySelectorAll<HTMLTableCellElement>(
+              "th",
+            );
             const dayHeader = headers?.[initialIndex + 1]; // +1 wegen Zeitspalte
             let targetLeft = dayColWidth * initialIndex;
             if (dayHeader) {
@@ -403,11 +404,7 @@ export function Timetable({
 
   return (
     <div className="timetable-container h-full border border-solid border-border rounded-lg overflow-hidden relative">
-      <ScrollArea
-        ref={containerRef}
-        className="h-full timetable-scroll"
-        style={{ overflow: "hidden" }}
-      >
+      <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         <table
           className="h-full border-collapse bg-background table-fixed"
           style={{ width: TIME_COL_PX + allDays.length * dayColWidth }}
