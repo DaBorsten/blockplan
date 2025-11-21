@@ -112,36 +112,13 @@ export function Timetable({
   const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
   const didInitialScrollRef = useRef<boolean>(false);
 
-  const getTodayIndex = useCallback(() => {
-    const today = new Date();
-
-    try {
-      const formatter = new Intl.DateTimeFormat("de-DE", {
-        weekday: "long",
-        timeZone: "Europe/Berlin",
-      });
-      const todayName = formatter
-        .format(today)
-        .toLocaleLowerCase("de-DE");
-      const localeMatch = allDays.findIndex(
-        (day) => day.toLocaleLowerCase("de-DE") === todayName,
-      );
-      if (localeMatch !== -1) {
-        return localeMatch;
-      }
-    } catch (error) {
-      console.warn("Intl weekday fallback triggered", error);
-    }
-
-    // Fallback: convert JS weekday (potentially Sunday=0 or Monday=0) to our 0..4 range
-    const isoDay = (today.getDay() + 6) % 7;
-    return isoDay >= allDays.length ? 0 : isoDay;
-  }, []);
-
   // Setze aktuellen Tag
   useEffect(() => {
-    setCurrentDayIndex(getTodayIndex());
-  }, [getTodayIndex]);
+    const today = new Date().getDay();
+    const dayIndex = today === 0 ? 6 : today - 1;
+    const adjustedDayIndex = dayIndex >= 5 ? 0 : dayIndex;
+    setCurrentDayIndex(adjustedDayIndex);
+  }, []);
 
   // Dynamische Zeilenhöhe: alle Zeilen gleich hoch und füllen den Container
   const recomputeRowHeight = useCallback(() => {
@@ -239,7 +216,9 @@ export function Timetable({
       didInitialScrollRef.current = true;
       const el = viewportRef.current;
       if (el) {
-        const initialIndex = getTodayIndex();
+        const today = new Date().getDay();
+        const dow = today === 0 ? 6 : today - 1; // 0..6 => Mon=0..Sun=6
+        const initialIndex = dow >= 5 ? 0 : dow; // weekend -> Monday
         // Use the current computed column width for accurate alignment
         const targetLeft = dayColWidth * initialIndex;
         el.scrollTo({ left: targetLeft, behavior: "auto" });
@@ -251,12 +230,7 @@ export function Timetable({
       roWidth.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [
-    recomputeRowHeight,
-    recomputeDayColumnWidth,
-    dayColWidth,
-    getTodayIndex,
-  ]);
+  }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
 
   useEffect(() => {
     recomputeDayColumnWidth();
