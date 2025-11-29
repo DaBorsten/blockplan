@@ -304,6 +304,7 @@ export function TeacherColorsManager({ classId }: Props) {
                     onBlur={(e) => setDraftColor(e.target.value)}
                     aria-label="Farbe auswählen"
                     className="absolute inset-0 opacity-0 cursor-pointer"
+                    tabIndex={-1}
                   />
                   <span
                     className="h-8 w-8 rounded-full ring-2 ring-background"
@@ -368,6 +369,7 @@ export function TeacherColorsManager({ classId }: Props) {
                           }}
                           aria-label="Fachfarbe auswählen"
                           className="absolute inset-0 opacity-0 cursor-pointer"
+                          tabIndex={-1}
                         />
                         <span
                           className="h-8 w-8 rounded-full ring-2 ring-background"

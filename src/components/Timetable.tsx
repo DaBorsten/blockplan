@@ -14,6 +14,7 @@ import { useCurrentGroup } from "@/store/useGroupStore";
 import { useCurrentClass } from "@/store/useClassStore";
 import { useTeacherColors } from "@/hooks/useTeacherColors";
 import { getTimesForTimetable } from "@/utils/times";
+import { withGray700Over40 } from "@/utils/withGray700Over40";
 import { useModeStore } from "@/store/useModeStore";
 import { toast } from "sonner";
 import { useQuery } from "convex/react";
@@ -562,6 +563,10 @@ export function Timetable({
                               iconColor = darkMode ? "white" : "black";
                             }
 
+                            const effectiveBorderColor = withGray700Over40(
+                              (inlineStyle?.background as string) || "#ffffff",
+                            );
+
                             return (
                               <button
                                 key={idx}
@@ -606,13 +611,19 @@ export function Timetable({
                                     : "bg-neutral-400 dark:bg-neutral-600",
                                   textColorClass,
                                 )}
-                                style={inlineStyle}
+                                style={{
+                                  ...(inlineStyle || {}),
+                                  borderColor: effectiveBorderColor || undefined,
+                                }}
                                 aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
                               >
                                 {subjectColor && (
                                   <div
-                                    className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l border-gray-700/40"
-                                    style={{ background: subjectColor }}
+                                    className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l"
+                                    style={{
+                                      background: subjectColor,
+                                      borderColor: effectiveBorderColor || undefined,
+                                    }}
                                   />
                                 )}
                                 <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5 min-gap-0.5 max-gap-1.5">
