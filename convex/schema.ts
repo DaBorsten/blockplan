@@ -25,10 +25,12 @@ export default defineSchema({
     class_id: v.id("classes"),
     teacher: v.string(),
     color: v.string(),
+    subject: v.optional(v.string()),
   })
-    .index("by_class", ["class_id"])
-    .index("by_class_teacher", ["class_id", "teacher"])
-    .index("by_class_teacher_color", ["class_id", "teacher", "color"]),
+    .index("by_class", ["class_id"]) 
+    .index("by_class_teacher", ["class_id", "teacher"]) 
+    .index("by_class_teacher_color", ["class_id", "teacher", "color"]) 
+    .index("by_class_teacher_subject", ["class_id", "teacher", "subject"]),
 
   invitations: defineTable({
     code: v.string(), // 6-stelliger Einladungs-Code

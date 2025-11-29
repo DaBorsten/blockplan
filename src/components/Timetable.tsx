@@ -94,14 +94,6 @@ export function Timetable({
   const TIME_COL_PX = 72;
   const MIN_DAY_COL_PX = useRef(200);
 
-  useEffect(() => {
-    if (group === 1) {
-      MIN_DAY_COL_PX.current = 275;
-    } else {
-      MIN_DAY_COL_PX.current = 200;
-    }
-  }, [group]);
-
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -154,6 +146,15 @@ export function Timetable({
     setDayColWidth((prev) => (Math.abs(prev - width) >= 1 ? width : prev));
     setVisibleDayCount(targetVisible);
   }, []);
+
+  useEffect(() => {
+    if (group === 1) {
+      MIN_DAY_COL_PX.current = 250;
+    } else {
+      MIN_DAY_COL_PX.current = 175;
+    }
+    recomputeDayColumnWidth();
+  }, [group, recomputeDayColumnWidth]);
 
   useEffect(() => {
     recomputeRowHeight();
@@ -253,10 +254,6 @@ export function Timetable({
       window.removeEventListener("resize", onResize);
     };
   }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
-
-  useEffect(() => {
-    recomputeDayColumnWidth();
-  }, [group, recomputeDayColumnWidth]);
 
   // Track scroll to know which day is currently in view in single-day mode
   useEffect(() => {
@@ -539,8 +536,10 @@ export function Timetable({
                       >
                         <div className="flex gap-1 flex-nowrap items-stretch h-full">
                           {hourData.lessons.map((lesson, idx) => {
-                            const rawColor = getColor(lesson.teacher) || null;
-                            const hasCustomColor = !!rawColor;
+                            const { base: baseColor, subject: subjectColor } =
+                              getColor(lesson.teacher, lesson.subject);
+                            
+                            const hasCustomColor = !!baseColor;
                             // Wenn es eine echte Farbdefinition (hex/rgb) gibt, nutzen wir inline style + Kontrastermittlung.
                             // Sonst Tailwind Fallback + Theme-basierte Textfarbe.
                             let inlineStyle: React.CSSProperties | undefined;
@@ -548,8 +547,8 @@ export function Timetable({
                             let iconColor: string | undefined;
 
                             if (hasCustomColor) {
-                              const dark = isColorDark(rawColor!);
-                              inlineStyle = { background: rawColor! };
+                              const dark = isColorDark(baseColor!);
+                              inlineStyle = { background: baseColor! };
                               textColorClass = dark
                                 ? "text-white"
                                 : "text-black";
@@ -601,7 +600,7 @@ export function Timetable({
                                     });
                                 }}
                                 className={cn(
-                                  "flex flex-1 h-full rounded px-2 py-2 items-center justify-between cursor-pointer text-xs transition-colors border border-gray-700/40 gap-1",
+                                  "flex flex-1 h-full rounded px-2 pr-3.5 py-2 items-center justify-between cursor-pointer text-xs transition-colors border border-gray-700/40 gap-1 relative overflow-hidden",
                                   hasCustomColor
                                     ? undefined
                                     : "bg-neutral-400 dark:bg-neutral-600",
@@ -610,6 +609,12 @@ export function Timetable({
                                 style={inlineStyle}
                                 aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
                               >
+                                {subjectColor && (
+                                  <div
+                                    className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l border-gray-700/40"
+                                    style={{ background: subjectColor }}
+                                  />
+                                )}
                                 <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5 min-gap-0.5 max-gap-1.5">
                                   <span className="font-bold text-xs truncate md:text-sm lg:text-sm">
                                     {lesson.subject} / {lesson.teacher}

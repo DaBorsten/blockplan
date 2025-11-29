@@ -18,6 +18,45 @@ async function getCurrentUser(ctx: QueryCtx | MutationCtx) {
   return user as Doc<"users">;
 }
 
+function groupTeacherColors(colors: Doc<"colors">[]) {
+  const grouped = new Map<
+    string,
+    {
+      id: string;
+      teacher: string;
+      color: string;
+      subjects: { id: string; subject: string; color: string }[];
+    }
+  >();
+
+  // Basisfarben (ohne subject)
+  for (const c of colors) {
+    if (c.subject) continue;
+    grouped.set(c.teacher, {
+      id: c._id,
+      teacher: c.teacher,
+      color: c.color,
+      subjects: [],
+    });
+  }
+
+  // Subjects anhängen
+  for (const c of colors) {
+    if (!c.subject) continue;
+    const base = grouped.get(c.teacher);
+    if (!base) continue;
+    base.subjects.push({
+      id: c._id,
+      subject: c.subject,
+      color: c.color,
+    });
+  }
+
+  return Array.from(grouped.values()).sort((a, b) =>
+    a.teacher.localeCompare(b.teacher),
+  );
+}
+
 // list colors (membership required)
 export const listTeacherColors = query({
   args: { classId: v.id("classes") },
@@ -34,9 +73,8 @@ export const listTeacherColors = query({
       .query("colors")
       .withIndex("by_class", (q) => q.eq("class_id", classId))
       .collect();
-    return colors
-      .map((c) => ({ id: c._id, teacher: c.teacher, color: c.color }))
-      .sort((a, b) => a.teacher.localeCompare(b.teacher));
+
+    return groupTeacherColors(colors);
   },
 });
 
@@ -49,6 +87,15 @@ export const saveTeacherColors = mutation({
         id: v.optional(v.id("colors")),
         teacher: v.string(),
         color: v.string(),
+        subjects: v.optional(
+          v.array(
+            v.object({
+              id: v.optional(v.id("colors")),
+              subject: v.string(),
+              color: v.string(),
+            }),
+          ),
+        ),
       }),
     ),
   },
@@ -62,52 +109,137 @@ export const saveTeacherColors = mutation({
       .unique();
     if (!mem) throw new Error("FORBIDDEN");
 
-    // Load all existing colors once
-    const existingColors = await ctx.db
-      .query("colors")
-      .withIndex("by_class", (q) => q.eq("class_id", classId))
-      .collect();
-
-    const colorsByTeacher = new Map(existingColors.map((c) => [c.teacher, c]));
-    const colorsById = new Map(existingColors.map((c) => [c._id, c]));
-
     for (const it of items) {
-      const teacher = it.teacher.trim();
-      const color = it.color.trim();
-      if (!teacher || !color) continue;
-      if (it.id) {
-        const existing = colorsById.get(it.id);
-        if (!existing) {
-          await ctx.db.insert("colors", { class_id: classId, teacher, color });
-          continue;
+      const teacherName = it.teacher.trim();
+      const teacherColor = it.color.trim();
+      if (!teacherName || !teacherColor) continue;
+
+      let baseRecordId = it.id;
+
+      // 1. Try to find existing record by ID if provided
+      if (baseRecordId) {
+        const existing = await ctx.db.get(baseRecordId);
+        // Check if it exists and belongs to class
+        if (existing && existing.class_id === classId) {
+          // Check for rename
+          if (existing.teacher !== teacherName) {
+            // RENAME DETECTED
+            // Update all records with old name to new name
+            const oldName = existing.teacher;
+            const related = await ctx.db
+              .query("colors")
+              .withIndex("by_class_teacher", (q) =>
+                q.eq("class_id", classId).eq("teacher", oldName),
+              )
+              .collect();
+
+            for (const doc of related) {
+              await ctx.db.patch(doc._id, { teacher: teacherName });
+            }
+          }
+          // Update base record color
+          await ctx.db.patch(baseRecordId, {
+            teacher: teacherName,
+            color: teacherColor,
+            subject: undefined, // ensure it's a base
+          });
+        } else {
+          // ID invalid or wrong class? Throw error
+          throw new Error(`Invalid color ID ${it.id} or access forbidden`);
         }
-        // uniqueness check teacher within class
-        if (existing.teacher !== teacher) {
-          const dupe = colorsByTeacher.get(teacher);
-          if (dupe && dupe._id !== it.id) throw new Error("TEACHER_DUPLICATE");
+      }
+
+      // 2. If no ID (or invalid), try to find by name (Upsert logic)
+      if (!baseRecordId) {
+        const existing = await ctx.db
+          .query("colors")
+          .withIndex("by_class_teacher", (q) =>
+            q.eq("class_id", classId).eq("teacher", teacherName),
+          )
+          .collect();
+        const base = existing.find((c) => !c.subject);
+
+        if (base) {
+          baseRecordId = base._id;
+          await ctx.db.patch(base._id, {
+            teacher: teacherName,
+            color: teacherColor,
+            subject: undefined,
+          });
+        } else {
+          baseRecordId = await ctx.db.insert("colors", {
+            class_id: classId,
+            teacher: teacherName,
+            color: teacherColor,
+            subject: undefined,
+          });
         }
-        await ctx.db.patch(it.id, { teacher, color });
-      } else {
-        // upsert by teacher
-        const existing = colorsByTeacher.get(teacher);
-        if (existing) await ctx.db.patch(existing._id, { color });
-        else
-          await ctx.db.insert("colors", { class_id: classId, teacher, color });
+      }
+
+      // 3. Handle Subjects
+      const subjects = it.subjects ?? [];
+
+      // Fetch all subjects for this teacher (using the NEW name)
+      const currentTeacherColors = await ctx.db
+        .query("colors")
+        .withIndex("by_class_teacher", (q) =>
+          q.eq("class_id", classId).eq("teacher", teacherName),
+        )
+        .collect();
+
+      const existingSubjectColors = currentTeacherColors.filter(
+        (c) => c.subject,
+      );
+
+      const providedById = new Map(
+        subjects.filter((s) => s.id).map((s) => [s.id as string, s]),
+      );
+
+      // Delete removed subjects
+      for (const existingSub of existingSubjectColors) {
+        const match = providedById.get(existingSub._id);
+        if (!match) {
+          await ctx.db.delete(existingSub._id);
+        }
+      }
+
+      // Upsert provided subjects
+      for (const s of subjects) {
+        const subjectName = s.subject.trim();
+        const subjectColor = s.color.trim();
+        if (!subjectName || !subjectColor) continue;
+
+        if (s.id) {
+          const subDoc = await ctx.db.get(s.id as any);
+          if (subDoc) {
+            await ctx.db.patch(s.id as any, {
+              teacher: teacherName,
+              subject: subjectName,
+              color: subjectColor,
+            });
+          }
+        } else {
+          await ctx.db.insert("colors", {
+            class_id: classId,
+            teacher: teacherName,
+            color: subjectColor,
+            subject: subjectName,
+          });
+        }
       }
     }
+
+    // zum Schluss aktuellen Stand zurückgeben
     const colors = await ctx.db
       .query("colors")
       .withIndex("by_class", (q) => q.eq("class_id", classId))
       .collect();
-    return colors.map((c) => ({
-      id: c._id,
-      teacher: c.teacher,
-      color: c.color,
-    }));
+
+    return groupTeacherColors(colors);
   },
 });
 
-// delete color
+// delete color (and all associated subjects for that teacher)
 export const deleteTeacherColor = mutation({
   args: { classId: v.id("classes"), colorId: v.id("colors") },
   handler: async (ctx, { classId, colorId }) => {
@@ -119,10 +251,25 @@ export const deleteTeacherColor = mutation({
       )
       .unique();
     if (!mem) throw new Error("FORBIDDEN");
+
     const colorDoc = await ctx.db.get(colorId);
     if (!colorDoc) throw new Error("NOT_FOUND");
     if (colorDoc.class_id !== classId) throw new Error("FORBIDDEN");
-    await ctx.db.delete(colorId);
+
+    const teacherName = colorDoc.teacher;
+
+    // Find all records for this teacher (base + subjects)
+    const allTeacherRecords = await ctx.db
+      .query("colors")
+      .withIndex("by_class_teacher", (q) =>
+        q.eq("class_id", classId).eq("teacher", teacherName),
+      )
+      .collect();
+
+    for (const record of allTeacherRecords) {
+      await ctx.db.delete(record._id);
+    }
+
     return { success: true };
   },
 });
