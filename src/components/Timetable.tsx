@@ -227,9 +227,8 @@ export function Timetable({
             // Bestimme linke Position des gewählten Day-Headers
             const thead = theadRef.current;
             const headerRow = thead?.querySelector("tr");
-            const headers = headerRow?.querySelectorAll<HTMLTableCellElement>(
-              "th",
-            );
+            const headers =
+              headerRow?.querySelectorAll<HTMLTableCellElement>("th");
             const dayHeader = headers?.[initialIndex + 1]; // +1 wegen Zeitspalte
             let targetLeft = dayColWidth * initialIndex;
             if (dayHeader) {
@@ -539,7 +538,7 @@ export function Timetable({
                           {hourData.lessons.map((lesson, idx) => {
                             const { base: baseColor, subject: subjectColor } =
                               getColor(lesson.teacher, lesson.subject);
-                            
+
                             const hasCustomColor = !!baseColor;
                             // Wenn es eine echte Farbdefinition (hex/rgb) gibt, nutzen wir inline style + Kontrastermittlung.
                             // Sonst Tailwind Fallback + Theme-basierte Textfarbe.
@@ -563,8 +562,15 @@ export function Timetable({
                               iconColor = darkMode ? "white" : "black";
                             }
 
+                            const darkMode = resolvedTheme === "dark";
+
+                            const defaultBackground = darkMode
+                              ? "#525252"
+                              : "#A1A1A1";
+
                             const effectiveBorderColor = withGray700Over40(
-                              (inlineStyle?.background as string) || "#ffffff",
+                              (inlineStyle?.background as string) ||
+                                defaultBackground,
                             );
 
                             return (
@@ -613,7 +619,8 @@ export function Timetable({
                                 )}
                                 style={{
                                   ...(inlineStyle || {}),
-                                  borderColor: effectiveBorderColor || undefined,
+                                  borderColor:
+                                    effectiveBorderColor || undefined,
                                 }}
                                 aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
                               >
@@ -622,7 +629,8 @@ export function Timetable({
                                     className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l"
                                     style={{
                                       background: subjectColor,
-                                      borderColor: effectiveBorderColor || undefined,
+                                      borderColor:
+                                        effectiveBorderColor || undefined,
                                     }}
                                   />
                                 )}
