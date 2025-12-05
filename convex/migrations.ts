@@ -26,7 +26,7 @@ export const removeNotesFromClasses = migrations.define({
   table: "classes",
   migrateOne: async (ctx, doc) => {
     if ("notes" in doc) {
-      await ctx.db.patch(doc._id, { notes: undefined });
+      await ctx.db.patch(doc._id, { notes: undefined } as any);
     }
   },
 });
