@@ -58,10 +58,7 @@ function NotesTabContent({
   onDelete,
 }: NotesTabContentProps) {
   return (
-    <TabsContent
-      value={type}
-      className="mt-4 flex-1 min-h-0 flex flex-col"
-    >
+    <TabsContent value={type} className="mt-4 flex-1 min-h-0 flex flex-col">
       <Accordion
         type="single"
         collapsible
@@ -573,32 +570,31 @@ export default function TimetablePage() {
         open={isEditNotesModalOpen}
         onOpenChange={setIsEditNotesModalOpen}
       >
-        <DialogContent className="h-[80dvh] max-h-[80dvh] flex flex-col">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Notizen bearbeiten</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0">
-            <Textarea
-              value={editNotes ?? ""}
-              onChange={(e) => {
-                const next = e.target.value;
-                if (next !== (editNotes ?? "")) {
-                  userTouchedRef.current = true;
-                  setEditNotes(e.target.value);
+          <Textarea
+            value={editNotes ?? ""}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next !== (editNotes ?? "")) {
+                userTouchedRef.current = true;
+                setEditNotes(e.target.value);
+              }
+            }}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                if (!isSaving && activeClickedLesson) {
+                  handleSaveNotes();
                 }
-              }}
-              onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  if (!isSaving && activeClickedLesson) {
-                    handleSaveNotes();
-                  }
-                }
-              }}
-              placeholder="Notizen eintragen..."
-              className="h-full min-h-0 resize-none"
-            />
-          </div>
+              }
+            }}
+            placeholder="Notizen eintragen..."
+            rows={6}
+            className="min-h-20 max-h-[calc(100svh-12rem)] resize-y"
+          />
           <DialogFooter className="flex w-full flex-row gap-2 sm:justify-end">
             <Button
               variant="secondary"
