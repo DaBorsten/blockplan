@@ -185,35 +185,6 @@ export const getClass = query({
   },
 });
 
-// Query: fetch class-level notes
-export const getClassNotes = query({
-  args: { classId: v.id("classes") },
-  handler: async (ctx, { classId }) => {
-    const membership = await getMembership(ctx, classId);
-    if (!membership) throw new Error("FORBIDDEN");
-    const cls = await ctx.db.get(classId);
-    if (!cls) throw new Error("NOT_FOUND");
-    return { notes: cls.notes ?? null } as const;
-  },
-});
-
-// Mutation: update class-level notes (all roles may edit)
-export const updateClassNotes = mutation({
-  args: { classId: v.id("classes"), notes: v.optional(v.string()) },
-  handler: async (ctx, { classId, notes }) => {
-    const membership = await getMembership(ctx, classId);
-    if (!membership) throw new Error("FORBIDDEN");
-    const cls = await ctx.db.get(classId);
-    if (!cls) throw new Error("NOT_FOUND");
-    const trimmed = notes?.trim();
-    if (trimmed && trimmed.length > 10000) throw new Error("NOTES_TOO_LONG");
-    await ctx.db.patch(classId, {
-      notes: trimmed && trimmed.length > 0 ? trimmed : undefined,
-    });
-    return { updated: true } as const;
-  },
-});
-
 // Mutation: create class (owner)
 export const createClass = mutation({
   args: { title: v.string() },
@@ -420,7 +391,7 @@ export const removeOrLeave = mutation({
 
 // Internal helper for deletion reuse
 async function deleteClassInternal(ctx: MutationCtx, classId: Id<"classes">) {
-  const [memberships, colors, invites, weeks] = await Promise.all([
+  const [memberships, colors, invites, weeks, notes] = await Promise.all([
     ctx.db
       .query("user_classes")
       .withIndex("by_class_user", (q) => q.eq("class_id", classId))
@@ -437,12 +408,17 @@ async function deleteClassInternal(ctx: MutationCtx, classId: Id<"classes">) {
       .query("weeks")
       .withIndex("by_class", (q) => q.eq("class_id", classId))
       .collect(),
+    ctx.db
+      .query("notes")
+      .withIndex("by_class", (q) => q.eq("class_id", classId))
+      .collect(),
   ]);
 
   await Promise.all([
     ...memberships.map((m) => ctx.db.delete(m._id)),
     ...colors.map((c) => ctx.db.delete(c._id)),
     ...invites.map((inv) => ctx.db.delete(inv._id)),
+    ...notes.map((n) => ctx.db.delete(n._id)),
   ]);
 
   // Sammle alle zu löschenden IDs

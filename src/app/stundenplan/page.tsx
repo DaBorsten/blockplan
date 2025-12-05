@@ -18,12 +18,119 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { NoteItem, type NoteItemData } from "@/components/NoteItem";
 import { Lesson } from "@/types/timetableData";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
 import { useAutoLatestWeek } from "@/store/usePreferencesStore";
 import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
 import { Spinner } from "@/components/ui/spinner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+type NoteType = "homework" | "tests" | "exams" | "other";
+
+interface NotesTabContentProps {
+  type: NoteType;
+  activeNotes: { id: string; text: string }[];
+  archivedNotes: { id: string; text: string }[];
+  onAddNote: (type: NoteType) => void;
+  onToggleArchive: (id: string, currentArchived: boolean) => void;
+  onNoteChange: (id: string, text: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function NotesTabContent({
+  type,
+  activeNotes,
+  archivedNotes,
+  onAddNote,
+  onToggleArchive,
+  onNoteChange,
+  onDelete,
+}: NotesTabContentProps) {
+  return (
+    <TabsContent
+      value={type}
+      className="mt-4 flex-1 min-h-0 flex flex-col"
+    >
+      <Accordion
+        type="single"
+        collapsible
+        defaultValue={`${type}-active`}
+        className="w-full flex-1 min-h-0 flex flex-col overflow-hidden"
+      >
+        <AccordionItem
+          value={`${type}-active`}
+          className="data-[state=open]:flex-1 data-[state=open]:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-state=open]]:flex-1 [&>[data-slot=accordion-content][data-state=open]]:flex [&>[data-slot=accordion-content][data-state=open]]:flex-col [&>[data-slot=accordion-content][data-state=open]]:min-h-0"
+        >
+          <AccordionTrigger>Aktiv</AccordionTrigger>
+          <AccordionContent className="pb-0! flex-1 min-h-0">
+            <div className="flex flex-col gap-2 h-full">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full justify-center flex-none"
+                onClick={() => onAddNote(type)}
+              >
+                Neue Notiz hinzufügen
+              </Button>
+              <ScrollArea className="flex-1 h-0 pr-1">
+                <ul className="space-y-2">
+                  {activeNotes.map((item) => (
+                    <NoteItem
+                      key={item.id}
+                      item={item}
+                      isActive={true}
+                      onToggle={() => onToggleArchive(item.id, false)}
+                      onChange={(text) => onNoteChange(item.id, text)}
+                      onDelete={() => onDelete(item.id)}
+                    />
+                  ))}
+                </ul>
+              </ScrollArea>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        <AccordionItem
+          value={`${type}-archived`}
+          className="data-[state=open]:flex-1 data-[state=open]:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-state=open]]:flex-1 [&>[data-slot=accordion-content][data-state=open]]:flex [&>[data-slot=accordion-content][data-state=open]]:flex-col [&>[data-slot=accordion-content][data-state=open]]:min-h-0"
+        >
+          <AccordionTrigger>Archiviert</AccordionTrigger>
+          <AccordionContent className="pb-0! flex-1 min-h-0">
+            <ScrollArea className="h-full pr-1">
+              <ul className="space-y-2">
+                {archivedNotes.map((item) => (
+                  <NoteItem
+                    key={item.id}
+                    item={item}
+                    isActive={false}
+                    onToggle={() => onToggleArchive(item.id, true)}
+                    onDelete={() => onDelete(item.id)}
+                  />
+                ))}
+                {archivedNotes.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Noch keine archivierten Notizen.
+                  </p>
+                )}
+              </ul>
+            </ScrollArea>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </TabsContent>
+  );
+}
 
 export default function TimetablePage() {
   const [activeClickedLesson, setActiveClickedLesson] = useState<Lesson | null>(
@@ -144,46 +251,263 @@ export default function TimetablePage() {
     }
   };
 
-  const [editClassNotes, setEditClassNotes] = useState<string>("");
-  const [classNotesTouched, setClassNotesTouched] = useState(false);
-
-  const classNotes = useQuery(
-    api.classes.getClassNotes,
+  // New Convex-based Class Notes Logic
+  const allClassNotes = useQuery(
+    api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
       ? { classId: classId as Id<"classes"> }
       : "skip",
   );
 
-  useEffect(() => {
-    if (!isEditClassNotesModalOpen) return;
-    if (classNotes === undefined) return;
-    if (classNotesTouched) return;
-    setEditClassNotes(classNotes?.notes ?? "");
-  }, [classNotes, isEditClassNotesModalOpen, classNotesTouched]);
+  const addClassNote = useMutation(api.notes.addClassNote);
+  const updateClassNote = useMutation(api.notes.updateClassNote);
+  const toggleArchiveClassNote = useMutation(api.notes.toggleArchiveClassNote);
+  const deleteClassNote = useMutation(api.notes.deleteClassNote);
 
-  const updateClassNotes = useMutation(api.classes.updateClassNotes);
+  const [pendingNoteEdits, setPendingNoteEdits] = useState<
+    Record<string, string>
+  >({});
+  const [pendingNewNotes, setPendingNewNotes] = useState<
+    { id: string; type: string; text: string; is_archived?: boolean }[]
+  >([]);
+  const [pendingArchivedChanges, setPendingArchivedChanges] = useState<
+    Record<string, boolean>
+  >({});
+  const [pendingDeletions, setPendingDeletions] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const getNoteText = (id: string, originalText: string) =>
+    pendingNoteEdits[id] ?? originalText;
+
+  const isNoteArchived = (id: string, originalArchived: boolean) =>
+    pendingArchivedChanges[id] ?? originalArchived;
+
+  const isNoteDeleted = (id: string) => pendingDeletions.has(id);
+
+  const handleNoteChange = (id: string, text: string) => {
+    if (id.startsWith("temp-")) {
+      setPendingNewNotes((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, text } : n)),
+      );
+    } else {
+      setPendingNoteEdits((prev) => ({ ...prev, [id]: text }));
+    }
+  };
+
+  const handleToggleArchive = (id: string, currentArchived: boolean) => {
+    if (id.startsWith("temp-")) {
+      setPendingNewNotes((prev) =>
+        prev.map((n) =>
+          n.id === id ? { ...n, is_archived: !n.is_archived } : n,
+        ),
+      );
+    } else {
+      setPendingArchivedChanges((prev) => ({
+        ...prev,
+        [id]: !currentArchived,
+      }));
+    }
+  };
+
+  const handleDeleteNote = (id: string) => {
+    if (id.startsWith("temp-")) {
+      setPendingNewNotes((prev) => prev.filter((n) => n.id !== id));
+    } else {
+      setPendingDeletions((prev) => {
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+    }
+  };
 
   const handleSaveClassNotes = async () => {
-    if (!classId) {
-      toast.message("Keine Klasse ausgewählt");
-      return;
-    }
     setIsSavingClassNotes(true);
     try {
-      await updateClassNotes({
-        classId: classId as Id<"classes">,
-        notes: editClassNotes.trim().length > 0 ? editClassNotes : undefined,
-      });
-      toast.success("Klassen-Notizen gespeichert.");
+      const promises: Promise<any>[] = [];
+
+      // 1. Delete notes
+      for (const id of pendingDeletions) {
+        promises.push(deleteClassNote({ noteId: id as Id<"notes"> }));
+      }
+
+      // 2. Update existing notes (text)
+      for (const [id, text] of Object.entries(pendingNoteEdits)) {
+        if (!pendingDeletions.has(id)) {
+          if (!text.trim()) continue;
+          promises.push(updateClassNote({ noteId: id as Id<"notes">, text }));
+        }
+      }
+
+      // 3. Update existing notes (archive status)
+      for (const [id, is_archived] of Object.entries(pendingArchivedChanges)) {
+        if (!pendingDeletions.has(id)) {
+          promises.push(
+            toggleArchiveClassNote({
+              noteId: id as Id<"notes">,
+              is_archived,
+            }),
+          );
+        }
+      }
+
+      // 4. Create new notes
+      for (const note of pendingNewNotes) {
+        if (!note.text.trim()) continue;
+        promises.push(
+          addClassNote({
+            classId: classId as Id<"classes">,
+            note_type: note.type as "homework" | "tests" | "exams" | "other",
+            text: note.text,
+            is_archived: note.is_archived,
+          }),
+        );
+      }
+
+      const results = await Promise.allSettled(promises);
+      const failures = results.filter((r) => r.status === "rejected");
+      if (failures.length > 0) {
+        toast.warning(`${failures.length} Operation(en) fehlgeschlagen`);
+      }
+
+      setPendingNoteEdits({});
+      setPendingNewNotes([]);
+      setPendingArchivedChanges({});
+      setPendingDeletions(new Set());
       setIsEditClassNotesModalOpen(false);
-      setClassNotesTouched(false);
+      toast.success("Klassennotizen gespeichert");
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      toast.error(`Fehler beim Speichern der Notizen: ${errorMessage}`);
+      toast.error("Fehler beim Speichern der Klassennotizen");
     } finally {
       setIsSavingClassNotes(false);
     }
+  };
+
+  const handleCancelClassNotes = () => {
+    setPendingNoteEdits({});
+    setPendingNewNotes([]);
+    setPendingArchivedChanges({});
+    setPendingDeletions(new Set());
+    setIsEditClassNotesModalOpen(false);
+  };
+
+  const sortedNotes =
+    allClassNotes?.slice().sort((a, b) => b._creationTime - a._creationTime) ??
+    [];
+
+  const homeworkActive = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "homework" && !n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "homework" &&
+          !isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+  const homeworkArchived = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "homework" && n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "homework" &&
+          isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+
+  const testsActive = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "tests" && !n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "tests" &&
+          !isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+  const testsArchived = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "tests" && n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "tests" &&
+          isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+
+  const examsActive = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "exams" && !n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "exams" &&
+          !isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+  const examsArchived = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "exams" && n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "exams" &&
+          isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+
+  const otherActive = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "other" && !n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "other" &&
+          !isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+  const otherArchived = [
+    ...pendingNewNotes
+      .filter((n) => n.type === "other" && n.is_archived)
+      .map((n) => ({ id: n.id, text: n.text })),
+    ...sortedNotes
+      .filter(
+        (n) =>
+          n.note_type === "other" &&
+          isNoteArchived(n._id, n.is_archived) &&
+          !isNoteDeleted(n._id),
+      )
+      .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
+  ];
+
+  const handleAddNote = async (type: NoteType) => {
+    if (!classId) return;
+    const id = `temp-${Date.now()}`;
+    setPendingNewNotes((prev) => [{ id, type, text: "" }, ...prev]);
   };
 
   const handleOpenClassNotes = () => {
@@ -191,7 +515,6 @@ export default function TimetablePage() {
       toast.message("Keine Klasse ausgewählt");
       return;
     }
-    setClassNotesTouched(false);
     setIsEditClassNotesModalOpen(true);
   };
 
@@ -250,39 +573,42 @@ export default function TimetablePage() {
         open={isEditNotesModalOpen}
         onOpenChange={setIsEditNotesModalOpen}
       >
-        <DialogContent>
+        <DialogContent className="h-[80dvh] max-h-[80dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Notizen bearbeiten</DialogTitle>
           </DialogHeader>
-          <Textarea
-            value={editNotes ?? ""}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (next !== (editNotes ?? "")) {
-                userTouchedRef.current = true;
-                setEditNotes(e.target.value);
-              }
-            }}
-            onKeyDown={(e) => {
-              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                e.preventDefault();
-                if (!isSaving && activeClickedLesson) {
-                  handleSaveNotes();
+          <div className="flex-1 min-h-0">
+            <Textarea
+              value={editNotes ?? ""}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (next !== (editNotes ?? "")) {
+                  userTouchedRef.current = true;
+                  setEditNotes(e.target.value);
                 }
-              }
-            }}
-            placeholder="Notizen eintragen..."
-            rows={6}
-            className="min-h-20 max-h-[calc(100svh-12rem)] resize-y"
-          />
-          <DialogFooter>
+              }}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                  e.preventDefault();
+                  if (!isSaving && activeClickedLesson) {
+                    handleSaveNotes();
+                  }
+                }
+              }}
+              placeholder="Notizen eintragen..."
+              className="h-full min-h-0 resize-none"
+            />
+          </div>
+          <DialogFooter className="flex w-full flex-row gap-2 sm:justify-end">
             <Button
               variant="secondary"
+              className="flex-1 sm:flex-none"
               onClick={() => setIsEditNotesModalOpen(false)}
             >
               Abbrechen
             </Button>
             <Button
+              className="flex-1 sm:flex-none"
               onClick={handleSaveNotes}
               disabled={!activeClickedLesson || isSaving}
             >
@@ -295,60 +621,93 @@ export default function TimetablePage() {
       <Dialog
         open={isEditClassNotesModalOpen}
         onOpenChange={(open) => {
-          setIsEditClassNotesModalOpen(open);
-          if (!open) {
-            setClassNotesTouched(false);
-          }
+          if (!open) handleCancelClassNotes();
+          else setIsEditClassNotesModalOpen(true);
         }}
       >
-        <DialogContent className="md:max-w-2xl">
+        <DialogContent className="md:max-w-3xl h-[80dvh] max-h-[80dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Klassen Notizen bearbeiten</DialogTitle>
           </DialogHeader>
-          {classNotes === undefined ? (
-            <div className="flex items-center justify-center py-6">
-              <Spinner />
-            </div>
-          ) : (
-            <Textarea
-              value={editClassNotes}
-              onChange={(e) => {
-                setClassNotesTouched(true);
-                setEditClassNotes(e.target.value);
-              }}
-              onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  if (
-                    !isSavingClassNotes &&
-                    classId &&
-                    classNotes !== undefined
-                  ) {
-                    handleSaveClassNotes();
-                  }
-                }
-              }}
-              placeholder="Klassen Notizen eintragen..."
-              rows={6}
-              disabled={isSavingClassNotes}
-              className="min-h-20 h-40 max-h-[calc(100svh-12rem)] resize-y"
-            />
-          )}
-          <DialogFooter>
+          <div className="flex-1 min-h-0 flex flex-col">
+            {allClassNotes === undefined ? (
+              <div className="flex flex-1 items-center justify-center py-6">
+                <Spinner />
+              </div>
+            ) : (
+              <Tabs
+                defaultValue="homework"
+                className="mt-2 flex-1 min-h-0 flex flex-col"
+              >
+                <TabsList className="w-full">
+                  <TabsTrigger value="homework" className="flex-1">
+                    Aufgabe
+                  </TabsTrigger>
+                  <TabsTrigger value="tests" className="flex-1">
+                    Ex
+                  </TabsTrigger>
+                  <TabsTrigger value="exams" className="flex-1">
+                    Schulaufgabe
+                  </TabsTrigger>
+                  <TabsTrigger value="other" className="flex-1">
+                    Sonstige
+                  </TabsTrigger>
+                </TabsList>
+
+                <NotesTabContent
+                  type="homework"
+                  activeNotes={homeworkActive}
+                  archivedNotes={homeworkArchived}
+                  onAddNote={handleAddNote}
+                  onToggleArchive={handleToggleArchive}
+                  onNoteChange={handleNoteChange}
+                  onDelete={handleDeleteNote}
+                />
+
+                <NotesTabContent
+                  type="tests"
+                  activeNotes={testsActive}
+                  archivedNotes={testsArchived}
+                  onAddNote={handleAddNote}
+                  onToggleArchive={handleToggleArchive}
+                  onNoteChange={handleNoteChange}
+                  onDelete={handleDeleteNote}
+                />
+
+                <NotesTabContent
+                  type="exams"
+                  activeNotes={examsActive}
+                  archivedNotes={examsArchived}
+                  onAddNote={handleAddNote}
+                  onToggleArchive={handleToggleArchive}
+                  onNoteChange={handleNoteChange}
+                  onDelete={handleDeleteNote}
+                />
+
+                <NotesTabContent
+                  type="other"
+                  activeNotes={otherActive}
+                  archivedNotes={otherArchived}
+                  onAddNote={handleAddNote}
+                  onToggleArchive={handleToggleArchive}
+                  onNoteChange={handleNoteChange}
+                  onDelete={handleDeleteNote}
+                />
+              </Tabs>
+            )}
+          </div>
+          <DialogFooter className="flex w-full flex-row gap-2 sm:justify-end">
             <Button
               variant="secondary"
-              onClick={() => {
-                setIsEditClassNotesModalOpen(false);
-                setClassNotesTouched(false);
-              }}
+              className="flex-1 sm:flex-none"
+              onClick={handleCancelClassNotes}
             >
               Abbrechen
             </Button>
             <Button
+              className="flex-1 sm:flex-none"
               onClick={handleSaveClassNotes}
-              disabled={
-                isSavingClassNotes || !classId || classNotes === undefined
-              }
+              disabled={isSavingClassNotes}
             >
               {isSavingClassNotes ? "Speichert..." : "Speichern"}
             </Button>

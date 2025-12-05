@@ -69,18 +69,110 @@ export const getWeekNotes = query({
 
 // Mutation: update single lesson notes
 export const updateLessonNotes = mutation({
-  args: { lessonId: v.id("timetables"), notes: v.optional(v.string()) },
+  args: {
+    lessonId: v.id("timetables"),
+    notes: v.optional(v.string()),
+  },
   handler: async (ctx, { lessonId, notes }) => {
     const lesson = await ctx.db.get(lessonId);
-    if (!lesson) throw new Error("Eintrag nicht gefunden");
+    if (!lesson) throw new Error("Stunde nicht gefunden");
     const week = await ctx.db.get(lesson.week_id);
     if (!week) throw new Error("Woche nicht gefunden");
     const member = await getMembership(ctx, week.class_id);
     if (!member) throw new Error("Nicht berechtigt");
-    const trimmed = notes?.trim();
-    const value = trimmed && trimmed !== "" ? trimmed : undefined; // undefined clears optional field
-    await ctx.db.patch(lessonId, { notes: value });
-    return { updated: true };
+
+    await ctx.db.patch(lessonId, { notes });
+  },
+});
+
+// --- Class Notes (New Table) ---
+
+export const getClassNotes = query({
+  args: { classId: v.id("classes") },
+  handler: async (ctx, { classId }) => {
+    const member = await getMembership(ctx, classId);
+    if (!member) return []; // or throw, but returning empty is safer for UI
+
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_class", (q) => q.eq("class_id", classId))
+      .collect();
+
+    return notes;
+  },
+});
+
+export const addClassNote = mutation({
+  // Argument validation
+  args: {
+    classId: v.id("classes"),
+    note_type: v.union(
+      v.literal("homework"),
+      v.literal("tests"),
+      v.literal("exams"),
+      v.literal("other"),
+    ),
+    text: v.string(),
+    is_archived: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { classId, note_type, text, is_archived }) => {
+    const member = await getMembership(ctx, classId);
+    if (!member) throw new Error("Nicht berechtigt");
+
+    if (!text.trim()) return;
+
+    await ctx.db.insert("notes", {
+      class_id: classId,
+      note_type,
+      note_content: text,
+      is_archived: is_archived ?? false,
+    });
+  },
+});
+
+export const updateClassNote = mutation({
+  args: {
+    noteId: v.id("notes"),
+    text: v.string(),
+  },
+  handler: async (ctx, { noteId, text }) => {
+    const note = await ctx.db.get(noteId);
+    if (!note) throw new Error("Notiz nicht gefunden");
+    const member = await getMembership(ctx, note.class_id);
+    if (!member) throw new Error("Nicht berechtigt");
+
+    if (!text.trim()) return;
+
+    await ctx.db.patch(noteId, { note_content: text });
+  },
+});
+
+export const toggleArchiveClassNote = mutation({
+  args: {
+    noteId: v.id("notes"),
+    is_archived: v.boolean(),
+  },
+  handler: async (ctx, { noteId, is_archived }) => {
+    const note = await ctx.db.get(noteId);
+    if (!note) throw new Error("Notiz nicht gefunden");
+    const member = await getMembership(ctx, note.class_id);
+    if (!member) throw new Error("Nicht berechtigt");
+
+    await ctx.db.patch(noteId, { is_archived });
+  },
+});
+
+export const deleteClassNote = mutation({
+  args: {
+    noteId: v.id("notes"),
+  },
+  handler: async (ctx, { noteId }) => {
+    const note = await ctx.db.get(noteId);
+    if (!note) throw new Error("Notiz nicht gefunden");
+    const member = await getMembership(ctx, note.class_id);
+    if (!member) throw new Error("Nicht berechtigt");
+
+    await ctx.db.delete(noteId);
   },
 });
 

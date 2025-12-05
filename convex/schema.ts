@@ -10,7 +10,6 @@ export default defineSchema({
   classes: defineTable({
     owner_id: v.id("users"),
     title: v.string(),
-    notes: v.optional(v.string()),
   }).index("by_owner", ["owner_id"]),
 
   user_classes: defineTable({
@@ -72,4 +71,18 @@ export default defineSchema({
     timetable_id: v.id("timetables"),
     groupNumber: v.number(),
   }).index("by_timetable", ["timetable_id"]),
+
+  notes: defineTable({
+    class_id: v.id("classes"),
+    note_type: v.union(
+      v.literal("homework"),
+      v.literal("tests"),
+      v.literal("exams"),
+      v.literal("other"),
+    ),
+    note_content: v.string(),
+    is_archived: v.boolean(),
+  })
+    .index("by_class", ["class_id"])
+    .index("by_class_archived", ["class_id", "is_archived"]),
 });
