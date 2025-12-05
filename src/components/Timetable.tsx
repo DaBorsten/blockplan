@@ -16,6 +16,7 @@ import { useTeacherColors } from "@/hooks/useTeacherColors";
 import { getTimesForTimetable } from "@/utils/times";
 import { withGray700Over40 } from "@/utils/withGray700Over40";
 import { useModeStore } from "@/store/useModeStore";
+import { useShowSubjectColors } from "@/store/usePreferencesStore";
 import { toast } from "sonner";
 import { useQuery } from "convex/react";
 import type { Id } from "@/../convex/_generated/dataModel";
@@ -39,6 +40,7 @@ export function Timetable({
   const { mode } = useModeStore();
   const classId = useCurrentClass();
   const { getColor } = useTeacherColors(classId ?? undefined);
+  const showSubjectColors = useShowSubjectColors();
 
   const groupExpansionMap: Record<number, number[]> = {
     1: [1, 2, 3],
@@ -624,7 +626,7 @@ export function Timetable({
                                 }}
                                 aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
                               >
-                                {subjectColor && (
+                                {showSubjectColors && subjectColor && (
                                   <div
                                     className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l"
                                     style={{

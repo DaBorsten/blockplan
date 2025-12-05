@@ -20,6 +20,8 @@ import { Switch } from "@/components/ui/switch";
 import {
   useAutoLatestWeek,
   useSetAutoLatestWeek,
+  useShowSubjectColors,
+  useSetShowSubjectColors,
 } from "@/store/usePreferencesStore";
 
 export default function Settings() {
@@ -89,6 +91,8 @@ export default function Settings() {
   // Preferences
   const autoLatestWeek = useAutoLatestWeek();
   const setAutoLatestWeek = useSetAutoLatestWeek();
+  const showSubjectColors = useShowSubjectColors();
+  const setShowSubjectColors = useSetShowSubjectColors();
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6 h-full w-full flex flex-col">
@@ -170,6 +174,27 @@ export default function Settings() {
                 checked={autoLatestWeek}
                 onCheckedChange={(val) => setAutoLatestWeek(!!val)}
                 aria-label="Automatisch neueste Woche auswählen"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Fächerspezifische Farben</CardTitle>
+            <CardDescription>
+              Farbstreifen für Fächer bei Stunden im Stundenplan anzeigen.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground max-w-prose">
+                  Wenn aktiviert, bekommen Stundenplan-Einträge einen Streifen mit der konfigurierten Fächerfarbe für den jeweiligen Lehrer.
+                </div>
+              <Switch
+                checked={showSubjectColors}
+                onCheckedChange={(val) => setShowSubjectColors(!!val)}
+                aria-label="Fächerspezifische Farben anzeigen"
               />
             </div>
           </CardContent>
