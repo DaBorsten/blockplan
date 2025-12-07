@@ -248,11 +248,53 @@ export default function TimetablePage() {
     }
   };
 
-  // New Convex-based Class Notes Logic
-  const allClassNotes = useQuery(
+  // New Convex-based Class Notes Logic - Load notes by type and archived status
+  const homeworkActiveNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes"> }
+      ? { classId: classId as Id<"classes">, noteType: "homework", archived: false }
+      : "skip",
+  );
+  const homeworkArchivedNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "homework", archived: true }
+      : "skip",
+  );
+  const testsActiveNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "tests", archived: false }
+      : "skip",
+  );
+  const testsArchivedNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "tests", archived: true }
+      : "skip",
+  );
+  const examsActiveNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "exams", archived: false }
+      : "skip",
+  );
+  const examsArchivedNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "exams", archived: true }
+      : "skip",
+  );
+  const otherActiveNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "other", archived: false }
+      : "skip",
+  );
+  const otherArchivedNotes = useQuery(
+    api.notes.getClassNotes,
+    isEditClassNotesModalOpen && classId
+      ? { classId: classId as Id<"classes">, noteType: "other", archived: true }
       : "skip",
   );
 
@@ -265,10 +307,10 @@ export default function TimetablePage() {
     Record<string, string>
   >({});
   const [pendingNewNotes, setPendingNewNotes] = useState<
-    { id: string; type: string; text: string; is_archived?: boolean }[]
+    { id: string; type: string; text: string; archived_at?: number }[]
   >([]);
   const [pendingArchivedChanges, setPendingArchivedChanges] = useState<
-    Record<string, boolean>
+    Record<string, { shouldArchive: boolean; timestamp: number }>
   >({});
   const [pendingDeletions, setPendingDeletions] = useState<Set<string>>(
     new Set(),
@@ -277,8 +319,11 @@ export default function TimetablePage() {
   const getNoteText = (id: string, originalText: string) =>
     pendingNoteEdits[id] ?? originalText;
 
-  const isNoteArchived = (id: string, originalArchived: boolean) =>
-    pendingArchivedChanges[id] ?? originalArchived;
+  const isNoteArchived = (id: string, originalArchived?: number) =>
+    id in pendingArchivedChanges ? pendingArchivedChanges[id].shouldArchive : originalArchived !== undefined;
+
+  const getArchivedTimestamp = (id: string, originalArchived?: number) =>
+    id in pendingArchivedChanges ? pendingArchivedChanges[id].timestamp : (originalArchived ?? 0);
 
   const isNoteDeleted = (id: string) => pendingDeletions.has(id);
 
@@ -296,13 +341,13 @@ export default function TimetablePage() {
     if (id.startsWith("temp-")) {
       setPendingNewNotes((prev) =>
         prev.map((n) =>
-          n.id === id ? { ...n, is_archived: !n.is_archived } : n,
+          n.id === id ? { ...n, archived_at: n.archived_at ? undefined : Date.now() } : n,
         ),
       );
     } else {
       setPendingArchivedChanges((prev) => ({
         ...prev,
-        [id]: !currentArchived,
+        [id]: { shouldArchive: !currentArchived, timestamp: Date.now() },
       }));
     }
   };
@@ -338,32 +383,38 @@ export default function TimetablePage() {
       }
 
       // 3. Update existing notes (archive status)
-      for (const [id, is_archived] of Object.entries(pendingArchivedChanges)) {
+      for (const [id, change] of Object.entries(pendingArchivedChanges)) {
         if (!pendingDeletions.has(id)) {
           promises.push(
             toggleArchiveClassNote({
               noteId: id as Id<"notes">,
-              is_archived,
+              shouldArchive: change.shouldArchive,
             }),
           );
         }
       }
 
-      // 4. Create new notes
-      for (const note of pendingNewNotes) {
+      // Execute deletions and updates first (can be parallel)
+      const results = await Promise.allSettled(promises);
+      const failures = results.filter((r) => r.status === "rejected");
+
+      // 4. Create new notes sequentially in reverse order (oldest first)
+      // This ensures the first note created gets the oldest _creationTime
+      const notesToCreate = [...pendingNewNotes].reverse();
+      for (const note of notesToCreate) {
         if (!note.text.trim()) continue;
-        promises.push(
-          addClassNote({
+        try {
+          await addClassNote({
             classId: classId as Id<"classes">,
             note_type: note.type as "homework" | "tests" | "exams" | "other",
             text: note.text,
-            is_archived: note.is_archived,
-          }),
-        );
+            archived_at: note.archived_at,
+          });
+        } catch (error) {
+          failures.push({ status: "rejected" as const, reason: error });
+        }
       }
 
-      const results = await Promise.allSettled(promises);
-      const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
         toast.warning(`${failures.length} Operation(en) fehlgeschlagen`);
       }
@@ -389,115 +440,91 @@ export default function TimetablePage() {
     setIsEditClassNotesModalOpen(false);
   };
 
-  const sortedNotes =
-    allClassNotes?.slice().sort((a, b) => b._creationTime - a._creationTime) ??
-    [];
-
+  const allHomeworkNotes = [
+    ...(homeworkActiveNotes ?? []),
+    ...(homeworkArchivedNotes ?? []),
+  ];
   const homeworkActive = [
     ...pendingNewNotes
-      .filter((n) => n.type === "homework" && !n.is_archived)
+      .filter((n) => n.type === "homework" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "homework" &&
-          !isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allHomeworkNotes
+      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const homeworkArchived = [
     ...pendingNewNotes
-      .filter((n) => n.type === "homework" && n.is_archived)
+      .filter((n) => n.type === "homework" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "homework" &&
-          isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allHomeworkNotes
+      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
+  const allTestsNotes = [
+    ...(testsActiveNotes ?? []),
+    ...(testsArchivedNotes ?? []),
+  ];
   const testsActive = [
     ...pendingNewNotes
-      .filter((n) => n.type === "tests" && !n.is_archived)
+      .filter((n) => n.type === "tests" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "tests" &&
-          !isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allTestsNotes
+      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const testsArchived = [
     ...pendingNewNotes
-      .filter((n) => n.type === "tests" && n.is_archived)
+      .filter((n) => n.type === "tests" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "tests" &&
-          isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allTestsNotes
+      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
+  const allExamsNotes = [
+    ...(examsActiveNotes ?? []),
+    ...(examsArchivedNotes ?? []),
+  ];
   const examsActive = [
     ...pendingNewNotes
-      .filter((n) => n.type === "exams" && !n.is_archived)
+      .filter((n) => n.type === "exams" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "exams" &&
-          !isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allExamsNotes
+      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const examsArchived = [
     ...pendingNewNotes
-      .filter((n) => n.type === "exams" && n.is_archived)
+      .filter((n) => n.type === "exams" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "exams" &&
-          isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allExamsNotes
+      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
+  const allOtherNotes = [
+    ...(otherActiveNotes ?? []),
+    ...(otherArchivedNotes ?? []),
+  ];
   const otherActive = [
     ...pendingNewNotes
-      .filter((n) => n.type === "other" && !n.is_archived)
+      .filter((n) => n.type === "other" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "other" &&
-          !isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allOtherNotes
+      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const otherArchived = [
     ...pendingNewNotes
-      .filter((n) => n.type === "other" && n.is_archived)
+      .filter((n) => n.type === "other" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
-    ...sortedNotes
-      .filter(
-        (n) =>
-          n.note_type === "other" &&
-          isNoteArchived(n._id, n.is_archived) &&
-          !isNoteDeleted(n._id),
-      )
+    ...allOtherNotes
+      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
@@ -626,7 +653,14 @@ export default function TimetablePage() {
             <DialogTitle>Klassen Notizen bearbeiten</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 flex flex-col">
-            {allClassNotes === undefined ? (
+            {(homeworkActiveNotes === undefined || 
+              homeworkArchivedNotes === undefined ||
+              testsActiveNotes === undefined ||
+              testsArchivedNotes === undefined ||
+              examsActiveNotes === undefined ||
+              examsArchivedNotes === undefined ||
+              otherActiveNotes === undefined ||
+              otherArchivedNotes === undefined) ? (
               <div className="flex flex-1 items-center justify-center py-6">
                 <Spinner />
               </div>

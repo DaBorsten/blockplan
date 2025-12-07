@@ -60,3 +60,30 @@ export const runRemoveNotesFromClasses = migrations.runner(
 export const runRemoveIsArchivedFromNotes = migrations.runner(
   internal.migrations.removeIsArchivedFromNotes,
 );
+
+export const makeIsArchivedOptional = migrations.define({
+  table: "notes",
+  migrateOne: async (ctx, doc) => {
+    // This migration makes is_archived optional by doing nothing
+    // It's just a schema change that allows existing docs to have is_archived
+    // while new docs can omit it
+  },
+});
+
+export const runMakeIsArchivedOptional = migrations.runner(
+  internal.migrations.makeIsArchivedOptional,
+);
+
+export const removeIsArchivedField = migrations.define({
+  table: "notes",
+  migrateOne: async (ctx, doc) => {
+    if ("is_archived" in doc) {
+      const updates: Record<string, unknown> = { is_archived: undefined };
+      await ctx.db.patch(doc._id, updates);
+    }
+  },
+});
+
+export const runRemoveIsArchivedField = migrations.runner(
+  internal.migrations.removeIsArchivedField,
+);

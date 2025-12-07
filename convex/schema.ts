@@ -26,9 +26,9 @@ export default defineSchema({
     color: v.string(),
     subject: v.optional(v.string()),
   })
-    .index("by_class", ["class_id"]) 
-    .index("by_class_teacher", ["class_id", "teacher"]) 
-    .index("by_class_teacher_color", ["class_id", "teacher", "color"]) 
+    .index("by_class", ["class_id"])
+    .index("by_class_teacher", ["class_id", "teacher"])
+    .index("by_class_teacher_color", ["class_id", "teacher", "color"])
     .index("by_class_teacher_subject", ["class_id", "teacher", "subject"]),
 
   invitations: defineTable({
@@ -81,8 +81,10 @@ export default defineSchema({
       v.literal("other"),
     ),
     note_content: v.string(),
-    is_archived: v.boolean(),
+    archived_at: v.optional(v.number()),
   })
     .index("by_class", ["class_id"])
-    .index("by_class_archived", ["class_id", "is_archived"]),
+    .index("by_class_type", ["class_id", "note_type"])
+    .index("by_class_archived", ["class_id", "archived_at"])
+    .index("by_class_type_archived", ["class_id", "note_type", "archived_at"]),
 });

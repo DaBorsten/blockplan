@@ -88,11 +88,64 @@ export const updateLessonNotes = mutation({
 // --- Class Notes (New Table) ---
 
 export const getClassNotes = query({
-  args: { classId: v.id("classes") },
-  handler: async (ctx, { classId }) => {
+  args: { 
+    classId: v.id("classes"),
+    noteType: v.optional(v.union(
+      v.literal("homework"),
+      v.literal("tests"),
+      v.literal("exams"),
+      v.literal("other"),
+    )),
+    archived: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { classId, noteType, archived }) => {
     const member = await getMembership(ctx, classId);
     if (!member) return []; // or throw, but returning empty is safer for UI
 
+    // If both noteType and archived are specified, use the most specific index
+    if (noteType !== undefined && archived !== undefined) {
+      const notes = await ctx.db
+        .query("notes")
+        .withIndex("by_class_type_archived", (q) => 
+          q.eq("class_id", classId).eq("note_type", noteType)
+        )
+        .filter((q) => 
+          archived 
+            ? q.neq(q.field("archived_at"), undefined)
+            : q.eq(q.field("archived_at"), undefined)
+        )
+        .order("desc")
+        .collect();
+      return notes;
+    }
+
+    // If only noteType is specified, use by_class_type index
+    if (noteType !== undefined) {
+      const notes = await ctx.db
+        .query("notes")
+        .withIndex("by_class_type", (q) => 
+          q.eq("class_id", classId).eq("note_type", noteType)
+        )
+        .collect();
+      return notes;
+    }
+
+    // If only archived is specified, use by_class_archived index
+    if (archived !== undefined) {
+      const notes = await ctx.db
+        .query("notes")
+        .withIndex("by_class_archived", (q) => q.eq("class_id", classId))
+        .filter((q) => 
+          archived 
+            ? q.neq(q.field("archived_at"), undefined)
+            : q.eq(q.field("archived_at"), undefined)
+        )
+        .order("desc")
+        .collect();
+      return notes;
+    }
+
+    // Otherwise get all notes for the class
     const notes = await ctx.db
       .query("notes")
       .withIndex("by_class", (q) => q.eq("class_id", classId))
@@ -113,9 +166,9 @@ export const addClassNote = mutation({
       v.literal("other"),
     ),
     text: v.string(),
-    is_archived: v.optional(v.boolean()),
+    archived_at: v.optional(v.number()),
   },
-  handler: async (ctx, { classId, note_type, text, is_archived }) => {
+  handler: async (ctx, { classId, note_type, text, archived_at }) => {
     const member = await getMembership(ctx, classId);
     if (!member) throw new Error("Nicht berechtigt");
 
@@ -125,7 +178,7 @@ export const addClassNote = mutation({
       class_id: classId,
       note_type,
       note_content: text,
-      is_archived: is_archived ?? false,
+      archived_at: archived_at ?? undefined,
     });
   },
 });
@@ -150,15 +203,16 @@ export const updateClassNote = mutation({
 export const toggleArchiveClassNote = mutation({
   args: {
     noteId: v.id("notes"),
-    is_archived: v.boolean(),
+    shouldArchive: v.boolean(),
   },
-  handler: async (ctx, { noteId, is_archived }) => {
+  handler: async (ctx, { noteId, shouldArchive }) => {
     const note = await ctx.db.get(noteId);
     if (!note) throw new Error("Notiz nicht gefunden");
     const member = await getMembership(ctx, note.class_id);
     if (!member) throw new Error("Nicht berechtigt");
 
-    await ctx.db.patch(noteId, { is_archived });
+    const archived_at = shouldArchive ? Date.now() : undefined;
+    await ctx.db.patch(noteId, { archived_at });
   },
 });
 
