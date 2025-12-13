@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 import { Authenticated, Unauthenticated } from "convex/react";
+import { useTheme } from "next-themes";
 
 interface Props {
   children: React.ReactNode;
 }
 
 export function Public({ children }: Props) {
+  const { resolvedTheme } = useTheme();
+
   return (
     <>
       {/* Skip link for keyboard and screen reader users */}
@@ -22,7 +25,7 @@ export function Public({ children }: Props) {
         Zum Inhalt springen
       </a>
       <div className="min-h-dvh flex flex-col">
-        <header className="flex items-center justify-between p-4 md:p-6 h-16">
+        <header className="flex items-center justify-between p-4 md:p-4">
           <Link
             href="/"
             aria-label="Zur Startseite"
@@ -68,16 +71,16 @@ export function Public({ children }: Props) {
             className="flex items-center gap-2"
           >
             <Unauthenticated>
-              <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
-                <Button variant="ghost" size="sm" type="button">
-                  Anmelden
-                </Button>
-              </SignInButton>
               <SignUpButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                 <Button size="sm" type="button">
                   Registrieren
                 </Button>
               </SignUpButton>
+              <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
+                <Button variant="ghost" size="sm" type="button">
+                  Anmelden
+                </Button>
+              </SignInButton>
             </Unauthenticated>
             <Authenticated>
               <ClerkUserButton />
@@ -88,6 +91,19 @@ export function Public({ children }: Props) {
           {children}
         </main>
         <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
+          {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+            <>
+              <Link
+                href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub Repository (öffnet in neuem Tab)"
+              >
+                GitHub
+              </Link>
+              <span> | </span>
+            </>
+          )}
           <Link href="/datenschutzhinweis">Datenschutzhinweis</Link>
           <span> | </span>
           <Link href="/impressum">Impressum</Link>

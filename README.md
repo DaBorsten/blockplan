@@ -1,8 +1,8 @@
 ## Blockplan
 
-A Next.js 15 project with Convex, Clerk, TailwindCSS, and shadcn/ui.
+A Next.js 16 project with Convex, Clerk, TailwindCSS, and shadcn/ui.
 
-– Stack: Next.js 15, React 19, Convex, Clerk, Tailwind v4, shadcn/ui
+– Stack: Next.js 16, React 19, Bun, Convex, Clerk, Tailwind v4, shadcn/ui
 – Folders: App Router under `src/app`, Convex functions under `convex/`, UI in `src/components`
 
 ## Prerequisites

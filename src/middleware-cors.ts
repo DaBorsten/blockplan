@@ -1,7 +1,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import getLocalIP from "@/utils/getLocalIP";
 
-const allowedExact = ["https://bs1-blockplan.de", "http://localhost:3000"];
+const isDevelopment = process.env.NEXT_PUBLIC_IS_DEVELOPMENT === "true";
+let localIP = "localhost";
+if (isDevelopment) {
+  try {
+    localIP = getLocalIP();
+  } catch (error) {
+    console.warn(
+      "Failed to retrieve local IP, falling back to localhost:",
+      error,
+    );
+  }
+}
+
+const allowedExact = [
+  "https://bs1-blockplan.de",
+  "http://localhost:3000",
+  ...(isDevelopment && localIP !== "localhost"
+    ? [`http://${localIP}:3000`]
+    : []),
+];
 const vercelPattern = /^https:\/\/([a-z0-9-]+\.)?vercel\.app$/i;
 
 export function corsMiddleware(req: NextRequest) {

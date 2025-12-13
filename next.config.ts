@@ -1,4 +1,23 @@
+import getLocalIP from "@/utils/getLocalIP";
 import type { NextConfig } from "next";
+
+const isDevelopment = process.env.NEXT_PUBLIC_IS_DEVELOPMENT === "true";
+let localIP = "localhost";
+if (isDevelopment) {
+  try {
+    const ip = getLocalIP();
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    if (
+      ip &&
+      typeof ip === "string" &&
+      (ip === "localhost" || ipv4Regex.test(ip))
+    ) {
+      localIP = ip;
+    }
+  } catch (error) {
+    console.error("Failed to get local IP, falling back to localhost:", error);
+  }
+}
 
 const securityHeaders = [
   {
@@ -21,8 +40,7 @@ const securityHeaders = [
         https://vercel.live 
         https://*.vercel.app 
         wss://*.convex.cloud 
-        ws://127.0.0.1:3210 
-        ws://192.168.178.45:3210;
+        ${isDevelopment ? `ws://127.0.0.1:3210 ws://${localIP}:3210` : ""};
       frame-src 'self' 
         https://accounts.google.com 
         https://clerk.bs1-blockplan.de 
@@ -51,6 +69,9 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyPrefetch: "flexible",
   },
+  ...(isDevelopment && {
+    allowedDevOrigins: [localIP],
+  }),
   async headers() {
     return [
       {

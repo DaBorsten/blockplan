@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +18,7 @@ import { Calendar, CloudDownload, School, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { ClassSelectionCombobox } from "./ClassSelectionCombobox";
+import { SiGithub } from "react-icons/si";
 
 // Icons already imported individually above; route constants added below.
 import {
@@ -87,6 +87,22 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
+          {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild size="lg">
+                <Link
+                  href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+                  onClick={() => setOpenMobile(false)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub Repository (öffnet in neuem Tab)"
+                >
+                  <SiGithub className="h-5 w-5" />
+                  <span>GitHub</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild

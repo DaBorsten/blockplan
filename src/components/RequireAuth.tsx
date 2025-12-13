@@ -17,20 +17,33 @@ export function RequireAuth() {
           </p>
         </div>
         <div className="flex gap-3">
-          <SignInButton mode="modal">
-            <Button variant="default" size="lg" type="button">
-              Anmelden
-            </Button>
-          </SignInButton>
           <SignUpButton mode="modal">
             <Button variant="secondary" size="lg" type="button">
               Registrieren
             </Button>
           </SignUpButton>
+          <SignInButton mode="modal">
+            <Button variant="default" size="lg" type="button">
+              Anmelden
+            </Button>
+          </SignInButton>
         </div>
       </div>
 
       <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
+        {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+          <>
+            <Link
+              href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub Repository (öffnet in neuem Tab)"
+            >
+              GitHub
+            </Link>
+            <span> | </span>
+          </>
+        )}
         <Link href="/datenschutzhinweis">Datenschutzhinweis</Link>
         <span> | </span>
         <Link href="/impressum">Impressum</Link>

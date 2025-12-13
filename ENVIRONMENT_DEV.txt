@@ -1,3 +1,5 @@
+// Use localhost, 127.0.0.1, or your computer's IP address if you want to test on external devices.
+
 CLERK_SECRET_KEY="sk_test_..."
 
 # If you want webhooks in local development
@@ -28,3 +30,6 @@ NEXT_PUBLIC_CLERK_TELEMETRY_DISABLED="1"
 NEXT_PUBLIC_CONVEX_URL="http://127.0.0.1:3210"
 
 NEXT_PUBLIC_PYTHON_API_URL="http://localhost:8080"
+
+NEXT_PUBLIC_GITHUB_REPO="..."
+NEXT_PUBLIC_IS_DEVELOPMENT="true"

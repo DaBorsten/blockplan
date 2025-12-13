@@ -14,7 +14,7 @@ export default function LandingPage() {
   return (
     <main className="flex-1 flex items-center justify-center px-6">
       <div className="max-w-3xl w-full text-center space-y-6">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight mt-12">
           Dein Stundenplan mit Notizen
         </h1>
         <p className="text-muted-foreground text-base md:text-lg">
@@ -33,11 +33,11 @@ export default function LandingPage() {
             <>
               <Unauthenticated>
                 <SignUpButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
-                  <Button size="lg">Jetzt starten</Button>
+                  <Button size="lg">Jetzt registrieren</Button>
                 </SignUpButton>
                 <SignInButton mode="modal" forceRedirectUrl={ROUTE_STUNDENPLAN}>
                   <Button variant="outline" size="lg">
-                    Ich habe bereits ein Konto
+                    Anmelden
                   </Button>
                 </SignInButton>
               </Unauthenticated>

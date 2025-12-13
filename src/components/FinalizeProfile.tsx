@@ -96,16 +96,16 @@ export function FinalizeProfile() {
         </Link>
         <nav aria-label="Benutzeraktionen" className="flex items-center gap-2">
           <Unauthenticated>
-            <SignInButton mode="modal">
-              <Button variant="ghost" size="sm" type="button">
-                Anmelden
-              </Button>
-            </SignInButton>
             <SignUpButton mode="modal">
               <Button size="sm" type="button">
                 Registrieren
               </Button>
             </SignUpButton>
+            <SignInButton mode="modal">
+              <Button variant="ghost" size="sm" type="button">
+                Anmelden
+              </Button>
+            </SignInButton>
           </Unauthenticated>
           <Authenticated>
             <ClerkUserButton />
@@ -162,6 +162,19 @@ export function FinalizeProfile() {
       </div>
 
       <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
+        {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+          <>
+            <Link
+              href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub Repository (öffnet in neuem Tab)"
+            >
+              GitHub
+            </Link>
+            <span> | </span>
+          </>
+        )}
         <Link href="/datenschutzhinweis">Datenschutzhinweis</Link>
         <span> | </span>
         <Link href="/impressum">Impressum</Link>
