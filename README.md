@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="public/images/Mockup.png" alt="Blockplan Mockup" width="800">
+</p>
+
 ## Blockplan
 
 A Next.js 16 project with Convex, Clerk, TailwindCSS, and shadcn/ui.
