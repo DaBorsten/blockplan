@@ -1,4 +1,11 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { allDays } from "@/constants/allDays";
 import { allHours } from "@/constants/allHours";
@@ -106,6 +113,7 @@ export function Timetable({
   const [visibleDayCount, setVisibleDayCount] = useState<number>(5);
   const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
   const didInitialScrollRef = useRef<boolean>(false);
+  const [isReady, setIsReady] = useState<boolean>(false);
 
   // Setze aktuellen Tag
   useEffect(() => {
@@ -163,7 +171,7 @@ export function Timetable({
     recomputeRowHeight();
   }, [recomputeRowHeight, timeTableData, currentDayIndex]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const root = containerRef.current;
     if (!root) return;
     // Locate the ScrollArea viewport (rendered by our UI component)
@@ -172,6 +180,21 @@ export function Timetable({
     ) as HTMLDivElement | null;
     if (!vp) return;
     viewportRef.current = vp;
+
+    // Initial synchronous calculation to prevent layout shift
+    if (!isReady) {
+      const fullW = vp.clientWidth;
+      const daysArea = Math.max(0, fullW - TIME_COL_PX);
+      const canFit = Math.floor(daysArea / MIN_DAY_COL_PX.current);
+      const targetVisible = Math.min(allDays.length, Math.max(1, canFit));
+      const width = Math.max(
+        MIN_DAY_COL_PX.current,
+        Math.floor(daysArea / targetVisible),
+      );
+      setDayColWidth(width);
+      setVisibleDayCount(targetVisible);
+      setIsReady(true);
+    }
 
     // Simple debounce to reduce update frequency during sidebar animation/resizes
     const debounce = (fn: () => void, wait: number) => {
@@ -404,276 +427,278 @@ export function Timetable({
   return (
     <div className="timetable-container h-full border border-solid border-border rounded-lg overflow-hidden relative">
       <ScrollArea ref={containerRef} className="h-full timetable-scroll">
-        <table
-          className="h-full border-collapse bg-background table-fixed"
-          style={{ width: TIME_COL_PX + allDays.length * dayColWidth }}
-        >
-          <colgroup>
-            <col
-              style={{
-                width: TIME_COL_PX,
-                maxWidth: TIME_COL_PX,
-                minWidth: TIME_COL_PX,
-              }}
-            />
-            {allDays.map((_, i) => (
+        {isReady && (
+          <table
+            className="h-full border-collapse bg-background table-fixed"
+            style={{ width: TIME_COL_PX + allDays.length * dayColWidth }}
+          >
+            <colgroup>
               <col
-                key={`day-col-${i}`}
-                style={{
-                  width: dayColWidth,
-                  maxWidth: dayColWidth,
-                  transition: "width 200ms ease",
-                }}
-              />
-            ))}
-          </colgroup>
-          <thead ref={theadRef}>
-            <tr>
-              <th
-                className="bg-secondary px-1 py-2 text-center font-bold text-sm lg:text-base sticky left-0 top-0 z-30 shadow-[inset_-1px_0_var(--color-gray-500),inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600),inset_0_-1px_var(--color-gray-600)]"
                 style={{
                   width: TIME_COL_PX,
-                  minWidth: TIME_COL_PX,
                   maxWidth: TIME_COL_PX,
+                  minWidth: TIME_COL_PX,
                 }}
-              >
-                Stunde
-              </th>
-              {allDays.map((day) => (
-                <th
-                  key={day}
-                  className="px-1 py-2 text-center font-bold text-sm lg:text-base sticky top-0 z-20 bg-background shadow-[inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_0_-1px_var(--color-gray-600)]"
+              />
+              {allDays.map((_, i) => (
+                <col
+                  key={`day-col-${i}`}
                   style={{
-                    scrollSnapAlign: "start",
-                    scrollSnapStop: "always",
                     width: dayColWidth,
+                    maxWidth: dayColWidth,
                     transition: "width 200ms ease",
-                    willChange: "width",
+                  }}
+                />
+              ))}
+            </colgroup>
+            <thead ref={theadRef}>
+              <tr>
+                <th
+                  className="bg-secondary px-1 py-2 text-center font-bold text-sm lg:text-base sticky left-0 top-0 z-30 shadow-[inset_-1px_0_var(--color-gray-500),inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600),inset_0_-1px_var(--color-gray-600)]"
+                  style={{
+                    width: TIME_COL_PX,
+                    minWidth: TIME_COL_PX,
+                    maxWidth: TIME_COL_PX,
                   }}
                 >
-                  {day}
+                  Stunde
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {allHours.map((hour, hourIndex) => {
-              const isLast = hourIndex === allHours.length - 1;
-              let { startTime, endTime } = getTimesForTimetable(
-                groupedByDay,
-                currentDayIndex,
-                hour,
-              );
-              if (hour === 3) {
-                if (singleDayMode) {
-                  const activeIdx = activeSingleDayIndex;
-                  const isDouble = isDoubleLesson3And4(activeIdx);
-                  // Override directly
-                  startTime = isDouble ? "09:45" : "09:25";
-                  endTime = isDouble ? "10:30" : "10:10";
-                } else {
-                  // Wide mode: show with duration / break info
-                  startTime = "09:25 | 45"; // start | duration
-                  endTime = "10:10 | 30"; // end | break
-                }
-              }
-              return (
-                <tr key={hour} style={{ height: rowHeight }}>
-                  {/* Stunden Zelle */}
-                  <td
-                    className={`bg-secondary text-center box-border p-1 ${
-                      isLast ? "" : "border-b"
-                    } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
+                {allDays.map((day) => (
+                  <th
+                    key={day}
+                    className="px-1 py-2 text-center font-bold text-sm lg:text-base sticky top-0 z-20 bg-background shadow-[inset_0_-1px_var(--color-gray-500)] dark:shadow-[inset_0_-1px_var(--color-gray-600)]"
                     style={{
-                      width: TIME_COL_PX,
-                      minWidth: TIME_COL_PX,
-                      maxWidth: TIME_COL_PX,
+                      scrollSnapAlign: "start",
+                      scrollSnapStop: "always",
+                      width: dayColWidth,
+                      transition: "width 200ms ease",
+                      willChange: "width",
                     }}
                   >
-                    <div className="flex flex-col justify-center h-full">
-                      <div className="text-xs text-tertiary">
-                        {startTime ||
-                          hourToTimeMap[hour as keyof typeof hourToTimeMap]
-                            ?.start}
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allHours.map((hour, hourIndex) => {
+                const isLast = hourIndex === allHours.length - 1;
+                let { startTime, endTime } = getTimesForTimetable(
+                  groupedByDay,
+                  currentDayIndex,
+                  hour,
+                );
+                if (hour === 3) {
+                  if (singleDayMode) {
+                    const activeIdx = activeSingleDayIndex;
+                    const isDouble = isDoubleLesson3And4(activeIdx);
+                    // Override directly
+                    startTime = isDouble ? "09:45" : "09:25";
+                    endTime = isDouble ? "10:30" : "10:10";
+                  } else {
+                    // Wide mode: show with duration / break info
+                    startTime = "09:25 | 45"; // start | duration
+                    endTime = "10:10 | 30"; // end | break
+                  }
+                }
+                return (
+                  <tr key={hour} style={{ height: rowHeight }}>
+                    {/* Stunden Zelle */}
+                    <td
+                      className={`bg-secondary text-center box-border p-1 ${
+                        isLast ? "" : "border-b"
+                      } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
+                      style={{
+                        width: TIME_COL_PX,
+                        minWidth: TIME_COL_PX,
+                        maxWidth: TIME_COL_PX,
+                      }}
+                    >
+                      <div className="flex flex-col justify-center h-full">
+                        <div className="text-xs text-tertiary">
+                          {startTime ||
+                            hourToTimeMap[hour as keyof typeof hourToTimeMap]
+                              ?.start}
+                        </div>
+                        <div className="font-bold text-sm">{hour}</div>
+                        <div className="text-xs text-tertiary">
+                          {endTime ||
+                            hourToTimeMap[hour as keyof typeof hourToTimeMap]
+                              ?.end}
+                        </div>
                       </div>
-                      <div className="font-bold text-sm">{hour}</div>
-                      <div className="text-xs text-tertiary">
-                        {endTime ||
-                          hourToTimeMap[hour as keyof typeof hourToTimeMap]
-                            ?.end}
-                      </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Tage Zellen */}
-                  {allDays.map((day, dayIndex) => {
-                    const hourData = groupedByDay[dayIndex].hours.find(
-                      (h) => h.hour === hour,
-                    );
+                    {/* Tage Zellen */}
+                    {allDays.map((day, dayIndex) => {
+                      const hourData = groupedByDay[dayIndex].hours.find(
+                        (h) => h.hour === hour,
+                      );
 
-                    if (!hourData || hourData.lessons.length === 0) {
+                      if (!hourData || hourData.lessons.length === 0) {
+                        return (
+                          <td
+                            key={`${day}-${hour}`}
+                            className={`text-center box-border p-1 ${
+                              isLast ? "" : "border-b"
+                            } min-h-16 border-gray-500 dark:border-gray-600`}
+                          >
+                            <div
+                              className="h-full flex items-center justify-center text-muted-foreground select-none"
+                              aria-label="Keine Stunde"
+                            >
+                              -
+                            </div>
+                          </td>
+                        );
+                      }
+
                       return (
                         <td
                           key={`${day}-${hour}`}
-                          className={`text-center box-border p-1 ${
+                          className={`box-border p-1 ${
                             isLast ? "" : "border-b"
                           } min-h-16 border-gray-500 dark:border-gray-600`}
                         >
-                          <div
-                            className="h-full flex items-center justify-center text-muted-foreground select-none"
-                            aria-label="Keine Stunde"
-                          >
-                            -
+                          <div className="flex gap-1 flex-nowrap items-stretch h-full">
+                            {hourData.lessons.map((lesson, idx) => {
+                              const { base: baseColor, subject: subjectColor } =
+                                getColor(lesson.teacher, lesson.subject);
+
+                              const hasCustomColor = !!baseColor;
+                              // Wenn es eine echte Farbdefinition (hex/rgb) gibt, nutzen wir inline style + Kontrastermittlung.
+                              // Sonst Tailwind Fallback + Theme-basierte Textfarbe.
+                              let inlineStyle: React.CSSProperties | undefined;
+                              let textColorClass: string;
+                              let iconColor: string | undefined;
+
+                              if (hasCustomColor) {
+                                const dark = isColorDark(baseColor!);
+                                inlineStyle = { background: baseColor! };
+                                textColorClass = dark
+                                  ? "text-white"
+                                  : "text-black";
+                                iconColor = dark ? "white" : "black";
+                              } else {
+                                // Fallback: neutrale Oberfläche (bg-muted) und Text abhängig vom Theme für ausreichend Kontrast
+                                const darkMode = resolvedTheme === "dark";
+                                textColorClass = darkMode
+                                  ? "text-white"
+                                  : "text-black";
+                                iconColor = darkMode ? "white" : "black";
+                              }
+
+                              const darkMode = resolvedTheme === "dark";
+
+                              const defaultBackground = darkMode
+                                ? "#525252"
+                                : "#A1A1A1";
+
+                              const effectiveBorderColor = withGray700Over40(
+                                (inlineStyle?.background as string) ||
+                                  defaultBackground,
+                              );
+
+                              return (
+                                <button
+                                  key={idx}
+                                  // Data-Attribute für benutzerdefinierte Tab-Reihenfolge
+                                  data-day={day}
+                                  data-hour={hour}
+                                  data-parallel={idx}
+                                  // explizit fokusierbar auch falls disabled styles: tabIndex={0}
+                                  tabIndex={0}
+                                  onClick={() => {
+                                    if (mode === "notes") {
+                                      setActiveNotes(lesson.notes ?? null);
+                                      setActiveClickedLesson(lesson);
+                                      setIsEditNotesModalOpen(true);
+                                      return;
+                                    }
+                                    if (!lesson.notes) return;
+                                    const text = `${lesson.subject}/${lesson.teacher}: ${lesson.notes}`;
+                                    if (!navigator.clipboard) {
+                                      toast.error(
+                                        "Clipboard API nicht verfügbar",
+                                      );
+                                      return;
+                                    }
+                                    navigator.clipboard
+                                      .writeText(text)
+                                      .then(() => {
+                                        toast.success("Notizen kopiert!");
+                                      })
+                                      .catch((e) => {
+                                        console.error(
+                                          "Kopieren fehlgeschlagen:",
+                                          e,
+                                        );
+                                        toast.error("Kopieren fehlgeschlagen!");
+                                      });
+                                  }}
+                                  className={cn(
+                                    "flex flex-1 h-full rounded px-2 pr-3.5 py-2 items-center justify-between cursor-pointer text-xs transition-colors border border-gray-700/40 gap-1 relative overflow-hidden",
+                                    hasCustomColor
+                                      ? undefined
+                                      : "bg-neutral-400 dark:bg-neutral-600",
+                                    textColorClass,
+                                  )}
+                                  style={{
+                                    ...(inlineStyle || {}),
+                                    borderColor:
+                                      effectiveBorderColor || undefined,
+                                  }}
+                                  aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
+                                >
+                                  {showSubjectColors && subjectColor && (
+                                    <div
+                                      className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l"
+                                      style={{
+                                        background: subjectColor,
+                                        borderColor:
+                                          effectiveBorderColor || undefined,
+                                      }}
+                                    />
+                                  )}
+                                  <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5 min-gap-0.5 max-gap-1.5">
+                                    <span className="font-bold text-xs truncate md:text-sm lg:text-sm">
+                                      {lesson.subject} / {lesson.teacher}
+                                    </span>
+                                    {lesson.room && (
+                                      <span className="flex items-center gap-1 text-xs truncate lg:text-sm">
+                                        <MapPin size={16} color={iconColor} />
+                                        {lesson.room}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {lesson.notes &&
+                                    lesson.notes?.length > 0 &&
+                                    (mode === "notes" ? (
+                                      <LucideNotebookText
+                                        color={iconColor}
+                                        size={20}
+                                        className="self-center shrink-0 ml-1"
+                                      />
+                                    ) : (
+                                      <Copy
+                                        color={iconColor}
+                                        size={20}
+                                        className="self-center shrink-0 ml-1"
+                                      />
+                                    ))}
+                                </button>
+                              );
+                            })}
                           </div>
                         </td>
                       );
-                    }
-
-                    return (
-                      <td
-                        key={`${day}-${hour}`}
-                        className={`box-border p-1 ${
-                          isLast ? "" : "border-b"
-                        } min-h-16 border-gray-500 dark:border-gray-600`}
-                      >
-                        <div className="flex gap-1 flex-nowrap items-stretch h-full">
-                          {hourData.lessons.map((lesson, idx) => {
-                            const { base: baseColor, subject: subjectColor } =
-                              getColor(lesson.teacher, lesson.subject);
-
-                            const hasCustomColor = !!baseColor;
-                            // Wenn es eine echte Farbdefinition (hex/rgb) gibt, nutzen wir inline style + Kontrastermittlung.
-                            // Sonst Tailwind Fallback + Theme-basierte Textfarbe.
-                            let inlineStyle: React.CSSProperties | undefined;
-                            let textColorClass: string;
-                            let iconColor: string | undefined;
-
-                            if (hasCustomColor) {
-                              const dark = isColorDark(baseColor!);
-                              inlineStyle = { background: baseColor! };
-                              textColorClass = dark
-                                ? "text-white"
-                                : "text-black";
-                              iconColor = dark ? "white" : "black";
-                            } else {
-                              // Fallback: neutrale Oberfläche (bg-muted) und Text abhängig vom Theme für ausreichend Kontrast
-                              const darkMode = resolvedTheme === "dark";
-                              textColorClass = darkMode
-                                ? "text-white"
-                                : "text-black";
-                              iconColor = darkMode ? "white" : "black";
-                            }
-
-                            const darkMode = resolvedTheme === "dark";
-
-                            const defaultBackground = darkMode
-                              ? "#525252"
-                              : "#A1A1A1";
-
-                            const effectiveBorderColor = withGray700Over40(
-                              (inlineStyle?.background as string) ||
-                                defaultBackground,
-                            );
-
-                            return (
-                              <button
-                                key={idx}
-                                // Data-Attribute für benutzerdefinierte Tab-Reihenfolge
-                                data-day={day}
-                                data-hour={hour}
-                                data-parallel={idx}
-                                // explizit fokusierbar auch falls disabled styles: tabIndex={0}
-                                tabIndex={0}
-                                onClick={() => {
-                                  if (mode === "notes") {
-                                    setActiveNotes(lesson.notes ?? null);
-                                    setActiveClickedLesson(lesson);
-                                    setIsEditNotesModalOpen(true);
-                                    return;
-                                  }
-                                  if (!lesson.notes) return;
-                                  const text = `${lesson.subject}/${lesson.teacher}: ${lesson.notes}`;
-                                  if (!navigator.clipboard) {
-                                    toast.error(
-                                      "Clipboard API nicht verfügbar",
-                                    );
-                                    return;
-                                  }
-                                  navigator.clipboard
-                                    .writeText(text)
-                                    .then(() => {
-                                      toast.success("Notizen kopiert!");
-                                    })
-                                    .catch((e) => {
-                                      console.error(
-                                        "Kopieren fehlgeschlagen:",
-                                        e,
-                                      );
-                                      toast.error("Kopieren fehlgeschlagen!");
-                                    });
-                                }}
-                                className={cn(
-                                  "flex flex-1 h-full rounded px-2 pr-3.5 py-2 items-center justify-between cursor-pointer text-xs transition-colors border border-gray-700/40 gap-1 relative overflow-hidden",
-                                  hasCustomColor
-                                    ? undefined
-                                    : "bg-neutral-400 dark:bg-neutral-600",
-                                  textColorClass,
-                                )}
-                                style={{
-                                  ...(inlineStyle || {}),
-                                  borderColor:
-                                    effectiveBorderColor || undefined,
-                                }}
-                                aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
-                              >
-                                {showSubjectColors && subjectColor && (
-                                  <div
-                                    className="absolute right-0 top-0 bottom-0 w-1.5 z-10 border-l"
-                                    style={{
-                                      background: subjectColor,
-                                      borderColor:
-                                        effectiveBorderColor || undefined,
-                                    }}
-                                  />
-                                )}
-                                <div className="flex flex-col justify-between min-w-0 flex-1 text-left gap-0.5 min-gap-0.5 max-gap-1.5">
-                                  <span className="font-bold text-xs truncate md:text-sm lg:text-sm">
-                                    {lesson.subject} / {lesson.teacher}
-                                  </span>
-                                  {lesson.room && (
-                                    <span className="flex items-center gap-1 text-xs truncate lg:text-sm">
-                                      <MapPin size={16} color={iconColor} />
-                                      {lesson.room}
-                                    </span>
-                                  )}
-                                </div>
-                                {lesson.notes &&
-                                  lesson.notes?.length > 0 &&
-                                  (mode === "notes" ? (
-                                    <LucideNotebookText
-                                      color={iconColor}
-                                      size={20}
-                                      className="self-center shrink-0 ml-1"
-                                    />
-                                  ) : (
-                                    <Copy
-                                      color={iconColor}
-                                      size={20}
-                                      className="self-center shrink-0 ml-1"
-                                    />
-                                  ))}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
         <ScrollBar orientation="vertical" />
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
