@@ -531,6 +531,7 @@ export function Timetable({
                             className={`text-center box-border p-1 ${
                               isLast ? "" : "border-b"
                             } min-h-16 border-gray-500 dark:border-gray-600`}
+                            style={{ scrollSnapAlign: "start" }}
                           >
                             <div
                               className="h-full flex items-center justify-center text-muted-foreground select-none"
@@ -548,6 +549,7 @@ export function Timetable({
                           className={`box-border p-1 ${
                             isLast ? "" : "border-b"
                           } min-h-16 border-gray-500 dark:border-gray-600`}
+                          style={{ scrollSnapAlign: "start" }}
                         >
                           <div className="flex gap-1 flex-nowrap items-stretch h-full">
                             {hourData.lessons.map((lesson, idx) => {
@@ -688,8 +690,8 @@ export function Timetable({
             </tbody>
           </table>
         )}
-        <ScrollBar orientation="vertical" />
-        <ScrollBar orientation="horizontal" />
+        <ScrollBar orientation="vertical" className="hidden md:flex" />
+        <ScrollBar orientation="horizontal" className="hidden md:flex" />
       </ScrollArea>
       {/* End Focus Sentinel: erleichtert sauberen Ausstieg aus der benutzerdefinierten Tab-Sequenz */}
       <div tabIndex={0} className="sr-only" data-timetable-sentinel="end">
