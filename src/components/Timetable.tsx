@@ -114,12 +114,17 @@ export function Timetable({
   const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
   const didInitialScrollRef = useRef<boolean>(false);
   const [isReady, setIsReady] = useState<boolean>(false);
+  const initialScrollLeftRef = useRef<number>(0);
+
+  const getTodayColumnIndex = (): number => {
+    const today = new Date().getDay();
+    const dow = today === 0 ? 6 : today - 1;
+    return dow >= 5 ? 0 : dow;
+  };
 
   // Setze aktuellen Tag
   useEffect(() => {
-    const today = new Date().getDay();
-    const dayIndex = today === 0 ? 6 : today - 1;
-    const adjustedDayIndex = dayIndex >= 5 ? 0 : dayIndex;
+    const adjustedDayIndex = getTodayColumnIndex();
     setCurrentDayIndex(adjustedDayIndex);
   }, []);
 
@@ -191,6 +196,14 @@ export function Timetable({
         MIN_DAY_COL_PX.current,
         Math.floor(daysArea / targetVisible),
       );
+
+      // Calculate initial scroll position
+      if (!didInitialScrollRef.current) {
+        didInitialScrollRef.current = true;
+        const initialIndex = getTodayColumnIndex();
+        initialScrollLeftRef.current = width * initialIndex;
+      }
+
       setDayColWidth(width);
       setVisibleDayCount(targetVisible);
       setIsReady(true);
@@ -238,47 +251,23 @@ export function Timetable({
     recomputeRowHeight();
     recomputeDayColumnWidth();
 
-    // Scroll once to today's column (Mon-Fri), after we know the viewport width.
-    if (!didInitialScrollRef.current) {
-      didInitialScrollRef.current = true;
-      const el = viewportRef.current;
-      if (el) {
-        const today = new Date().getDay();
-        const dow = today === 0 ? 6 : today - 1; // 0..6 => Mon=0..Sun=6
-        const initialIndex = dow >= 5 ? 0 : dow; // weekend -> Monday
-        // Warte bis Layout stabil ist und Spaltenbreiten gesetzt sind
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            // Bestimme linke Position des gewählten Day-Headers
-            const thead = theadRef.current;
-            const headerRow = thead?.querySelector("tr");
-            const headers =
-              headerRow?.querySelectorAll<HTMLTableCellElement>("th");
-            const dayHeader = headers?.[initialIndex + 1]; // +1 wegen Zeitspalte
-            let targetLeft = dayColWidth * initialIndex;
-            if (dayHeader) {
-              // Offset relativ zum Scroll-Content; ziehe Zeitspalte ab
-              targetLeft = Math.max(0, dayHeader.offsetLeft - TIME_COL_PX);
-            }
-            // iOS/Safari Workaround: während des programmatic scrolls Snap deaktivieren
-            const prevSnap = el.style.scrollSnapType;
-            el.style.scrollSnapType = "none";
-            el.scrollTo({ left: targetLeft, behavior: "auto" });
-            // Re-enable snapping im nächsten Frame
-            requestAnimationFrame(() => {
-              el.style.scrollSnapType = prevSnap || "x mandatory";
-            });
-          });
-        });
-      }
-    }
-
     return () => {
       roHeight.disconnect();
       roWidth.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [recomputeRowHeight, recomputeDayColumnWidth, dayColWidth]);
+  }, [recomputeRowHeight, recomputeDayColumnWidth]);
+
+  // Separate useLayoutEffect to set initial scroll position when table becomes ready
+  useLayoutEffect(() => {
+    if (isReady && initialScrollLeftRef.current > 0) {
+      const vp = viewportRef.current;
+      if (vp) {
+        vp.scrollLeft = initialScrollLeftRef.current;
+        initialScrollLeftRef.current = 0; // Reset to prevent re-scrolling
+      }
+    }
+  }, [isReady]);
 
   // Track scroll to know which day is currently in view in single-day mode
   useEffect(() => {
