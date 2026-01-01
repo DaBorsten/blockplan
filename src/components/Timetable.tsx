@@ -496,7 +496,7 @@ export function Timetable({
                     <td
                       className={`bg-secondary text-center box-border p-1 ${
                         isLast ? "" : "border-b"
-                      } min-h-16 text-xs border-b border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
+                      } min-h-16 text-xs border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
                       style={{
                         width: TIME_COL_PX,
                         minWidth: TIME_COL_PX,
@@ -546,7 +546,7 @@ export function Timetable({
                       return (
                         <td
                           key={`${day}-${hour}`}
-                          className={`box-border p-1 ${
+                          className={`text-center box-border p-1 ${
                             isLast ? "" : "border-b"
                           } min-h-16 border-gray-500 dark:border-gray-600`}
                           style={{ scrollSnapAlign: "start" }}
