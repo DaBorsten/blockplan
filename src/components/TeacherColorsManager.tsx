@@ -3,14 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import {
-  Plus,
-  Trash2,
-  SearchIcon,
-  RotateCw,
-  Check,
-  PencilLine,
-} from "lucide-react";
+import { Plus, Trash2, SearchIcon, RotateCw, PencilLine } from "lucide-react";
 import { toast } from "sonner";
 import { Spinner } from "./ui/spinner";
 import { useQuery, useMutation } from "convex/react";
@@ -94,12 +87,6 @@ export function TeacherColorsManager({ classId }: Props) {
       })),
     );
   }, [colorsData]);
-
-  function updateItem(idx: number, patch: Partial<RowState>) {
-    setItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
-    );
-  }
 
   function addRow() {
     setDraftTeacher("");

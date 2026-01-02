@@ -210,9 +210,9 @@ export const saveTeacherColors = mutation({
         if (!subjectName || !subjectColor) continue;
 
         if (s.id) {
-          const subDoc = await ctx.db.get(s.id as any);
+          const subDoc = await ctx.db.get(s.id);
           if (subDoc) {
-            await ctx.db.patch(s.id as any, {
+            await ctx.db.patch(s.id, {
               teacher: teacherName,
               subject: subjectName,
               color: subjectColor,

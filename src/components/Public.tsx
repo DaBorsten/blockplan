@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { ClerkUserButton } from "@/components/ClerkUserButton";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 import { Authenticated, Unauthenticated } from "convex/react";
-import { useTheme } from "next-themes";
 
 interface Props {
   children: React.ReactNode;
 }
 
 export function Public({ children }: Props) {
-  const { resolvedTheme } = useTheme();
-
   return (
     <>
       {/* Skip link for keyboard and screen reader users */}

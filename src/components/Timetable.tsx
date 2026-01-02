@@ -102,19 +102,11 @@ export function Timetable({
 
   // layout constants
   const TIME_COL_PX = 72;
-  const MIN_DAY_COL_PX = useRef(200);
-
-  const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const theadRef = useRef<HTMLTableSectionElement>(null);
-  const [rowHeight, setRowHeight] = useState<number>(64); // px
-  const [dayColWidth, setDayColWidth] = useState(MIN_DAY_COL_PX.current);
-  const [visibleDayCount, setVisibleDayCount] = useState<number>(5);
-  const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
-  const didInitialScrollRef = useRef<boolean>(false);
-  const [isReady, setIsReady] = useState<boolean>(false);
-  const initialScrollLeftRef = useRef<number>(0);
+  const minDayColPx = useMemo(() => {
+    if (group === 1) return 250;
+    if (group === 2 || group === 3) return 175;
+    return 200;
+  }, [group]);
 
   const getTodayColumnIndex = (): number => {
     const today = new Date().getDay();
@@ -122,11 +114,17 @@ export function Timetable({
     return dow >= 5 ? 0 : dow;
   };
 
-  // Setze aktuellen Tag
-  useEffect(() => {
-    const adjustedDayIndex = getTodayColumnIndex();
-    setCurrentDayIndex(adjustedDayIndex);
-  }, []);
+  const [currentDayIndex] = useState<number>(() => getTodayColumnIndex());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const theadRef = useRef<HTMLTableSectionElement>(null);
+  const [rowHeight, setRowHeight] = useState<number>(64); // px
+  const [dayColWidth, setDayColWidth] = useState(() => minDayColPx);
+  const [visibleDayCount, setVisibleDayCount] = useState<number>(5);
+  const [activeSingleDayIndex, setActiveSingleDayIndex] = useState<number>(0);
+  const didInitialScrollRef = useRef<boolean>(false);
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const initialScrollLeftRef = useRef<number>(0);
 
   // Dynamische Zeilenhöhe: alle Zeilen gleich hoch und füllen den Container
   const recomputeRowHeight = useCallback(() => {
@@ -152,25 +150,17 @@ export function Timetable({
     if (!viewport) return;
     const fullW = viewport.clientWidth;
     const daysArea = Math.max(0, fullW - TIME_COL_PX);
-    const canFit = Math.floor(daysArea / MIN_DAY_COL_PX.current);
+    const canFit = Math.floor(daysArea / minDayColPx);
     const targetVisible = Math.min(allDays.length, Math.max(1, canFit));
-    const width = Math.max(
-      MIN_DAY_COL_PX.current,
-      Math.floor(daysArea / targetVisible),
-    );
+    const width = Math.max(minDayColPx, Math.floor(daysArea / targetVisible));
     // Avoid state churn if width hasn't meaningfully changed
     setDayColWidth((prev) => (Math.abs(prev - width) >= 1 ? width : prev));
     setVisibleDayCount(targetVisible);
-  }, []);
+  }, [minDayColPx]);
 
   useEffect(() => {
-    if (group === 1) {
-      MIN_DAY_COL_PX.current = 250;
-    } else {
-      MIN_DAY_COL_PX.current = 175;
-    }
     recomputeDayColumnWidth();
-  }, [group, recomputeDayColumnWidth]);
+  }, [recomputeDayColumnWidth]);
 
   useEffect(() => {
     recomputeRowHeight();
@@ -190,12 +180,9 @@ export function Timetable({
     if (!isReady) {
       const fullW = vp.clientWidth;
       const daysArea = Math.max(0, fullW - TIME_COL_PX);
-      const canFit = Math.floor(daysArea / MIN_DAY_COL_PX.current);
+      const canFit = Math.floor(daysArea / minDayColPx);
       const targetVisible = Math.min(allDays.length, Math.max(1, canFit));
-      const width = Math.max(
-        MIN_DAY_COL_PX.current,
-        Math.floor(daysArea / targetVisible),
-      );
+      const width = Math.max(minDayColPx, Math.floor(daysArea / targetVisible));
 
       // Calculate initial scroll position
       if (!didInitialScrollRef.current) {
@@ -256,7 +243,7 @@ export function Timetable({
       roWidth.disconnect();
       window.removeEventListener("resize", onResize);
     };
-  }, [recomputeRowHeight, recomputeDayColumnWidth]);
+  }, [recomputeRowHeight, recomputeDayColumnWidth, isReady, minDayColPx]);
 
   // Separate useLayoutEffect to set initial scroll position when table becomes ready
   useLayoutEffect(() => {

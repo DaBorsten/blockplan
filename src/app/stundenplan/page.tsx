@@ -18,15 +18,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { NoteItem, type NoteItemData } from "@/components/NoteItem";
+import { NoteItem } from "@/components/NoteItem";
 import { Lesson } from "@/types/timetableData";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
 import { useAutoLatestWeek } from "@/store/usePreferencesStore";
 import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
 import { Spinner } from "@/components/ui/spinner";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Accordion,
@@ -252,19 +250,31 @@ export default function TimetablePage() {
   const homeworkActiveNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes">, noteType: "homework", archived: false }
+      ? {
+          classId: classId as Id<"classes">,
+          noteType: "homework",
+          archived: false,
+        }
       : "skip",
   );
   const homeworkArchivedNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes">, noteType: "homework", archived: true }
+      ? {
+          classId: classId as Id<"classes">,
+          noteType: "homework",
+          archived: true,
+        }
       : "skip",
   );
   const testsActiveNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes">, noteType: "tests", archived: false }
+      ? {
+          classId: classId as Id<"classes">,
+          noteType: "tests",
+          archived: false,
+        }
       : "skip",
   );
   const testsArchivedNotes = useQuery(
@@ -276,7 +286,11 @@ export default function TimetablePage() {
   const examsActiveNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes">, noteType: "exams", archived: false }
+      ? {
+          classId: classId as Id<"classes">,
+          noteType: "exams",
+          archived: false,
+        }
       : "skip",
   );
   const examsArchivedNotes = useQuery(
@@ -288,7 +302,11 @@ export default function TimetablePage() {
   const otherActiveNotes = useQuery(
     api.notes.getClassNotes,
     isEditClassNotesModalOpen && classId
-      ? { classId: classId as Id<"classes">, noteType: "other", archived: false }
+      ? {
+          classId: classId as Id<"classes">,
+          noteType: "other",
+          archived: false,
+        }
       : "skip",
   );
   const otherArchivedNotes = useQuery(
@@ -320,10 +338,14 @@ export default function TimetablePage() {
     pendingNoteEdits[id] ?? originalText;
 
   const isNoteArchived = (id: string, originalArchived?: number) =>
-    id in pendingArchivedChanges ? pendingArchivedChanges[id].shouldArchive : originalArchived !== undefined;
+    id in pendingArchivedChanges
+      ? pendingArchivedChanges[id].shouldArchive
+      : originalArchived !== undefined;
 
   const getArchivedTimestamp = (id: string, originalArchived?: number) =>
-    id in pendingArchivedChanges ? pendingArchivedChanges[id].timestamp : (originalArchived ?? 0);
+    id in pendingArchivedChanges
+      ? pendingArchivedChanges[id].timestamp
+      : (originalArchived ?? 0);
 
   const isNoteDeleted = (id: string) => pendingDeletions.has(id);
 
@@ -341,7 +363,9 @@ export default function TimetablePage() {
     if (id.startsWith("temp-")) {
       setPendingNewNotes((prev) =>
         prev.map((n) =>
-          n.id === id ? { ...n, archived_at: n.archived_at ? undefined : Date.now() } : n,
+          n.id === id
+            ? { ...n, archived_at: n.archived_at ? undefined : Date.now() }
+            : n,
         ),
       );
     } else {
@@ -367,7 +391,7 @@ export default function TimetablePage() {
   const handleSaveClassNotes = async () => {
     setIsSavingClassNotes(true);
     try {
-      const promises: Promise<any>[] = [];
+      const promises: Promise<unknown>[] = [];
 
       // 1. Delete notes
       for (const id of pendingDeletions) {
@@ -427,6 +451,7 @@ export default function TimetablePage() {
       toast.success("Klassennotizen gespeichert");
     } catch (error) {
       toast.error("Fehler beim Speichern der Klassennotizen");
+      console.error(error);
     } finally {
       setIsSavingClassNotes(false);
     }
@@ -449,7 +474,9 @@ export default function TimetablePage() {
       .filter((n) => n.type === "homework" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allHomeworkNotes
-      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .filter(
+        (n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const homeworkArchived = [
@@ -457,8 +484,14 @@ export default function TimetablePage() {
       .filter((n) => n.type === "homework" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allHomeworkNotes
-      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
-      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
+      .filter(
+        (n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
+      .sort(
+        (a, b) =>
+          getArchivedTimestamp(b._id, b.archived_at) -
+          getArchivedTimestamp(a._id, a.archived_at),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
@@ -471,7 +504,9 @@ export default function TimetablePage() {
       .filter((n) => n.type === "tests" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allTestsNotes
-      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .filter(
+        (n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const testsArchived = [
@@ -479,8 +514,14 @@ export default function TimetablePage() {
       .filter((n) => n.type === "tests" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allTestsNotes
-      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
-      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
+      .filter(
+        (n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
+      .sort(
+        (a, b) =>
+          getArchivedTimestamp(b._id, b.archived_at) -
+          getArchivedTimestamp(a._id, a.archived_at),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
@@ -493,7 +534,9 @@ export default function TimetablePage() {
       .filter((n) => n.type === "exams" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allExamsNotes
-      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .filter(
+        (n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const examsArchived = [
@@ -501,8 +544,14 @@ export default function TimetablePage() {
       .filter((n) => n.type === "exams" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allExamsNotes
-      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
-      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
+      .filter(
+        (n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
+      .sort(
+        (a, b) =>
+          getArchivedTimestamp(b._id, b.archived_at) -
+          getArchivedTimestamp(a._id, a.archived_at),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
@@ -515,7 +564,9 @@ export default function TimetablePage() {
       .filter((n) => n.type === "other" && !n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allOtherNotes
-      .filter((n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
+      .filter(
+        (n) => !isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
   const otherArchived = [
@@ -523,8 +574,14 @@ export default function TimetablePage() {
       .filter((n) => n.type === "other" && n.archived_at)
       .map((n) => ({ id: n.id, text: n.text })),
     ...allOtherNotes
-      .filter((n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id))
-      .sort((a, b) => getArchivedTimestamp(b._id, b.archived_at) - getArchivedTimestamp(a._id, a.archived_at))
+      .filter(
+        (n) => isNoteArchived(n._id, n.archived_at) && !isNoteDeleted(n._id),
+      )
+      .sort(
+        (a, b) =>
+          getArchivedTimestamp(b._id, b.archived_at) -
+          getArchivedTimestamp(a._id, a.archived_at),
+      )
       .map((n) => ({ id: n._id, text: getNoteText(n._id, n.note_content) })),
   ];
 
@@ -653,14 +710,14 @@ export default function TimetablePage() {
             <DialogTitle>Klassen Notizen bearbeiten</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 flex flex-col">
-            {(homeworkActiveNotes === undefined || 
-              homeworkArchivedNotes === undefined ||
-              testsActiveNotes === undefined ||
-              testsArchivedNotes === undefined ||
-              examsActiveNotes === undefined ||
-              examsArchivedNotes === undefined ||
-              otherActiveNotes === undefined ||
-              otherArchivedNotes === undefined) ? (
+            {homeworkActiveNotes === undefined ||
+            homeworkArchivedNotes === undefined ||
+            testsActiveNotes === undefined ||
+            testsArchivedNotes === undefined ||
+            examsActiveNotes === undefined ||
+            examsArchivedNotes === undefined ||
+            otherActiveNotes === undefined ||
+            otherArchivedNotes === undefined ? (
               <div className="flex flex-1 items-center justify-center py-6">
                 <Spinner />
               </div>
