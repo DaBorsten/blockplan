@@ -44,6 +44,7 @@ interface NotesTabContentProps {
   onToggleArchive: (id: string, currentArchived: boolean) => void;
   onNoteChange: (id: string, text: string) => void;
   onDelete: (id: string) => void;
+  isLoading: boolean;
 }
 
 function NotesTabContent({
@@ -54,6 +55,7 @@ function NotesTabContent({
   onToggleArchive,
   onNoteChange,
   onDelete,
+  isLoading,
 }: NotesTabContentProps) {
   return (
     <TabsContent value={type} className="mt-4 flex-1 min-h-0 flex flex-col">
@@ -79,20 +81,26 @@ function NotesTabContent({
               >
                 Neue Notiz hinzufügen
               </Button>
-              <ScrollArea className="flex-1 h-0 pr-1">
-                <ul className="space-y-2">
-                  {activeNotes.map((item) => (
-                    <NoteItem
-                      key={item.id}
-                      item={item}
-                      isActive={true}
-                      onToggle={() => onToggleArchive(item.id, false)}
-                      onChange={(text) => onNoteChange(item.id, text)}
-                      onDelete={() => onDelete(item.id)}
-                    />
-                  ))}
-                </ul>
-              </ScrollArea>
+              {isLoading ? (
+                <div className="flex flex-1 items-center justify-center py-6">
+                  <Spinner />
+                </div>
+              ) : (
+                <ScrollArea className="flex-1 h-0 pr-1">
+                  <ul className="space-y-2">
+                    {activeNotes.map((item) => (
+                      <NoteItem
+                        key={item.id}
+                        item={item}
+                        isActive={true}
+                        onToggle={() => onToggleArchive(item.id, false)}
+                        onChange={(text) => onNoteChange(item.id, text)}
+                        onDelete={() => onDelete(item.id)}
+                      />
+                    ))}
+                  </ul>
+                </ScrollArea>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -102,24 +110,30 @@ function NotesTabContent({
         >
           <AccordionTrigger>Archiviert</AccordionTrigger>
           <AccordionContent className="pb-0! flex-1 min-h-0">
-            <ScrollArea className="h-full pr-1">
-              <ul className="space-y-2">
-                {archivedNotes.map((item) => (
-                  <NoteItem
-                    key={item.id}
-                    item={item}
-                    isActive={false}
-                    onToggle={() => onToggleArchive(item.id, true)}
-                    onDelete={() => onDelete(item.id)}
-                  />
-                ))}
-                {archivedNotes.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Noch keine archivierten Notizen.
-                  </p>
-                )}
-              </ul>
-            </ScrollArea>
+            {isLoading ? (
+              <div className="flex flex-1 items-center justify-center py-6">
+                <Spinner />
+              </div>
+            ) : (
+              <ScrollArea className="h-full pr-1">
+                <ul className="space-y-2">
+                  {archivedNotes.map((item) => (
+                    <NoteItem
+                      key={item.id}
+                      item={item}
+                      isActive={false}
+                      onToggle={() => onToggleArchive(item.id, true)}
+                      onDelete={() => onDelete(item.id)}
+                    />
+                  ))}
+                  {archivedNotes.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Noch keine archivierten Notizen.
+                    </p>
+                  )}
+                </ul>
+              </ScrollArea>
+            )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
@@ -710,78 +724,81 @@ export default function TimetablePage() {
             <DialogTitle>Klassen Notizen bearbeiten</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 flex flex-col">
-            {homeworkActiveNotes === undefined ||
-            homeworkArchivedNotes === undefined ||
-            testsActiveNotes === undefined ||
-            testsArchivedNotes === undefined ||
-            examsActiveNotes === undefined ||
-            examsArchivedNotes === undefined ||
-            otherActiveNotes === undefined ||
-            otherArchivedNotes === undefined ? (
-              <div className="flex flex-1 items-center justify-center py-6">
-                <Spinner />
-              </div>
-            ) : (
-              <Tabs
-                defaultValue="homework"
-                className="mt-2 flex-1 min-h-0 flex flex-col"
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger value="homework" className="flex-1">
-                    Aufgabe
-                  </TabsTrigger>
-                  <TabsTrigger value="tests" className="flex-1">
-                    Ex
-                  </TabsTrigger>
-                  <TabsTrigger value="exams" className="flex-1">
-                    Schulaufgabe
-                  </TabsTrigger>
-                  <TabsTrigger value="other" className="flex-1">
-                    Sonstige
-                  </TabsTrigger>
-                </TabsList>
+            <Tabs
+              defaultValue="homework"
+              className="mt-2 flex-1 min-h-0 flex flex-col"
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="homework" className="flex-1">
+                  Aufgabe
+                </TabsTrigger>
+                <TabsTrigger value="tests" className="flex-1">
+                  Ex
+                </TabsTrigger>
+                <TabsTrigger value="exams" className="flex-1">
+                  Schulaufgabe
+                </TabsTrigger>
+                <TabsTrigger value="other" className="flex-1">
+                  Sonstige
+                </TabsTrigger>
+              </TabsList>
 
-                <NotesTabContent
-                  type="homework"
-                  activeNotes={homeworkActive}
-                  archivedNotes={homeworkArchived}
-                  onAddNote={handleAddNote}
-                  onToggleArchive={handleToggleArchive}
-                  onNoteChange={handleNoteChange}
-                  onDelete={handleDeleteNote}
-                />
+              <NotesTabContent
+                type="homework"
+                activeNotes={homeworkActive}
+                archivedNotes={homeworkArchived}
+                onAddNote={handleAddNote}
+                onToggleArchive={handleToggleArchive}
+                onNoteChange={handleNoteChange}
+                onDelete={handleDeleteNote}
+                isLoading={
+                  homeworkActiveNotes === undefined ||
+                  homeworkArchivedNotes === undefined
+                }
+              />
 
-                <NotesTabContent
-                  type="tests"
-                  activeNotes={testsActive}
-                  archivedNotes={testsArchived}
-                  onAddNote={handleAddNote}
-                  onToggleArchive={handleToggleArchive}
-                  onNoteChange={handleNoteChange}
-                  onDelete={handleDeleteNote}
-                />
+              <NotesTabContent
+                type="tests"
+                activeNotes={testsActive}
+                archivedNotes={testsArchived}
+                onAddNote={handleAddNote}
+                onToggleArchive={handleToggleArchive}
+                onNoteChange={handleNoteChange}
+                onDelete={handleDeleteNote}
+                isLoading={
+                  testsActiveNotes === undefined ||
+                  testsArchivedNotes === undefined
+                }
+              />
 
-                <NotesTabContent
-                  type="exams"
-                  activeNotes={examsActive}
-                  archivedNotes={examsArchived}
-                  onAddNote={handleAddNote}
-                  onToggleArchive={handleToggleArchive}
-                  onNoteChange={handleNoteChange}
-                  onDelete={handleDeleteNote}
-                />
+              <NotesTabContent
+                type="exams"
+                activeNotes={examsActive}
+                archivedNotes={examsArchived}
+                onAddNote={handleAddNote}
+                onToggleArchive={handleToggleArchive}
+                onNoteChange={handleNoteChange}
+                onDelete={handleDeleteNote}
+                isLoading={
+                  examsActiveNotes === undefined ||
+                  examsArchivedNotes === undefined
+                }
+              />
 
-                <NotesTabContent
-                  type="other"
-                  activeNotes={otherActive}
-                  archivedNotes={otherArchived}
-                  onAddNote={handleAddNote}
-                  onToggleArchive={handleToggleArchive}
-                  onNoteChange={handleNoteChange}
-                  onDelete={handleDeleteNote}
-                />
-              </Tabs>
-            )}
+              <NotesTabContent
+                type="other"
+                activeNotes={otherActive}
+                archivedNotes={otherArchived}
+                onAddNote={handleAddNote}
+                onToggleArchive={handleToggleArchive}
+                onNoteChange={handleNoteChange}
+                onDelete={handleDeleteNote}
+                isLoading={
+                  otherActiveNotes === undefined ||
+                  otherArchivedNotes === undefined
+                }
+              />
+            </Tabs>
           </div>
           <DialogFooter className="flex w-full flex-row gap-2 sm:justify-end">
             <Button
