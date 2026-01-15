@@ -56,6 +56,7 @@ export default function Import() {
   const [isImporting, setIsImporting] = useState(false);
   const lastImportTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressRef = useRef<number>(0);
 
   const { classId } = useClassStore();
   const needsClass = !classId;
@@ -223,28 +224,56 @@ export default function Import() {
     setIsImporting(true);
     setLoading(true);
     setProgress({ current: 0, total: files.length });
+    progressRef.current = 0;
 
     const successfulFileIds: string[] = [];
     const failedFiles: Array<{ name: string; error: string }> = [];
 
-    try {
-      for (const fileItem of files) {
-        const { id, file, displayName } = fileItem;
-        try {
-          const response = await uploadFile(file);
+    // Capture stable snapshot of classId before async operations
+    const importClassId = classId;
 
-          if (response) {
+    type ImportResult =
+      | { success: true; id: string }
+      | { success: false; name: string; error: string }
+      | undefined;
+
+    try {
+      // Alle Dateien parallel verarbeiten
+      const importPromises = files.map(
+        async (fileItem): Promise<ImportResult> => {
+          const { id, file, displayName } = fileItem;
+          try {
+            const response = await uploadFile(file);
+
+            if (!response) {
+              const nextProgress = ++progressRef.current;
+              setProgress((p) => ({
+                ...p,
+                current: Math.min(nextProgress, p.total),
+              }));
+              return {
+                success: false,
+                name: displayName,
+                error: "Upload lieferte keine gültige Antwort",
+              } as const;
+            }
+
             try {
-              if (!classId) {
-                throw new Error("Keine Klasse ausgewählt");
-              }
               // Convex Mutation Aufruf
               await importWeek({
-                classId: classId as Id<"classes">,
+                classId: importClassId as Id<"classes">,
                 title: displayName,
                 timetable: response,
               });
-              successfulFileIds.push(id);
+
+              // Fortschritt erhöhen nach erfolgreichem Import
+              const nextProgress = ++progressRef.current;
+              setProgress((p) => ({
+                ...p,
+                current: Math.min(nextProgress, p.total),
+              }));
+
+              return { success: true, id } as const;
             } catch (e) {
               let errMsg = "Unbekannter Fehler";
               if (e instanceof Error) {
@@ -259,20 +288,53 @@ export default function Import() {
               } else {
                 errMsg = String(e);
               }
-              failedFiles.push({ name: displayName, error: errMsg });
-            }
-          }
-        } catch (error: unknown) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          failedFiles.push({ name: displayName, error: err.message });
-        }
 
-        // Fortschritt erhöhen, unabhängig vom Erfolg
-        setProgress((p) => ({
-          ...p,
-          current: Math.min(p.current + 1, p.total),
-        }));
-      }
+              // Fortschritt erhöhen auch bei Fehler
+              const nextProgress = ++progressRef.current;
+              setProgress((p) => ({
+                ...p,
+                current: Math.min(nextProgress, p.total),
+              }));
+
+              return {
+                success: false,
+                name: displayName,
+                error: errMsg,
+              } as const;
+            }
+          } catch (error: unknown) {
+            const err =
+              error instanceof Error ? error : new Error(String(error));
+
+            // Fortschritt erhöhen auch bei Fehler
+            const nextProgress = ++progressRef.current;
+            setProgress((p) => ({
+              ...p,
+              current: Math.min(nextProgress, p.total),
+            }));
+
+            return {
+              success: false,
+              name: displayName,
+              error: err.message,
+            } as const;
+          }
+        },
+      );
+
+      // Auf alle Promises warten
+      const results = await Promise.all(importPromises);
+
+      // Ergebnisse sammeln
+      results.forEach((result) => {
+        if (result) {
+          if (result.success) {
+            successfulFileIds.push(result.id);
+          } else {
+            failedFiles.push({ name: result.name, error: result.error });
+          }
+        }
+      });
 
       // Nur erfolgreich importierte Dateien entfernen
       if (successfulFileIds.length > 0) {

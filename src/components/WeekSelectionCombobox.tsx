@@ -92,11 +92,10 @@ export function WeekSelectionCombobox() {
                     // Wert muss eindeutig sein (cmdk nutzt value intern für Auswahl); Label bleibt im String für die Suche
                     value={`${week.label}__${week.value ?? "none"}`}
                     onSelect={() => {
+                      setOpen(false);
                       if (isActive) {
-                        setOpen(false);
                         return;
                       }
-                      setOpen(false);
                       handleWeekChange(week.value ?? null);
                     }}
                   >

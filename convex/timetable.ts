@@ -33,29 +33,26 @@ export const listTimetable = query({
 
     if (entries.length === 0) return [];
 
-    // Batch-Laden aller relevanten Gruppen
-    const entryIds = entries.map((e) => e._id);
-    const allGroups = await ctx.db
-      .query("groups")
-      .withIndex("by_timetable")
-      .filter((q) =>
-        q.or(...entryIds.map((id) => q.eq(q.field("timetable_id"), id))),
-      )
-      .collect();
+    // Batch fetch groups for all timetable entries using the index
+    const groupsPromises = entries.map((entry) =>
+      ctx.db
+        .query("groups")
+        .withIndex("by_timetable", (q) => q.eq("timetable_id", entry._id))
+        .collect(),
+    );
+    const groupsResults = await Promise.all(groupsPromises);
 
-    // Gruppierung nach timetable_id
-    const groupsByTimetable = new Map<Id<"timetables">, number[]>();
-    for (const group of allGroups) {
-      const existing = groupsByTimetable.get(group.timetable_id) || [];
-      existing.push(group.groupNumber);
-      groupsByTimetable.set(group.timetable_id, existing);
-    }
+    // Map entries to include their group numbers
+    const entriesWithGroups = entries.map((entry, index) => ({
+      entry,
+      groupNumbers: groupsResults[index].map((g) => g.groupNumber),
+    }));
 
-    const result: Array<Record<string, unknown>> = [];
-    for (const e of entries) {
-      const groupNums = groupsByTimetable.get(e._id) || [];
-      if (groupNums.some((g) => groups.includes(g))) {
-        result.push({ ...e, _id: e._id, groups: groupNums });
+    // Filtere nur Entries, die mindestens eine ausgewählte Gruppe enthalten
+    const result: Array<(typeof entries)[number] & { groups: number[] }> = [];
+    for (const { entry, groupNumbers } of entriesWithGroups) {
+      if (groupNumbers.some((g) => groups.includes(g))) {
+        result.push({ ...entry, groups: groupNumbers });
       }
     }
     return result;
