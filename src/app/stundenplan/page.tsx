@@ -33,6 +33,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 type NoteType = "homework" | "tests" | "exams" | "other";
 
@@ -633,13 +634,13 @@ export default function TimetablePage() {
             </div>
             <GroupSelection />
           </div>
-          <div className="flex items-center gap-2 flex-nowrap">
+          <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
               getNotes={() => editNotes ?? ""}
               onOpenClassNotes={handleOpenClassNotes}
             />
-          </div>
+          </ButtonGroup>
         </div>
 
         {/* Desktop: original grouping */}
@@ -648,13 +649,13 @@ export default function TimetablePage() {
             <WeekSelectionCombobox />
             <GroupSelection />
           </div>
-          <div className="flex flex-nowrap gap-2">
+          <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
               getNotes={() => editNotes ?? ""}
               onOpenClassNotes={handleOpenClassNotes}
             />
-          </div>
+          </ButtonGroup>
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useModeStore } from "@/store/useModeStore";
-import { Lock, Unlock } from "lucide-react";
+import { Pencil, PencilOff } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -21,19 +21,19 @@ export function ModeLockButton() {
           onClick={toggleMode}
           aria-label={
             isEditable
-              ? "Bearbeiten erlaubt (entsperrt)"
-              : "Nur Kopieren (gesperrt)"
+              ? "Bearbeitung deaktivieren (nur kopieren)"
+              : "Bearbeiten aktivieren"
           }
         >
           {isEditable ? (
-            <Unlock className="h-4 w-4" />
+            <PencilOff className="h-4 w-4" />
           ) : (
-            <Lock className="h-4 w-4" />
+            <Pencil className="h-4 w-4" />
           )}
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        {isEditable ? "Notizen bearbeiten erlaubt" : "Nur Kopieren"}
+        {isEditable ? "Bearbeiten deaktivieren" : "Bearbeiten aktivieren"}
       </TooltipContent>
     </Tooltip>
   );

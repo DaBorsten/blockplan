@@ -5,7 +5,7 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 import { SignedInWrapper } from "@/components/SignedInWrapper";
 import { PublicPageWrapper } from "@/components/PublicPageWrapper";
 import { ReactNode } from "react";
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "@/components/ui/spinner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { FinalizeProfile } from "./FinalizeProfile";
 import { useQuery } from "convex/react";

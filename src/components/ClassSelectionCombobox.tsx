@@ -4,14 +4,14 @@ import * as React from "react";
 import { Check, ChevronsUpDown, School } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 // updateUrl replaced by nuqs hooks
 import { useCurrentClass, useSetClass } from "@/store/useClassStore";
 import { useQuery } from "convex/react";

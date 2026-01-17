@@ -9,8 +9,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Input } from "./ui/input";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { api } from "../../convex/_generated/api";
 import { Authenticated, Unauthenticated, useMutation } from "convex/react";
