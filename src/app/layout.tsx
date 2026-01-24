@@ -10,11 +10,15 @@ import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 export const metadata: Metadata = {
@@ -41,9 +45,9 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: "/" },
   icons: {
-    icon: "/favicon.ico",
+    icon: [{ url: "/favicon.ico", sizes: "48x48" }],
     shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {
     title: "Blockplan",

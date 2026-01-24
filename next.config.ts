@@ -68,6 +68,17 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     proxyPrefetch: "flexible",
+    optimizePackageImports: [
+      "lucide-react",
+      "react-icons",
+      "@radix-ui/react-accordion",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+    ],
   },
   ...(isDevelopment && {
     allowedDevOrigins: [localIP],
