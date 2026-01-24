@@ -583,7 +583,7 @@ export default function ClassMembersPage() {
                             changeRole(m, val as "admin" | "member");
                           }}
                         >
-                          <SelectTrigger className="h-8 w-[110px] text-sm">
+                          <SelectTrigger className="h-8 w-27.5 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent className="min-w-(--radix-select-trigger-width) w-(--radix-select-trigger-width)">
@@ -974,10 +974,13 @@ export default function ClassMembersPage() {
           }
         }}
       >
-        <DialogContent>
+        <DialogContent
+          role="alertdialog"
+          aria-describedby="delete-class-description"
+        >
           <DialogHeader>
             <DialogTitle>Klasse löschen?</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="delete-class-description">
               Diese Aktion löscht die Klasse dauerhaft inklusive aller Wochen,
               Farben und Stundenplandaten. Fortfahren?
             </DialogDescription>
@@ -991,6 +994,11 @@ export default function ClassMembersPage() {
               onChange={(e) => setClassDeleteConfirm(e.target.value)}
               placeholder={classTitle || "Klassenname"}
               aria-label="Klassennamen zur Bestätigung eingeben"
+              aria-required="true"
+              aria-invalid={
+                classDeleteConfirm.trim().toLowerCase() !==
+                (classTitle || "").trim().toLowerCase()
+              }
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
@@ -999,6 +1007,12 @@ export default function ClassMembersPage() {
                 {classTitle || "(ohne Titel)"}
               </span>
             </p>
+            <div role="status" aria-live="polite" className="sr-only">
+              {classDeleteConfirm.trim().toLowerCase() ===
+              (classTitle || "").trim().toLowerCase()
+                ? "Eingabe korrekt, Löschen möglich"
+                : "Bitte geben Sie den Klassennamen ein"}
+            </div>
           </div>
           <DialogFooter className="flex-row gap-2 justify-end">
             <Button

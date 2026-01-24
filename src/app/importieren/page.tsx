@@ -411,8 +411,12 @@ export default function Import() {
         </p>
         {needsClass && (
           <div className="mt-3">
-            <div className="flex items-start gap-3 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-900 dark:border-yellow-400/40 dark:bg-yellow-950/40 dark:text-yellow-200 p-3">
-              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" />
+            <div 
+              className="flex items-start gap-3 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-900 dark:border-yellow-400/40 dark:bg-yellow-950/40 dark:text-yellow-200 p-3"
+              role="alert"
+              aria-live="assertive"
+            >
+              <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" aria-hidden="true" />
               <div>
                 <p className="font-medium">Keine Klasse ausgewählt</p>
                 <p className="text-sm">
@@ -606,11 +610,12 @@ export default function Import() {
               className="absolute inset-0 flex items-center justify-center z-20 bg-background/60 rounded-2xl"
               role="status"
               aria-live="polite"
+              aria-atomic="true"
               aria-label="Import läuft"
             >
               <div className="w-full max-w-md mx-auto p-4">
                 <div className="flex items-center gap-3 mb-3 justify-center text-sm text-muted-foreground">
-                  <Loader2 className="animate-spin w-5 h-5 text-primary" />
+                  <Loader2 className="animate-spin w-5 h-5 text-primary" aria-hidden="true" />
                   <span>
                     Import läuft… {progress.current}/{progress.total}
                   </span>
@@ -621,6 +626,10 @@ export default function Import() {
                       ? Math.round((progress.current / progress.total) * 100)
                       : 0
                   }
+                  aria-label={`Importfortschritt: ${progress.current} von ${progress.total} Dateien`}
+                  aria-valuenow={progress.current}
+                  aria-valuemin={0}
+                  aria-valuemax={progress.total}
                 />
               </div>
             </div>

@@ -1,0 +1,12 @@
+[test]
+# Preload-Skript für Tests (optional)
+# preload = ["./test-setup.ts"]
+
+# Test-Coverage aktivieren
+# coverage = true
+
+# Root-Verzeichnis für Tests
+root = "."
+
+# Test-Timeout in Millisekunden
+timeout = 5000

@@ -63,6 +63,16 @@ export function ClassSelectionCombobox() {
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              aria-label={
+                isLoading
+                  ? "Klasse wird geladen"
+                  : isInitializing
+                  ? "Klasse wird initialisiert"
+                  : selectedLabel
+                  ? `Aktuelle Klasse: ${selectedLabel}. Klicken zum Ändern`
+                  : "Keine Klasse ausgewählt. Klicken zum Auswählen"
+              }
+              aria-haspopup="menu"
             >
               <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <School className="size-4 text-white" />

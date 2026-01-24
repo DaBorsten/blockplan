@@ -31,6 +31,8 @@ function rgbToHex(r: number, g: number, b: number): string {
  * @returns fertige Mischfarbe als Hex, z.B. "#af1a21"
  */
 export function withGray700Over40(bgHex: string): string | null {
+  if (!bgHex || typeof bgHex !== "string") return null;
+  
   const bg = hexToRgb(bgHex);
   if (!bg) return null;
 

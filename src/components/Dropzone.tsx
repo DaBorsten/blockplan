@@ -60,7 +60,7 @@ export const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
     return (
       <div
         ref={ref}
-        className={`relative flex-1 w-full flex items-center justify-center cursor-pointer hover:bg-muted transition text-lg select-none min-h-[300px] min-w-0 border-2 border-dashed rounded-2xl overflow-hidden ${
+        className={`relative flex-1 w-full flex items-center justify-center cursor-pointer hover:bg-muted transition text-lg select-none min-h-75 min-w-0 border-2 border-dashed rounded-2xl overflow-hidden ${
           isDragOver ? "border-primary bg-primary/5" : "border-muted-foreground"
         }`}
         onDrop={handleDrop}
@@ -68,8 +68,15 @@ export const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
         role="button"
         tabIndex={0}
+        aria-label={`${text || "Dateien hierher ziehen zum Hochladen"}${supportedFiles ? `. Unterstützte Formate: ${supportedFiles}` : ""}. Drücken Sie Enter oder Leertaste zum Öffnen des Datei-Dialogs`}
       >
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">

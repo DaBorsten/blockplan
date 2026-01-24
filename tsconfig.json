@@ -28,9 +28,9 @@
       ]
     },
     "types": [
-      "node",
       "next",
-      "next/types/global"
+      "next/types/global",
+      "bun-types"
     ]
   },
   "include": [

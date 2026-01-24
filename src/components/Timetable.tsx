@@ -30,6 +30,50 @@ import type { Id } from "@/../convex/_generated/dataModel";
 // Note: path requires .js because convex generates ESM with extension
 import { api } from "@/../convex/_generated/api.js";
 
+/**
+ * Generates an accessible aria-label for a lesson button
+ * @param day - The day of the week (e.g., "Montag")
+ * @param hour - The hour number (1-10)
+ * @param lesson - The lesson object with subject, teacher, room, and notes
+ * @param mode - Current mode ("notes" or other)
+ * @returns A descriptive aria-label string
+ */
+function generateAriaLabel(
+  day: string,
+  hour: number,
+  lesson: Lesson,
+  mode: string,
+): string {
+  // Normalize subject and teacher values
+  const subject = lesson.subject?.trim() || "Unbekanntes Fach";
+  const teacher = lesson.teacher?.trim();
+
+  // Base label: day, hour, subject
+  let label = `${day}, Stunde ${hour}: ${subject}`;
+
+  // Append teacher if available
+  if (teacher) {
+    label += ` bei ${teacher}`;
+  }
+
+  // Append room if available
+  const room = lesson.room?.trim();
+  if (room) {
+    label += ` in ${room}`;
+  }
+
+  // Append notes information
+  if (lesson.notes) {
+    label += `. Hat Notiz. ${
+      mode === "notes" ? "Klicken zum Bearbeiten" : "Klicken zum Kopieren"
+    }`;
+  } else if (mode === "notes") {
+    label += ". Klicken zum Hinzufügen einer Notiz";
+  }
+
+  return label;
+}
+
 type TimetableProps = {
   setActiveClickedLesson: (lesson: Lesson | null) => void;
   setActiveNotes: (notes: string | null) => void;
@@ -626,7 +670,12 @@ export function Timetable({
                                     borderColor:
                                       effectiveBorderColor || undefined,
                                   }}
-                                  aria-label={`Tag: ${day}; Stunde: ${hour}; Fach: ${lesson.subject}; Lehrer: ${lesson.teacher}; Raum: ${lesson.room || "kein Raum"}; Notiz: ${lesson.notes || "keine Notiz"}`}
+                                  aria-label={generateAriaLabel(
+                                    day,
+                                    hour,
+                                    lesson,
+                                    mode,
+                                  )}
                                 >
                                   {showSubjectColors && subjectColor && (
                                     <div
