@@ -442,13 +442,11 @@ export default function ClassMembersPage() {
                 {classTitle || ""}
               </span>
             </h1>
-            {membersLoading ? (
-              <div className="h-10 md:h-9 w-10 md:w-9 shrink-0 bg-muted/50 rounded-md animate-pulse" aria-hidden />
-            ) : (currentRole === "owner" || currentRole === "admin") ? (
+            {(currentRole === "owner" || currentRole === "admin") && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="shrink-0 h-10 md:h-9 w-10 md:w-9"
+                className="shrink-0"
                 onClick={() => {
                   setEditName(classTitle || "");
                   setEditOpen(true);
@@ -457,8 +455,6 @@ export default function ClassMembersPage() {
               >
                 <PencilLine className="w-4 h-4" />
               </Button>
-            ) : (
-              <div className="h-10 md:h-9 w-10 md:w-9 shrink-0" aria-hidden />
             )}
           </div>
           {(currentRole === "owner" ||
