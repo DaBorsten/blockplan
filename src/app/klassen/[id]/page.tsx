@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -434,18 +435,20 @@ export default function ClassMembersPage() {
             <h1 className="text-2xl font-semibold flex items-center gap-2 min-w-0">
               <span className="shrink-0">Klasse</span>
               <span
-                className="bg-primary/10 text-primary px-2 rounded-md tracking-tight truncate"
+                className="bg-primary/10 text-primary px-2 rounded-md tracking-tight truncate h-10 md:h-9 flex items-center"
                 title={classTitle || ""}
                 aria-label={classTitle || ""}
               >
                 {classTitle || ""}
               </span>
             </h1>
-            {(currentRole === "owner" || currentRole === "admin") && (
+            {membersLoading ? (
+              <div className="h-10 md:h-9 w-10 md:w-9 shrink-0 bg-muted/50 rounded-md animate-pulse" aria-hidden />
+            ) : (currentRole === "owner" || currentRole === "admin") ? (
               <Button
                 variant="ghost"
                 size="icon"
-                className="shrink-0"
+                className="shrink-0 h-10 md:h-9 w-10 md:w-9"
                 onClick={() => {
                   setEditName(classTitle || "");
                   setEditOpen(true);
@@ -454,6 +457,8 @@ export default function ClassMembersPage() {
               >
                 <PencilLine className="w-4 h-4" />
               </Button>
+            ) : (
+              <div className="h-10 md:h-9 w-10 md:w-9 shrink-0" aria-hidden />
             )}
           </div>
           {(currentRole === "owner" ||
@@ -494,16 +499,26 @@ export default function ClassMembersPage() {
               <TabsTrigger
                 value="mitglieder"
                 id="tab-trigger-mitglieder"
-                className="flex items-center gap-1"
+                className="flex items-center gap-2"
               >
-                Mitglieder{membersLoading ? "" : ` (${members.length})`}
+                Mitglieder
+                {!membersLoading && (
+                  <Badge variant="outline" className="ml-1">
+                    {members.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="wochen"
                 id="tab-trigger-wochen"
-                className="flex items-center gap-1"
+                className="flex items-center gap-2"
               >
-                Wochen{weeksLoading ? "" : ` (${weeks.length})`}
+                Wochen
+                {!weeksLoading && (
+                  <Badge variant="outline" className="ml-1">
+                    {weeks.length}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger
                 value="farben"

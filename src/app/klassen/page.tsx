@@ -4,7 +4,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { School, LogOut, SearchIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { School, LogOut, SearchIcon, Calendar, Users } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -93,9 +94,6 @@ export default function ManageClass() {
     return m;
   }, [stats]);
 
-  const plural = (n: number, one: string, many: string) =>
-    `${n} ${n === 1 ? one : many}`;
-
   const handleCreateSave = async () => {
     if (!createName.trim() || !user?.id || createLoading) return;
     setCreateLoading(true);
@@ -121,25 +119,25 @@ export default function ManageClass() {
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6 h-full flex flex-col">
-      <div className="flex flex-row justify-between items-center mb-4 md:mb-8 shrink-0">
-        <div className="hidden md:flex flex-col">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 shrink-0">
+        <div className="flex flex-col">
           <h2 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">
-            Klassen verwalten
+            Klassen
           </h2>
           <p className="text-slate-600 dark:text-slate-400">
-            Verwalten Sie Ihre erstellten Klassen
+            Verwalten Sie Ihre Klassen und treten Sie neuen bei
           </p>
         </div>
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex gap-2">
           <Button
-            className="whitespace-nowrap"
+            className="flex-1 md:flex-none"
             onClick={() => setCreateOpen(true)}
           >
             Klasse erstellen
           </Button>
           <Button
             variant="outline"
-            className="whitespace-nowrap"
+            className="flex-1 md:flex-none"
             onClick={() => router.push(ROUTE_KLASSEN_BEITRETEN)}
           >
             Klasse beitreten
@@ -158,66 +156,61 @@ export default function ManageClass() {
           </div>
         </div>
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid gap-4">
           {classes.map((cls) => (
-            <li key={cls.class_id} className="block">
-              <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 dark:bg-card border-border shadow-sm">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <Link
-                    href={`/klassen/${cls.class_id}`}
-                    className="flex items-center gap-3 flex-1 min-w-0"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-md flex items-center justify-center"
-                      title={cls.class_title}
-                      aria-hidden
-                    >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border dark:bg-sidebar-accent dark:text-sidebar-accent-foreground">
-                        <School className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <div className="min-w-0 flex flex-col">
-                      <div
-                        className="text-sm font-medium text-slate-900 dark:text-white flex-1 min-w-0 truncate"
-                        title={cls.class_title}
-                        aria-label={cls.class_title}
-                      >
-                        {cls.class_title}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {statsLoading && !statsMap[cls.class_id] ? (
-                          <span>Lädt…</span>
-                        ) : (
-                          (() => {
-                            const st = statsMap[cls.class_id];
-                            if (!st) return <span>-</span>;
-                            return (
-                              <span>
-                                {plural(st.weeks, "Woche", "Wochen")} ·{" "}
-                                {plural(st.members, "Mitglied", "Mitglieder")}
-                              </span>
-                            );
-                          })()
-                        )}
-                      </div>
-                    </div>
-                  </Link>
+            <li key={cls.class_id} className="group">
+              <Link
+                href={`/klassen/${cls.class_id}`}
+                className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
+              >                
+                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
+                  <School className="h-6 w-6 text-foreground" />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    title={`Klasse ${cls.class_title} verlassen`}
-                    onClick={() => {
-                      setPendingLeaveClass(cls);
-                      setLeaveOpen(true);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
+                <div className="relative flex-1 min-w-0">
+                  <h3 className="font-semibold text-base truncate mb-2">
+                    {cls.class_title}
+                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {statsLoading && !statsMap[cls.class_id] ? (
+                      <span className="text-xs text-muted-foreground animate-pulse">Lädt…</span>
+                    ) : (
+                      (() => {
+                        const st = statsMap[cls.class_id];
+                        if (!st) return <span className="text-xs text-muted-foreground">-</span>;
+                        return (
+                          <>
+                            <Badge className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                              <Calendar className="h-3 w-3" />
+                              {st.weeks} {st.weeks === 1 ? "Woche" : "Wochen"}
+                            </Badge>
+                            <Badge className="gap-1 bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300/90">
+                              <Users className="h-3 w-3" />
+                              {st.members} {st.members === 1 ? "Mitglied" : "Mitglieder"}
+                            </Badge>
+                          </>
+                        );
+                      })()
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative shrink-0 bg-destructive/10 hover:bg-destructive/20! cursor-pointer"
+                  title={`Klasse ${cls.class_title} verlassen`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setPendingLeaveClass(cls);
+                    setLeaveOpen(true);
+                  }}
+                  asChild={false}
+                >
+                  <LogOut className="h-4 w-4 text-destructive" />
+                </Button>
+              </Link>
             </li>
           ))}
         </ul>
