@@ -4,6 +4,23 @@ import { v } from "convex/values";
 import { getMembership } from "./classes";
 import type { Id, Doc } from "./_generated/dataModel";
 
+// Helper: clean note text (trim each line, remove empty lines only at start/end)
+function cleanNoteText(text: string): string {
+  const lines = text.split('\n').map(line => line.trim());
+  
+  // Remove empty lines from the start
+  while (lines.length > 0 && lines[0] === '') {
+    lines.shift();
+  }
+  
+  // Remove empty lines from the end
+  while (lines.length > 0 && lines[lines.length - 1] === '') {
+    lines.pop();
+  }
+  
+  return lines.join('\n');
+}
+
 // Helper: resolve group expansion (replicates legacy resolveGroupIds)
 function resolveGroupIds(g: number): number[] {
   switch (g) {
@@ -81,7 +98,10 @@ export const updateLessonNotes = mutation({
     const member = await getMembership(ctx, week.class_id);
     if (!member) throw new Error("Nicht berechtigt");
 
-    await ctx.db.patch(lessonId, { notes });
+    // Clean the notes text if provided
+    const cleanedNotes = notes ? cleanNoteText(notes) : notes;
+
+    await ctx.db.patch(lessonId, { notes: cleanedNotes || undefined });
   },
 });
 
@@ -172,12 +192,13 @@ export const addClassNote = mutation({
     const member = await getMembership(ctx, classId);
     if (!member) throw new Error("Nicht berechtigt");
 
-    if (!text.trim()) return;
+    const cleanedText = cleanNoteText(text);
+    if (!cleanedText) return;
 
     await ctx.db.insert("notes", {
       class_id: classId,
       note_type,
-      note_content: text,
+      note_content: cleanedText,
       archived_at: archived_at ?? undefined,
     });
   },
@@ -194,9 +215,10 @@ export const updateClassNote = mutation({
     const member = await getMembership(ctx, note.class_id);
     if (!member) throw new Error("Nicht berechtigt");
 
-    if (!text.trim()) return;
+    const cleanedText = cleanNoteText(text);
+    if (!cleanedText) return;
 
-    await ctx.db.patch(noteId, { note_content: text });
+    await ctx.db.patch(noteId, { note_content: cleanedText });
   },
 });
 
