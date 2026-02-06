@@ -17,24 +17,24 @@ export function Public({ children }: Props) {
       {/* Skip link for keyboard and screen reader users */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow focus:outline-none focus:ring-2 focus:ring-ring"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-brand focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow focus:outline-none focus:ring-2 focus:ring-ring"
       >
         Zum Inhalt springen
       </a>
       <div className="min-h-dvh flex flex-col">
-        <header className="flex items-center justify-between p-4 md:p-4">
+        <header className="flex items-center justify-between px-6 py-4 md:px-8">
           <Link
             href="/"
             aria-label="Zur Startseite"
-            className="flex items-center gap-4"
+            className="flex items-center gap-3 group"
           >
             <svg
-              width="24"
-              height="24"
+              width="28"
+              height="28"
               viewBox="0 0 98 98"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="text-black dark:text-white"
+              className="text-brand transition-transform duration-200 group-hover:scale-105"
             >
               <rect
                 x="0.171875"
@@ -61,7 +61,7 @@ export function Public({ children }: Props) {
                 fill="currentColor"
               />
             </svg>
-            <span className="font-semibold">Blockplan</span>
+            <span className="font-semibold tracking-tight text-[15px]">Blockplan</span>
           </Link>
           <nav
             aria-label="Benutzeraktionen"
@@ -87,23 +87,30 @@ export function Public({ children }: Props) {
         <main id="main" className="flex-1 flex flex-col">
           {children}
         </main>
-        <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
-          {process.env.NEXT_PUBLIC_GITHUB_REPO && (
-            <>
-              <Link
-                href={process.env.NEXT_PUBLIC_GITHUB_REPO}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="GitHub Repository (öffnet in neuem Tab)"
-              >
-                GitHub
-              </Link>
-              <span> | </span>
-            </>
-          )}
-          <Link href="/datenschutzhinweis">Datenschutzhinweis</Link>
-          <span> | </span>
-          <Link href="/impressum">Impressum</Link>
+        <footer className="px-6 py-6 md:px-8 md:py-8 text-center text-sm text-muted-foreground/70">
+          <nav aria-label="Rechtliches" className="flex items-center justify-center gap-3 flex-wrap">
+            {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+              <>
+                <Link
+                  href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub Repository (öffnet in neuem Tab)"
+                  className="hover:text-foreground transition-colors"
+                >
+                  GitHub
+                </Link>
+                <span aria-hidden="true" className="text-border">·</span>
+              </>
+            )}
+            <Link href="/datenschutzhinweis" className="hover:text-foreground transition-colors">
+              Datenschutzhinweis
+            </Link>
+            <span aria-hidden="true" className="text-border">·</span>
+            <Link href="/impressum" className="hover:text-foreground transition-colors">
+              Impressum
+            </Link>
+          </nav>
         </footer>
       </div>
     </>
