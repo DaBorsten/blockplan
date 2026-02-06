@@ -47,16 +47,18 @@ export function useAutoLatestWeek() {
 export function useSetAutoLatestWeek() {
   const { updatePreferences } = useUserPreferences();
   return useCallback(
-    async (value: boolean) => {
-      try {
-        await updatePreferences({ autoLatestWeek: value });
-      } catch (error) {
-        console.error("[useSetAutoLatestWeek] Failed to update preference:", error);
-        toast.error("Einstellung konnte nicht gespeichert werden", {
-          description: error instanceof Error ? error.message : String(error),
-        });
-        throw error; // Re-throw so callers can handle if needed
-      }
+    (value: boolean) => {
+      // Fire-and-forget pattern with error handling
+      void (async () => {
+        try {
+          await updatePreferences({ autoLatestWeek: value });
+        } catch (error) {
+          console.error("[useSetAutoLatestWeek] Failed to update preference:", error);
+          toast.error("Einstellung konnte nicht gespeichert werden", {
+            description: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     },
     [updatePreferences],
   );
@@ -70,16 +72,18 @@ export function useShowSubjectColors() {
 export function useSetShowSubjectColors() {
   const { updatePreferences } = useUserPreferences();
   return useCallback(
-    async (value: boolean) => {
-      try {
-        await updatePreferences({ showSubjectColors: value });
-      } catch (error) {
-        console.error("[useSetShowSubjectColors] Failed to update preference:", error);
-        toast.error("Einstellung konnte nicht gespeichert werden", {
-          description: error instanceof Error ? error.message : String(error),
-        });
-        throw error; // Re-throw so callers can handle if needed
-      }
+    (value: boolean) => {
+      // Fire-and-forget pattern with error handling
+      void (async () => {
+        try {
+          await updatePreferences({ showSubjectColors: value });
+        } catch (error) {
+          console.error("[useSetShowSubjectColors] Failed to update preference:", error);
+          toast.error("Einstellung konnte nicht gespeichert werden", {
+            description: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
     },
     [updatePreferences],
   );
