@@ -5,6 +5,9 @@ export default defineSchema({
   users: defineTable({
     nickname: v.string(),
     tokenIdentifier: v.string(),
+    // User preferences
+    autoLatestWeek: v.optional(v.boolean()),
+    showSubjectColors: v.optional(v.boolean()),
   }).index("by_token", ["tokenIdentifier"]),
 
   classes: defineTable({

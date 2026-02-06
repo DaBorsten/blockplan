@@ -90,3 +90,27 @@ export const removeIsArchivedField = migrations.define({
 export const runRemoveIsArchivedField = migrations.runner(
   internal.migrations.removeIsArchivedField,
 );
+
+// Migration to add default preferences to existing users
+export const addUserPreferences = migrations.define({
+  table: "users",
+  migrateOne: async (ctx, doc) => {
+    const updates: Record<string, unknown> = {};
+    
+    // Set default values for new preference fields if they don't exist
+    if (!("autoLatestWeek" in doc)) {
+      updates.autoLatestWeek = true; // default: auto-select latest week
+    }
+    if (!("showSubjectColors" in doc)) {
+      updates.showSubjectColors = true; // default: show subject colors
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(doc._id, updates);
+    }
+  },
+});
+
+export const runAddUserPreferences = migrations.runner(
+  internal.migrations.addUserPreferences,
+);

@@ -23,7 +23,7 @@ import { useTeacherColors } from "@/hooks/useTeacherColors";
 import { getTimesForTimetable } from "@/utils/times";
 import { withGray700Over40 } from "@/utils/withGray700Over40";
 import { useModeStore } from "@/store/useModeStore";
-import { useShowSubjectColors } from "@/store/usePreferencesStore";
+import { useShowSubjectColors } from "@/hooks/usePreferences";
 import { toast } from "sonner";
 import { useQuery } from "convex/react";
 import type { Id } from "@/../convex/_generated/dataModel";

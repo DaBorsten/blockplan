@@ -22,7 +22,7 @@ import {
   useSetAutoLatestWeek,
   useShowSubjectColors,
   useSetShowSubjectColors,
-} from "@/store/usePreferencesStore";
+} from "@/hooks/usePreferences";
 
 export default function Settings() {
   const { user } = useUser();

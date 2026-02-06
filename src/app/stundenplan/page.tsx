@@ -22,7 +22,7 @@ import { NoteItem } from "@/components/NoteItem";
 import { Lesson } from "@/types/timetableData";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
-import { useAutoLatestWeek } from "@/store/usePreferencesStore";
+import { useAutoLatestWeek } from "@/hooks/usePreferences";
 import { useCurrentWeek, useSetWeek } from "@/store/useWeekStore";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

@@ -31,7 +31,7 @@ describe("resolveGroupIds", () => {
     
     // undefined und null werden zu number gecastet und zurückgegeben
     // TypeScript würde diese normalerweise nicht erlauben, aber zur Laufzeit möglich
-    expect(resolveGroupIds(undefined as unknown as number)).toEqual([undefined]);
-    expect(resolveGroupIds(null as unknown as number)).toEqual([null]);
+    expect(resolveGroupIds(undefined as unknown as number)).toEqual([undefined] as unknown as number[]);
+    expect(resolveGroupIds(null as unknown as number)).toEqual([null] as unknown as number[]);
   });
 });

@@ -12,6 +12,7 @@ import type * as classes from "../classes.js";
 import type * as invitations from "../invitations.js";
 import type * as migrations from "../migrations.js";
 import type * as notes from "../notes.js";
+import type * as preferences from "../preferences.js";
 import type * as teacherColors from "../teacherColors.js";
 import type * as timetable from "../timetable.js";
 import type * as users from "../users.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   invitations: typeof invitations;
   migrations: typeof migrations;
   notes: typeof notes;
+  preferences: typeof preferences;
   teacherColors: typeof teacherColors;
   timetable: typeof timetable;
   users: typeof users;
