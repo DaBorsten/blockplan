@@ -156,19 +156,19 @@ export default function ManageClass() {
           </div>
         </div>
       ) : (
-        <ul className="grid gap-4">
+        <ul className="grid grid-cols-1 gap-4 min-w-0 pb-4 md:pb-6">
           {classes.map((cls) => (
-            <li key={cls.class_id} className="group">
+            <li key={cls.class_id} className="group min-w-0">
               <Link
                 href={`/klassen/${cls.class_id}`}
-                className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
+                className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
               >                
                 <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
                   <School className="h-6 w-6 text-foreground" />
                 </div>
 
                 <div className="relative flex-1 min-w-0">
-                  <h3 className="font-semibold text-base truncate mb-2">
+                  <h3 className="font-semibold text-base truncate mb-2" title={cls.class_title}>
                     {cls.class_title}
                   </h3>
                   <div className="flex items-center gap-2 flex-wrap">

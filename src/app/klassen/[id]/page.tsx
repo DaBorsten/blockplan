@@ -431,15 +431,15 @@ export default function ClassMembersPage() {
     <div className="h-full flex-1 flex flex-col min-h-0">
       <div className="sticky top-0 z-20 pb-2 px-4 md:px-6 border-b flex flex-col gap-6">
         <div className="flex items-center justify-between gap-8">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-3 min-w-0">
             <h1 className="text-2xl font-semibold flex items-center gap-2 min-w-0">
               <span className="shrink-0">Klasse</span>
               <span
-                className="bg-primary/10 text-primary px-2 rounded-md tracking-tight truncate h-10 md:h-9 flex items-center"
+                className="bg-primary/10 text-primary px-2 rounded-md tracking-tight h-10 md:h-9 flex items-center min-w-0 max-w-[65vw] md:max-w-md"
                 title={classTitle || ""}
                 aria-label={classTitle || ""}
               >
-                {classTitle || ""}
+                <span className="block w-full truncate">{classTitle || ""}</span>
               </span>
             </h1>
             {(currentRole === "owner" || currentRole === "admin") && (
@@ -545,82 +545,84 @@ export default function ClassMembersPage() {
                 <Spinner />
               </div>
             ) : (
-              <ul className="divide-y rounded-md border">
-                {members.map((m: Member) => (
-                  <li
-                    key={m.user_id}
-                    className="flex items-center justify-between p-3 min-w-0"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div
-                        className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs shrink-0 select-none"
-                        aria-hidden
-                      >
-                        {(m.nickname || m.user_id).substring(0, 2)}
-                      </div>
-                      <div className="text-sm min-w-0 flex-1">
-                        <div className="font-medium truncate">
-                          {m.nickname || m.user_id}
-                        </div>
-                        <div className="text-muted-foreground text-xs flex items-center gap-1">
-                          {m.role === "owner" && (
-                            <>
-                              <Crown className="w-3.5 h-3.5" />
-                              <span>Besitzer</span>
-                            </>
-                          )}
-                          {m.role === "admin" && (
-                            <>
-                              <Swords className="w-3.5 h-3.5" />
-                              <span>Admin</span>
-                            </>
-                          )}
-                          {m.role === "member" && (
-                            <>
-                              <User className="w-3.5 h-3.5" />
-                              <span>Mitglied</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {/* Role selection dropdown */}
-                      {currentRole === "owner" && m.role !== "owner" && (
-                        <Select
-                          value={m.role === "admin" ? "admin" : "member"}
-                          onValueChange={(val) => {
-                            if (val === m.role) return;
-                            changeRole(m, val as "admin" | "member");
-                          }}
+              <div className="pb-4 md:pb-6">
+                <ul className="divide-y rounded-md border">
+                  {members.map((m: Member) => (
+                    <li
+                      key={m.user_id}
+                      className="flex items-center justify-between p-3 min-w-0"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs shrink-0 select-none"
+                          aria-hidden
                         >
-                          <SelectTrigger className="h-8 w-27.5 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="min-w-(--radix-select-trigger-width) w-(--radix-select-trigger-width)">
-                            <SelectItem value="member">Mitglied</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                      {canRemove(m) && (
-                        <Button
-                          variant="destructive"
-                          size={isMobile ? "icon" : "default"}
-                          onClick={() => openConfirm(m)}
-                        >
-                          <UserRoundX className="w-4 h-4" />
-                          <span className="hidden md:inline">
-                            {user?.id === m.user_id
-                              ? "Klasse verlassen"
-                              : "Entfernen"}
-                          </span>
-                        </Button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                          {(m.nickname || m.user_id).substring(0, 2)}
+                        </div>
+                        <div className="text-sm min-w-0 flex-1">
+                          <div className="font-medium truncate">
+                            {m.nickname || m.user_id}
+                          </div>
+                          <div className="text-muted-foreground text-xs flex items-center gap-1">
+                            {m.role === "owner" && (
+                              <>
+                                <Crown className="w-3.5 h-3.5" />
+                                <span>Besitzer</span>
+                              </>
+                            )}
+                            {m.role === "admin" && (
+                              <>
+                                <Swords className="w-3.5 h-3.5" />
+                                <span>Admin</span>
+                              </>
+                            )}
+                            {m.role === "member" && (
+                              <>
+                                <User className="w-3.5 h-3.5" />
+                                <span>Mitglied</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {/* Role selection dropdown */}
+                        {currentRole === "owner" && m.role !== "owner" && (
+                          <Select
+                            value={m.role === "admin" ? "admin" : "member"}
+                            onValueChange={(val) => {
+                              if (val === m.role) return;
+                              changeRole(m, val as "admin" | "member");
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-27.5 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="min-w-(--radix-select-trigger-width) w-(--radix-select-trigger-width)">
+                              <SelectItem value="member">Mitglied</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                        {canRemove(m) && (
+                          <Button
+                            variant="destructive"
+                            size={isMobile ? "icon" : "default"}
+                            onClick={() => openConfirm(m)}
+                          >
+                            <UserRoundX className="w-4 h-4" />
+                            <span className="hidden md:inline">
+                              {user?.id === m.user_id
+                                ? "Klasse verlassen"
+                                : "Entfernen"}
+                            </span>
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         )}
@@ -651,7 +653,7 @@ export default function ClassMembersPage() {
                     <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       {section}
                     </h3>
-                    <ul className="grid gap-3 min-w-0">
+                    <ul className="grid gap-3 min-w-0 pb-4 md:pb-6">
                       {items.map((week) => (
                         <li key={week.id} className="block min-w-0">
                           <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm min-w-0">
@@ -727,7 +729,9 @@ export default function ClassMembersPage() {
             tabIndex={0}
             className="space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 rounded-md h-full"
           >
-            <TeacherColorsManager classId={id as string} />
+            <div className="pb-4 md:pb-6">
+              <TeacherColorsManager classId={id as string} />
+            </div>
           </div>
         )}
       </div>

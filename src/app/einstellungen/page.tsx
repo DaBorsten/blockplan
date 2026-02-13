@@ -105,7 +105,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 max-w-5xl w-full">
+      <div className="grid gap-6 md:grid-cols-2 max-w-5xl w-full pb-4 md:pb-6">
         <Card className="h-full">
           <CardHeader>
             <CardTitle>Profil</CardTitle>

@@ -88,6 +88,8 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     proxyPrefetch: "flexible",
+    browserDebugInfoInTerminal: true,
+    optimizeCss: true,
     optimizePackageImports: [
       "lucide-react",
       "react-icons",
