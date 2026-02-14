@@ -1,12 +1,6 @@
 "use client";
 
-import { SignInButton, SignUpButton } from "@clerk/nextjs";
-import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
-import Link from "next/link";
-import { ROUTE_STUNDENPLAN } from "@/constants/routes";
-import { Authenticated, Unauthenticated, useConvexAuth } from "convex/react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LandingAuthActions } from "@/app/_components/LandingAuthActions";
 
 const features = [
   {
@@ -27,20 +21,27 @@ const features = [
 ] as const;
 
 export default function LandingPage() {
-  const { isLoading } = useConvexAuth();
-
   return (
     <main className="flex-1 flex flex-col">
       {/* ─── Hero ─── */}
       <section className="relative flex-1 flex flex-col items-center justify-center px-6 py-24 md:py-32 overflow-hidden">
         {/* Animated grid + gradient orbs */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden select-none">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden select-none"
+        >
           <div className="landing-grid absolute inset-0" />
           <div className="absolute inset-0 dark:hidden bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.2),transparent_50%)]" />
           {/* Mask: fade grid out towards edges */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,var(--background)_75%)]" />
-          <div className="landing-orb absolute w-[min(500px,80vw)] h-[min(500px,80vw)] rounded-full bg-brand/6 dark:bg-brand/9 blur-[100px] top-[10%] left-[15%]" style={{ animationDuration: "25s" }} />
-          <div className="landing-orb absolute w-[min(400px,70vw)] h-[min(400px,70vw)] rounded-full bg-brand/4 dark:bg-brand/7 blur-[80px] bottom-[5%] right-[10%]" style={{ animationDuration: "30s", animationDelay: "5s" }} />
+          <div
+            className="landing-orb absolute w-[min(500px,80vw)] h-[min(500px,80vw)] rounded-full bg-brand/6 dark:bg-brand/9 blur-[100px] top-[10%] left-[15%]"
+            style={{ animationDuration: "25s" }}
+          />
+          <div
+            className="landing-orb absolute w-[min(400px,70vw)] h-[min(400px,70vw)] rounded-full bg-brand/4 dark:bg-brand/7 blur-[80px] bottom-[5%] right-[10%]"
+            style={{ animationDuration: "30s", animationDelay: "5s" }}
+          />
         </div>
 
         <div className="relative z-10 max-w-2xl w-full text-center">
@@ -56,44 +57,7 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-8 flex items-center justify-center gap-3 animate-landing-fade-up [animation-delay:300ms]">
-            {isLoading ? (
-              <Skeleton
-                className="h-11 w-44"
-                role="status"
-                aria-live="polite"
-                aria-busy="true"
-              />
-            ) : (
-              <>
-                <Unauthenticated>
-                  <SignUpButton
-                    mode="modal"
-                    forceRedirectUrl={ROUTE_STUNDENPLAN}
-                  >
-                    <Button size="lg" className="gap-2 group cursor-pointer">
-                      Jetzt starten
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </Button>
-                  </SignUpButton>
-                  <SignInButton
-                    mode="modal"
-                    forceRedirectUrl={ROUTE_STUNDENPLAN}
-                  >
-                    <Button variant="outline" size="lg" className="cursor-pointer bg-background dark:bg-background/60">
-                      Anmelden
-                    </Button>
-                  </SignInButton>
-                </Unauthenticated>
-                <Authenticated>
-                  <Button asChild size="lg" className="gap-2 group cursor-pointer">
-                    <Link href={ROUTE_STUNDENPLAN}>
-                      Zum Stundenplan
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  </Button>
-                </Authenticated>
-              </>
-            )}
+            <LandingAuthActions />
           </div>
         </div>
       </section>

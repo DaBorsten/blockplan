@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -17,6 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AnimatePresence, motion } from "motion/react";
+import { useIsAnimated } from "@/components/AnimationProvider";
 import { isColorDark } from "@/utils/colorDark";
 import {
   AlertDialog,
@@ -42,6 +44,7 @@ type RowState = {
   color: string;
   subjects: SubjectColor[];
   _editing?: boolean;
+  _tempId?: string;
 };
 
 interface Props {
@@ -50,6 +53,8 @@ interface Props {
 
 export function TeacherColorsManager({ classId }: Props) {
   const isMobile = useIsMobile();
+  const anim = useIsAnimated();
+  const isInitialMountRef = useRef(true);
   const colorsData = useQuery(
     api.teacherColors.listTeacherColors,
     classId ? { classId: classId as Id<"classes"> } : "skip",
@@ -86,6 +91,7 @@ export function TeacherColorsManager({ classId }: Props) {
         _editing: false,
       })),
     );
+    isInitialMountRef.current = false;
   }, [colorsData]);
 
   function addRow() {
@@ -204,65 +210,84 @@ export function TeacherColorsManager({ classId }: Props) {
             </div>
           ) : (
             <div className="space-y-2 flex flex-1 flex-col w-full">
-              {items.map((item, idx) => {
-                return (
-                  <div
-                    key={item.id || idx}
-                    className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2"
-                  >
-                    <div
-                      className="relative inline-flex h-12 w-12 items-center justify-center"
-                      title="Lehrerfarbe Vorschau"
+              <AnimatePresence>
+                {items.map((item, idx) => {
+                  return (
+                    <motion.div
+                      key={item.id ?? item._tempId}
+                      className="flex items-center gap-3 rounded-lg border bg-card/40 px-3 py-2"
+                      layout={anim}
+                      initial={anim ? { opacity: 0, y: 16 } : false}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={
+                        anim ? { opacity: 0, x: -20, scale: 0.95 } : undefined
+                      }
+                      transition={
+                        anim
+                          ? {
+                              duration: 0.3,
+                              ease: "easeOut",
+                              delay: isInitialMountRef.current ? idx * 0.04 : 0,
+                            }
+                          : { duration: 0 }
+                      }
                     >
-                      <span
-                        className="h-10 w-10 rounded-full ring-2 ring-background flex items-center justify-center text-sm font-bold"
-                        style={{
-                          background: item.color,
-                          color: isColorDark(item.color) ? "white" : "black",
-                          boxShadow:
-                            "0 0 0 2px var(--background), 0 0 0 3px var(--foreground)",
-                        }}
+                      <div
+                        className="relative inline-flex h-12 w-12 items-center justify-center"
+                        title="Lehrerfarbe Vorschau"
                       >
-                        {item.subjects && item.subjects.length > 0
-                          ? item.subjects.length
-                          : ""}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate text-sm">
-                        {item.teacher || <span className="italic">(leer)</span>}
+                        <span
+                          className="h-10 w-10 rounded-full ring-2 ring-background flex items-center justify-center text-sm font-bold"
+                          style={{
+                            background: item.color,
+                            color: isColorDark(item.color) ? "white" : "black",
+                            boxShadow:
+                              "0 0 0 2px var(--background), 0 0 0 3px var(--foreground)",
+                          }}
+                        >
+                          {item.subjects && item.subjects.length > 0
+                            ? item.subjects.length
+                            : ""}
+                        </span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size={isMobile ? "icon" : "sm"}
-                        variant="outline"
-                        className="flex items-center gap-1"
-                        onClick={() => {
-                          setEditingIndex(idx);
-                          setDraftTeacher(item.teacher);
-                          setDraftColor(item.color);
-                          setDraftSubjects(item.subjects ?? []);
-                        }}
-                      >
-                        <PencilLine className="w-4 h-4" />
-                        <span className="hidden md:inline">Bearbeiten</span>
-                      </Button>
-                      <Button
-                        size={isMobile ? "icon" : "sm"}
-                        variant="destructive"
-                        className="flex items-center gap-1"
-                        onClick={() =>
-                          setItemToDelete({ id: item.id, index: idx })
-                        }
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span className="hidden md:inline">Löschen</span>
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate text-sm">
+                          {item.teacher || (
+                            <span className="italic">(leer)</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size={isMobile ? "icon" : "sm"}
+                          variant="outline"
+                          className="flex items-center gap-1"
+                          onClick={() => {
+                            setEditingIndex(idx);
+                            setDraftTeacher(item.teacher);
+                            setDraftColor(item.color);
+                            setDraftSubjects(item.subjects ?? []);
+                          }}
+                        >
+                          <PencilLine className="w-4 h-4" />
+                          <span className="hidden md:inline">Bearbeiten</span>
+                        </Button>
+                        <Button
+                          size={isMobile ? "icon" : "sm"}
+                          variant="destructive"
+                          className="flex items-center gap-1"
+                          onClick={() =>
+                            setItemToDelete({ id: item.id, index: idx })
+                          }
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="hidden md:inline">Löschen</span>
+                        </Button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           )}
         </div>
@@ -339,7 +364,7 @@ export function TeacherColorsManager({ classId }: Props) {
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1 min-h-0">
                   {draftSubjects.map((subjectRow, index) => (
                     <div
-                      key={subjectRow.id ?? subjectRow._tempId ?? index}
+                      key={subjectRow.id ?? subjectRow._tempId}
                       className="flex items-center gap-3"
                     >
                       <label className="relative inline-flex h-10 w-10 items-center justify-center">
@@ -422,6 +447,7 @@ export function TeacherColorsManager({ classId }: Props) {
                     color: draftColor,
                     subjects: trimmedSubjects,
                     _editing: false,
+                    _tempId: crypto.randomUUID(),
                   };
                   newItems = [...items, newItem];
                 } else {

@@ -1,5 +1,6 @@
 import React, { forwardRef, useState } from "react";
 import { Upload, FileDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type DropzoneProps = {
   onClick: () => void;
@@ -60,9 +61,12 @@ export const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
     return (
       <div
         ref={ref}
-        className={`relative flex-1 w-full flex items-center justify-center cursor-pointer hover:bg-muted transition text-lg select-none min-h-75 min-w-0 border-2 border-dashed rounded-2xl overflow-hidden ${
-          isDragOver ? "border-primary bg-primary/5" : "border-muted-foreground"
-        }`}
+        className={cn(
+          "relative flex-1 w-full flex items-center justify-center cursor-pointer hover:bg-muted/50 transition-all duration-200 text-lg select-none min-h-64 min-w-0 border-2 border-dashed rounded-2xl overflow-hidden",
+          isDragOver
+            ? "border-primary bg-primary/5 scale-[1.01]"
+            : "border-muted-foreground/40 hover:border-muted-foreground/70"
+        )}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
@@ -78,16 +82,16 @@ export const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
         tabIndex={0}
         aria-label={`${text || "Dateien hierher ziehen zum Hochladen"}${supportedFiles ? `. Unterstützte Formate: ${supportedFiles}` : ""}. Drücken Sie Enter oder Leertaste zum Öffnen des Datei-Dialogs`}
       >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Upload className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+        <div className="text-center py-10 px-6">
+          <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Upload className="w-7 h-7 text-primary" />
           </div>
 
-          <h3 className="text-muted-foreground mb-2 text-center w-full">
+          <h3 className="text-foreground font-medium mb-1 text-base">
             {text || "Dateien hierher ziehen zum Hochladen"}
           </h3>
           {supportedFiles && (
-            <p className="text-xs text-muted-foreground mb-2 text-center w-full">
+            <p className="text-xs text-muted-foreground">
               {"Unterstützte Formate: " + supportedFiles}
             </p>
           )}
@@ -97,13 +101,13 @@ export const Dropzone = forwardRef<HTMLDivElement, DropzoneProps>(
         {isDragOver && (
           <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
             <div className="text-center">
-              <div className="w-20 h-20 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <div className="w-16 h-16 bg-primary/20 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <FileDown
-                  className="w-10 h-10 text-primary"
+                  className="w-8 h-8 text-primary"
                   style={{ animation: "gentle-bounce 1s ease-in-out infinite" }}
                 />
               </div>
-              <h3 className="text-primary font-semibold text-xl">
+              <h3 className="text-primary font-semibold text-lg">
                 Dateien hier ablegen
               </h3>
             </div>

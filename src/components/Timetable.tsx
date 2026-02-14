@@ -14,6 +14,8 @@ import { isColorDark } from "@/utils/colorDark";
 import { Copy, LucideNotebookText, MapPin } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "motion/react";
+import { useIsAnimated } from "@/components/AnimationProvider";
 // nuqs hooks for query params
 import { Lesson } from "@/types/timetableData";
 import { useCurrentWeek } from "@/store/useWeekStore";
@@ -29,6 +31,16 @@ import { useQuery } from "convex/react";
 import type { Id } from "@/../convex/_generated/dataModel";
 // Note: path requires .js because convex generates ESM with extension
 import { api } from "@/../convex/_generated/api.js";
+
+/**
+ * Static configuration for group expansion: maps selected group to included groups
+ * (e.g., selecting group 1 includes 1, 2, 3; selecting group 2 includes 1, 2)
+ */
+const groupExpansionMap: Record<number, number[]> = {
+  1: [1, 2, 3],
+  2: [1, 2],
+  3: [1, 3],
+};
 
 /**
  * Generates an accessible aria-label for a lesson button
@@ -92,19 +104,54 @@ export function Timetable({
   const classId = useCurrentClass();
   const { getColor } = useTeacherColors(classId ?? undefined);
   const showSubjectColors = useShowSubjectColors();
+  const anim = useIsAnimated();
 
-  const groupExpansionMap: Record<number, number[]> = {
-    1: [1, 2, 3],
-    2: [1, 2],
-    3: [1, 3],
-  };
+  // Track whether the group actually changed (not initial load)
+  // Computed synchronously during render so it's true in the same pass as useMemo
+  const [prevGroup, setPrevGroup] = useState<number | null>(null);
+  const groupChangeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const groupChangeActivationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevGroupUpdateRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [groupChangeActive, setGroupChangeActive] = useState(false);
 
-  // Live timetable entries for selected week + group (single group filter)
-  const groupExpansion = groupExpansionMap[group] ?? [group];
+  const didGroupChangeNow = prevGroup !== null && prevGroup !== group;
+  const didGroupChange = groupChangeActive || didGroupChangeNow;
+
+  // After render, persist the flag and schedule cleanup
+  useEffect(() => {
+    if (didGroupChangeNow) {
+      if (groupChangeActivationRef.current) {
+        clearTimeout(groupChangeActivationRef.current);
+      }
+      groupChangeActivationRef.current = setTimeout(() => {
+        setGroupChangeActive(true);
+      }, 0);
+
+      if (groupChangeTimerRef.current) clearTimeout(groupChangeTimerRef.current);
+      groupChangeTimerRef.current = setTimeout(() => setGroupChangeActive(false), 600);
+    }
+
+    if (prevGroupUpdateRef.current) clearTimeout(prevGroupUpdateRef.current);
+    prevGroupUpdateRef.current = setTimeout(() => setPrevGroup(group), 0);
+
+    return () => {
+      if (groupChangeActivationRef.current) {
+        clearTimeout(groupChangeActivationRef.current);
+      }
+      if (groupChangeTimerRef.current) {
+        clearTimeout(groupChangeTimerRef.current);
+      }
+      if (prevGroupUpdateRef.current) clearTimeout(prevGroupUpdateRef.current);
+    };
+  }, [group, didGroupChangeNow]);
+
+  // Always fetch ALL groups to avoid re-fetch flash on group switch.
+  // Client-side filtering is done in timeTableData below.
+  const allGroups = [1, 2, 3];
   const timetableRaw = useQuery(
     api.timetable.listTimetable,
-    weekID && group
-      ? { weekId: weekID as Id<"weeks">, groups: groupExpansion }
+    weekID
+      ? { weekId: weekID as Id<"weeks">, groups: allGroups }
       : ("skip" as const),
   );
 
@@ -124,11 +171,15 @@ export function Timetable({
 
   const timeTableData = useMemo<Lesson[]>(() => {
     if (!timetableRaw) return [];
+    const groupExpansion = groupExpansionMap[group] ?? [group];
     return (timetableRaw as unknown as TimetableEntry[]).flatMap((entry) => {
       const groups: number[] = Array.isArray(entry.groups)
         ? (entry.groups as number[])
         : [];
-      return groups.map((g) => ({
+      // Client-side filter: only include groups matching current selection
+      return groups
+        .filter((g) => groupExpansion.includes(g))
+        .map((g) => ({
         id: String(entry._id),
         subject: String(entry.subject ?? ""),
         teacher: String(entry.teacher ?? ""),
@@ -142,7 +193,7 @@ export function Timetable({
         day: String(entry.day),
       }));
     });
-  }, [timetableRaw]);
+  }, [timetableRaw, group]);
 
   // layout constants
   const TIME_COL_PX = 72;
@@ -249,16 +300,9 @@ export function Timetable({
       };
     };
 
-    // Observe height for row sizing
-    const roHeight = new ResizeObserver(() => recomputeRowHeight());
-    roHeight.observe(vp);
-
     // Throttled observers to limit update frequency
-    const recomputeRowHeightDebounced = debounce(recomputeRowHeight, 200);
     const recomputeDayWidthDebounced = debounce(() => {
       recomputeDayColumnWidth();
-      // row heights can change when header wraps; debounce as well
-      recomputeRowHeightDebounced();
     }, 200);
 
     // Observe width for column sizing
@@ -272,6 +316,7 @@ export function Timetable({
     vp.style.scrollPaddingLeft = `${TIME_COL_PX}px`;
 
     // Fallback: Window-Resize triggers both recomputations
+    const recomputeRowHeightDebounced = debounce(recomputeRowHeight, 200);
     const onResize = () => {
       recomputeDayWidthDebounced();
       recomputeRowHeightDebounced();
@@ -283,7 +328,6 @@ export function Timetable({
     recomputeDayColumnWidth();
 
     return () => {
-      roHeight.disconnect();
       roWidth.disconnect();
       window.removeEventListener("resize", onResize);
     };
@@ -449,9 +493,9 @@ export function Timetable({
       <ScrollArea ref={containerRef} className="h-full timetable-scroll">
         {isReady && (
           <table
-            className="h-full border-collapse bg-background table-fixed"
-            style={{ width: TIME_COL_PX + allDays.length * dayColWidth }}
-          >
+              className="h-full border-collapse bg-background table-fixed"
+              style={{ width: TIME_COL_PX + allDays.length * dayColWidth }}
+            >
             <colgroup>
               <col
                 style={{
@@ -503,6 +547,9 @@ export function Timetable({
             <tbody>
               {allHours.map((hour, hourIndex) => {
                 const isLast = hourIndex === allHours.length - 1;
+                // Cubic ease: slow at edges, fast in middle
+                const t = hourIndex / Math.max(allHours.length - 1, 1);
+                const hourDelay = (4 * Math.pow(t - 0.5, 3) + 0.5) * 0.5;
                 let { startTime, endTime } = getTimesForTimetable(
                   groupedByDay,
                   currentDayIndex,
@@ -525,13 +572,15 @@ export function Timetable({
                   <tr key={hour} style={{ height: rowHeight }}>
                     {/* Stunden Zelle */}
                     <td
-                      className={`bg-secondary text-center box-border p-1 ${
+                      className={`bg-secondary text-center box-border p-1 overflow-hidden ${
                         isLast ? "" : "border-b"
-                      } min-h-16 text-xs border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
+                      } text-xs border-gray-500 dark:border-gray-600 sticky left-0 z-20 shadow-[inset_-1px_0_var(--color-gray-500)] dark:shadow-[inset_-1px_0_var(--color-gray-600)]`}
                       style={{
                         width: TIME_COL_PX,
                         minWidth: TIME_COL_PX,
                         maxWidth: TIME_COL_PX,
+                        height: rowHeight,
+                        maxHeight: rowHeight,
                       }}
                     >
                       <div className="flex flex-col justify-center h-full">
@@ -554,36 +603,26 @@ export function Timetable({
                       const hourData = groupedByDay[dayIndex].hours.find(
                         (h) => h.hour === hour,
                       );
-
-                      if (!hourData || hourData.lessons.length === 0) {
-                        return (
-                          <td
-                            key={`${day}-${hour}`}
-                            className={`text-center box-border p-1 ${
-                              isLast ? "" : "border-b"
-                            } min-h-16 border-gray-500 dark:border-gray-600`}
-                            style={{ scrollSnapAlign: "start" }}
-                          >
-                            <div
-                              className="h-full flex items-center justify-center text-muted-foreground select-none"
-                              aria-label="Keine Stunde"
-                            >
-                              -
-                            </div>
-                          </td>
-                        );
-                      }
+                      const lessons = hourData?.lessons ?? [];
 
                       return (
                         <td
                           key={`${day}-${hour}`}
-                          className={`text-center box-border p-1 ${
+                          className={`text-center box-border p-1 overflow-hidden ${
                             isLast ? "" : "border-b"
-                          } min-h-16 border-gray-500 dark:border-gray-600`}
-                          style={{ scrollSnapAlign: "start" }}
+                          } border-gray-500 dark:border-gray-600`}
+                          style={{ scrollSnapAlign: "start", height: rowHeight, maxHeight: rowHeight }}
                         >
-                          <div className="flex gap-1 flex-nowrap items-stretch h-full">
-                            {hourData.lessons.map((lesson, idx) => {
+                          <motion.div
+                            key={weekID || "empty"}
+                            className="flex gap-1 flex-nowrap items-stretch h-full"
+                            initial={anim ? { opacity: 0 } : false}
+                            animate={{ opacity: 1 }}
+                            transition={anim ? { duration: 0.4, delay: hourDelay + dayIndex * 0.03, ease: "easeOut" } : { duration: 0 }}
+                          >
+                            <AnimatePresence mode="popLayout" initial={false}>
+                              {lessons.length > 0 ? (
+                                lessons.map((lesson, idx) => {
                               const { base: baseColor, subject: subjectColor } =
                                 getColor(lesson.teacher, lesson.subject);
 
@@ -621,9 +660,18 @@ export function Timetable({
                                   defaultBackground,
                               );
 
+                              const groupX = didGroupChange
+                                ? (lesson.group === 2 ? -25 : lesson.group === 3 ? 25 : 0)
+                                : 0;
+
                               return (
-                                <button
-                                  key={idx}
+                                <motion.button
+                                  key={`${lesson.id}-${lesson.group}`}
+                                  layout={anim && didGroupChange}
+                                  initial={anim ? { opacity: 0, x: groupX } : false}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={anim ? { opacity: 0, x: groupX } : undefined}
+                                  transition={anim ? { type: "spring", duration: 0.45, bounce: 0.15 } : { duration: 0 }}
                                   // Data-Attribute für benutzerdefinierte Tab-Reihenfolge
                                   data-day={day}
                                   data-hour={hour}
@@ -713,10 +761,24 @@ export function Timetable({
                                         className="self-center shrink-0 ml-1"
                                       />
                                     ))}
-                                </button>
+                                </motion.button>
                               );
-                            })}
-                          </div>
+                            })
+                          ) : (
+                            <motion.div
+                              key="empty-placeholder"
+                              className="h-full w-full flex items-center justify-center text-muted-foreground select-none"
+                              initial={anim ? { opacity: 0 } : false}
+                              animate={{ opacity: 1 }}
+                              exit={anim ? { opacity: 0 } : undefined}
+                              transition={anim ? { duration: 0.3 } : { duration: 0 }}
+                              aria-label="Keine Stunde"
+                            >
+                              -
+                            </motion.div>
+                          )}
+                            </AnimatePresence>
+                          </motion.div>
                         </td>
                       );
                     })}
