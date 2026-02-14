@@ -12,9 +12,8 @@ A Next.js 16 project with Convex, Clerk, TailwindCSS, and shadcn/ui.
 ## Prerequisites
 
 - Bun installed (https://bun.sh) — used for scripts
-- Node 18+ recommended (Bun ships with a compatible runtime)
 - A Clerk project (Publishable/Secret Key, optional webhook)
-- A Convex deployment (URL, Admin Key) or local in Docker
+- A Convex deployment (URL, Admin Key) or local in Docker (see [self-hosted-convex/docker-compose.yml](./self-hosted-convex/docker-compose.yml))
 
 ## Setup
 
@@ -28,6 +27,7 @@ bun i
 
 Create `.env.local` (see [ENVIRONMENT_DEV.txt](./ENVIRONMENT_DEV.txt)).
 If you manage the environment variables on Vercel, you can use `vercel env pull`.
+Use `vercel env pull --help` for help.
 
 ## Running locally
 
@@ -47,7 +47,7 @@ bun run convex
 bun run dev
 ```
 
-Open http://localhost:3000. Clerk protects secured routes via `src/middleware.ts`.
+Open http://localhost:3000. Clerk protects secured routes via [src/proxy.ts](./src/proxy.ts).
 
 Run the [pdf extracter python service](https://github.com/DaBorsten/timetable_pdf_extractor) to be able to import timetables.
 
@@ -60,7 +60,7 @@ Run the [pdf extracter python service](https://github.com/DaBorsten/timetable_pd
 
 ## Architecture overview
 
-- Auth: Clerk via middleware; Convex uses `CLERK_JWT_ISSUER_DOMAIN` in `convex/auth.config.ts`
+- Auth: Clerk via proxy; Convex uses `CLERK_JWT_ISSUER_DOMAIN` in `convex/auth.config.ts`
 - Data: Convex queries/mutations (see `convex/*.ts`), frontend with `useQuery(api.x.y)` / `useMutation`
 - Styling: Tailwind v4; UI components in `src/components/ui` (shadcn)
 - State (Zustand):
@@ -111,7 +111,7 @@ When using Webhooks, create a new Webhook in the Settings that points to your_we
 
 ### Vercel
 Use the Vercel CLI to link the project.
-In Vercel unter the Build and Deployment setting override the build command with `npx convex deploy --cmd "next build"` to automatically update the convex schema. If you link your github repository, you can just commit to main and it will automatically build your code (based on your settings).
+In Vercel unter the Build and Deployment setting override the build command with `bunx convex deploy --cmd "bun run build"` to automatically update the convex schema. If you link your github repository, you can just commit to main and it will automatically build your code (based on your settings).
 
 ## Project structure (excerpt)
 
