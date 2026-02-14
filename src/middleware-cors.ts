@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import getLocalIP from "@/utils/getLocalIP";
+import { getLocalIP } from "@/utils/getLocalIP";
 
 const isDevelopment = process.env.NEXT_PUBLIC_IS_DEVELOPMENT === "true";
 let localIP = "localhost";

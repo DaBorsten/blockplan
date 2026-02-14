@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AnimatePresence, motion } from "motion/react";
+import { useIsAnimated } from "@/components/AnimationProvider";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -65,6 +67,7 @@ export default function ClassMembersPage() {
   const classIdQuery = id || null;
   const convex = useConvex();
   const isMobile = useIsMobile();
+  const anim = useIsAnimated();
 
   // Access control: pre-check to avoid throwing in live queries
   const [access, setAccess] = useState<"unknown" | "granted" | "denied">(
@@ -439,7 +442,9 @@ export default function ClassMembersPage() {
                 title={classTitle || ""}
                 aria-label={classTitle || ""}
               >
-                <span className="block w-full truncate">{classTitle || ""}</span>
+                <span className="block w-full truncate">
+                  {classTitle || ""}
+                </span>
               </span>
             </h1>
             {(currentRole === "owner" || currentRole === "admin") && (
@@ -654,65 +659,75 @@ export default function ClassMembersPage() {
                       {section}
                     </h3>
                     <ul className="grid gap-3 min-w-0 pb-4 md:pb-6">
-                      {items.map((week) => (
-                        <li key={week.id} className="block min-w-0">
-                          <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm min-w-0">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div
-                                className="w-10 h-10 rounded-md flex items-center justify-center font-semibold text-sm shrink-0"
-                                aria-hidden
-                              >
+                      <AnimatePresence mode="popLayout">
+                        {items.map((week, index) => (
+                          <motion.li
+                            key={week.id}
+                            className="block min-w-0"
+                            layout={anim}
+                            initial={anim ? { opacity: 0, y: 16 } : false}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={
+                              anim
+                                ? { opacity: 0, x: -20, scale: 0.95 }
+                                : undefined
+                            }
+                            transition={
+                              anim
+                                ? {
+                                    duration: 0.3,
+                                    ease: "easeOut",
+                                    delay: index * 0.04,
+                                  }
+                                : { duration: 0 }
+                            }
+                          >
+                            <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm min-w-0">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div
-                                  className="flex h-8 w-8 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border select-none"
+                                  className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border select-none font-semibold text-sm shrink-0"
                                   aria-hidden
                                 >
                                   {week.title
-                                    ? week.title.split(" ")[0].slice(0, 3)
+                                    ? (week.title.trim().split(/\s+/)[0] || "W").slice(0, 3)
                                     : "W"}
                                 </div>
+                                <span
+                                  className="text-sm font-medium truncate min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 rounded-sm"
+                                  title={week.title}
+                                >
+                                  {week.title}
+                                </span>
                               </div>
-                              <span
-                                className="text-sm font-medium truncate min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 rounded-sm"
-                                title={week.title}
-                                aria-label={`Woche: ${week.title}. Zum Bearbeiten Enter oder Leertaste drücken.`}
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    handleWeekEdit(week.id, week.title);
+                              <div className="flex items-center gap-2 shrink-0">
+                                <Button
+                                  onClick={() =>
+                                    handleWeekEdit(week.id, week.title)
                                   }
-                                }}
-                              >
-                                {week.title}
-                              </span>
+                                  variant="outline"
+                                  size={isMobile ? "icon" : "sm"}
+                                  aria-label={`Woche "${week.title}" bearbeiten`}
+                                >
+                                  <PencilLine className="w-4 h-4" />
+                                  <span className="hidden md:inline">
+                                    Bearbeiten
+                                  </span>
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => openWeekDelete(week)}
+                                  size={isMobile ? "icon" : "sm"}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span className="hidden md:inline">
+                                    Löschen
+                                  </span>
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <Button
-                                onClick={() =>
-                                  handleWeekEdit(week.id, week.title)
-                                }
-                                variant="outline"
-                                size={isMobile ? "icon" : "sm"}
-                              >
-                                <PencilLine className="w-4 h-4" />
-                                <span className="hidden md:inline">
-                                  Bearbeiten
-                                </span>
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                onClick={() => openWeekDelete(week)}
-                                size={isMobile ? "icon" : "sm"}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span className="hidden md:inline">
-                                  Löschen
-                                </span>
-                              </Button>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
+                          </motion.li>
+                        ))}
+                      </AnimatePresence>
                     </ul>
                   </section>
                 ))}

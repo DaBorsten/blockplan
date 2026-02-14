@@ -22,6 +22,7 @@ export function FinalizeProfile() {
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
   const initUser = useMutation(api.users.initUser);
+  const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
 
   const isValidNickname = nickname.trim().length > 0;
 
@@ -162,10 +163,10 @@ export function FinalizeProfile() {
       </div>
 
       <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
-        {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+        {githubRepo && (
           <>
             <Link
-              href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+              href={{ pathname: githubRepo }}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub Repository (öffnet in neuem Tab)"

@@ -22,6 +22,8 @@ import {
   useSetAutoLatestWeek,
   useShowSubjectColors,
   useSetShowSubjectColors,
+  useAnimationsEnabled,
+  useSetAnimationsEnabled,
 } from "@/hooks/usePreferences";
 
 export default function Settings() {
@@ -93,6 +95,8 @@ export default function Settings() {
   const setAutoLatestWeek = useSetAutoLatestWeek();
   const showSubjectColors = useShowSubjectColors();
   const setShowSubjectColors = useSetShowSubjectColors();
+  const animationsEnabled = useAnimationsEnabled();
+  const setAnimationsEnabled = useSetAnimationsEnabled();
 
   return (
     <div className="px-4 md:px-6 pb-4 md:pb-6 h-full w-full flex flex-col">
@@ -167,9 +171,10 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between gap-4">
-                <div className="text-sm text-muted-foreground max-w-prose">
-                  In der Stundenplan-Ansicht wird beim Neuladen automatisch die neueste Woche ausgewählt.
-                </div>
+              <div className="text-sm text-muted-foreground max-w-prose">
+                In der Stundenplan-Ansicht wird beim Neuladen automatisch die
+                neueste Woche ausgewählt.
+              </div>
               <Switch
                 checked={autoLatestWeek}
                 onCheckedChange={(val) => setAutoLatestWeek(!!val)}
@@ -188,13 +193,36 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between gap-4">
-                <div className="text-sm text-muted-foreground max-w-prose">
-                  Wenn aktiviert, bekommen Stundenplan-Einträge einen Streifen mit der konfigurierten Fächerfarbe für den jeweiligen Lehrer.
-                </div>
+              <div className="text-sm text-muted-foreground max-w-prose">
+                Wenn aktiviert, bekommen Stundenplan-Einträge einen Streifen mit
+                der konfigurierten Fächerfarbe für den jeweiligen Lehrer.
+              </div>
               <Switch
                 checked={showSubjectColors}
                 onCheckedChange={(val) => setShowSubjectColors(!!val)}
                 aria-label="Fächerspezifische Farben anzeigen"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-full">
+          <CardHeader>
+            <CardTitle>Animationen</CardTitle>
+            <CardDescription>
+              Übergänge und Bewegungseffekte in der Anwendung.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-sm text-muted-foreground max-w-prose">
+                Wenn deaktiviert, werden alle Animationen und Übergänge
+                (z.B. beim Wochen- oder Gruppenwechsel) ausgeschaltet.
+              </div>
+              <Switch
+                checked={animationsEnabled}
+                onCheckedChange={(val) => setAnimationsEnabled(!!val)}
+                aria-label="Animationen aktivieren"
               />
             </div>
           </CardContent>

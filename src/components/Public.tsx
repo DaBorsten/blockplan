@@ -12,6 +12,8 @@ interface Props {
 }
 
 export function Public({ children }: Props) {
+  const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
+
   return (
     <>
       {/* Skip link for keyboard and screen reader users */}
@@ -61,7 +63,9 @@ export function Public({ children }: Props) {
                 fill="currentColor"
               />
             </svg>
-            <span className="font-semibold tracking-tight text-[15px]">Blockplan</span>
+            <span className="font-semibold tracking-tight text-[15px]">
+              Blockplan
+            </span>
           </Link>
           <nav
             aria-label="Benutzeraktionen"
@@ -88,11 +92,14 @@ export function Public({ children }: Props) {
           {children}
         </main>
         <footer className="px-6 py-6 md:px-8 md:py-8 text-center text-sm text-muted-foreground/70">
-          <nav aria-label="Rechtliches" className="flex items-center justify-center gap-3 flex-wrap">
-            {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+          <nav
+            aria-label="Rechtliches"
+            className="flex items-center justify-center gap-3 flex-wrap"
+          >
+            {githubRepo && (
               <>
                 <Link
-                  href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+                  href={{ pathname: githubRepo }}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="GitHub Repository (öffnet in neuem Tab)"
@@ -100,14 +107,24 @@ export function Public({ children }: Props) {
                 >
                   GitHub
                 </Link>
-                <span aria-hidden="true" className="text-border">·</span>
+                <span aria-hidden="true" className="text-border">
+                  ·
+                </span>
               </>
             )}
-            <Link href="/datenschutzhinweis" className="hover:text-foreground transition-colors">
+            <Link
+              href="/datenschutzhinweis"
+              className="hover:text-foreground transition-colors"
+            >
               Datenschutzhinweis
             </Link>
-            <span aria-hidden="true" className="text-border">·</span>
-            <Link href="/impressum" className="hover:text-foreground transition-colors">
+            <span aria-hidden="true" className="text-border">
+              ·
+            </span>
+            <Link
+              href="/impressum"
+              className="hover:text-foreground transition-colors"
+            >
               Impressum
             </Link>
           </nav>

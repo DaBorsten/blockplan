@@ -8,6 +8,7 @@ export default defineSchema({
     // User preferences
     autoLatestWeek: v.optional(v.boolean()),
     showSubjectColors: v.optional(v.boolean()),
+    animationsEnabled: v.optional(v.boolean()),
   }).index("by_token", ["tokenIdentifier"]),
 
   classes: defineTable({

@@ -3,6 +3,7 @@ import { WebhookEvent } from "@clerk/nextjs/server";
 import { Webhook } from "svix";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "../../../../../convex/_generated/api";
+import { NextResponse } from "next/server";
 
 // This route handles Clerk webhooks (user.deleted etc.)
 // Required env vars:
@@ -26,12 +27,12 @@ export async function POST(request: Request) {
   const svixTimestamp = hdrs.get("svix-timestamp");
   const svixSignature = hdrs.get("svix-signature");
   if (!svixId || !svixTimestamp || !svixSignature) {
-    return new Response("Missing Svix headers", { status: 400 });
+    return new NextResponse("Missing Svix headers", { status: 400 });
   }
 
   let evt: WebhookEvent;
   try {
-  const wh = new Webhook(requireEnv("CLERK_WEBHOOK_SECRET"));
+    const wh = new Webhook(requireEnv("CLERK_WEBHOOK_SECRET"));
     const payload = wh.verify(body, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
@@ -40,10 +41,11 @@ export async function POST(request: Request) {
     evt = payload as WebhookEvent;
   } catch (err) {
     console.error("Webhook signature verification failed", err);
-    return new Response("Invalid signature", { status: 400 });
+    return new NextResponse("Invalid signature", { status: 400 });
   }
 
-  console.log(evt);
+  // Log only non-PII event metadata
+  console.log(`[Clerk Webhook] Event type: ${evt.type}`);
 
   if (evt.type === "user.deleted") {
     // The deleted user id
@@ -64,15 +66,15 @@ export async function POST(request: Request) {
       } else {
         const result = await fetchMutation(
           api.users.deleteUserByTokenIdentifier,
-            { tokenIdentifier, secret: adminKey },
+          { tokenIdentifier, secret: adminKey },
         );
         console.log("User deletion cascade result", result);
       }
     } catch (error) {
       console.error("Failed to cascade delete user", error);
-      return new Response("Error handling user.deleted", { status: 500 });
+      return new NextResponse("Error handling user.deleted", { status: 500 });
     }
   }
 
-  return new Response("ok", { status: 200 });
+  return new NextResponse("ok", { status: 200 });
 }

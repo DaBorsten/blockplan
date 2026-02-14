@@ -1,4 +1,4 @@
-import getLocalIP from "@/utils/getLocalIP";
+import { getLocalIP } from "@/utils/getLocalIP";
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NEXT_PUBLIC_IS_DEVELOPMENT === "true";
@@ -86,10 +86,12 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   reactCompiler: true,
+  typedRoutes: true,
   experimental: {
     proxyPrefetch: "flexible",
     browserDebugInfoInTerminal: true,
     optimizeCss: true,
+    typedEnv: true,
     optimizePackageImports: [
       "lucide-react",
       "react-icons",

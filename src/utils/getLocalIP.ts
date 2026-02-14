@@ -1,5 +1,6 @@
 import os from "os";
-export default function getLocalIP(): string {
+
+function getLocalIP(): string {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
     const iface = interfaces[name];
@@ -12,3 +13,5 @@ export default function getLocalIP(): string {
   }
   return "localhost";
 }
+
+export { getLocalIP };

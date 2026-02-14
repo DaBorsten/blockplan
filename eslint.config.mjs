@@ -7,6 +7,21 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   ...convexPlugin.configs.recommended,
+  {
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    ignores: ["src/app/api/**"],
+    rules: {
+      // Detect unused variables (includes unused imported bindings)
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          args: "after-used",
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

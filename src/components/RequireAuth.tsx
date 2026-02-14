@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 export function RequireAuth() {
+  const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
+
   return (
     <div className="min-h-dvh flex flex-col">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-20 text-center">
@@ -31,10 +33,10 @@ export function RequireAuth() {
       </div>
 
       <footer className="p-4 md:p-6 text-center text-sm text-muted-foreground">
-        {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+        {githubRepo && (
           <>
             <Link
-              href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+              href={{ pathname: githubRepo }}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub Repository (öffnet in neuem Tab)"

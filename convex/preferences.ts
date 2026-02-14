@@ -44,6 +44,7 @@ export const getUserPreferences = query({
     return {
       autoLatestWeek: user.autoLatestWeek,
       showSubjectColors: user.showSubjectColors,
+      animationsEnabled: user.animationsEnabled,
     };
   },
 });
@@ -55,6 +56,7 @@ export const updateUserPreferences = mutation({
   args: {
     autoLatestWeek: v.optional(v.boolean()),
     showSubjectColors: v.optional(v.boolean()),
+    animationsEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -65,6 +67,9 @@ export const updateUserPreferences = mutation({
     }
     if (args.showSubjectColors !== undefined) {
       updates.showSubjectColors = args.showSubjectColors;
+    }
+    if (args.animationsEnabled !== undefined) {
+      updates.animationsEnabled = args.animationsEnabled;
     }
 
     if (Object.keys(updates).length === 0) {

@@ -1,4 +1,6 @@
-export const metadata = { title: "Impressum | Blockplan" };
+import { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Impressum | Blockplan" };
 
 export default function Impressum() {
   return (

@@ -13,6 +13,7 @@ import { PUBLIC_ROUTES } from "@/lib/routes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { StoresValidityGuard } from "@/components/StoresValidityGuard";
 import { PreferencesMigration } from "@/components/PreferencesMigration";
+import { AnimationProvider } from "@/components/AnimationProvider";
 
 interface Props {
   children: ReactNode;
@@ -42,6 +43,7 @@ export function SignedInWrapper({ children }: Props) {
       </a>
       <NuqsAdapter>
         <PreferencesMigration />
+        <AnimationProvider>
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="flex flex-col h-dvh">
@@ -63,6 +65,7 @@ export function SignedInWrapper({ children }: Props) {
             </StoresValidityGuard>
           </SidebarInset>
         </SidebarProvider>
+        </AnimationProvider>
       </NuqsAdapter>
     </>
   );

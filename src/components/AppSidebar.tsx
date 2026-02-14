@@ -53,6 +53,7 @@ const items = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
 
   return (
     <Sidebar>
@@ -87,11 +88,11 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {process.env.NEXT_PUBLIC_GITHUB_REPO && (
+          {githubRepo && (
             <SidebarMenuItem>
               <SidebarMenuButton asChild size="lg">
-                <Link
-                  href={process.env.NEXT_PUBLIC_GITHUB_REPO}
+                <a
+                  href={githubRepo}
                   onClick={() => setOpenMobile(false)}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -99,7 +100,7 @@ export function AppSidebar() {
                 >
                   <SiGithub className="h-5 w-5" />
                   <span>GitHub</span>
-                </Link>
+                </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}

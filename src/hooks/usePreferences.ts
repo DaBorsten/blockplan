@@ -20,6 +20,7 @@ export function useUserPreferences() {
     async (updates: {
       autoLatestWeek?: boolean;
       showSubjectColors?: boolean;
+      animationsEnabled?: boolean;
     }) => {
       await updateMutation(updates);
     },
@@ -30,6 +31,7 @@ export function useUserPreferences() {
     preferences: {
       autoLatestWeek: preferences?.autoLatestWeek ?? true,
       showSubjectColors: preferences?.showSubjectColors ?? true,
+      animationsEnabled: preferences?.animationsEnabled ?? true,
     },
     loading: preferences === undefined,
     updatePreferences,
@@ -79,6 +81,31 @@ export function useSetShowSubjectColors() {
           await updatePreferences({ showSubjectColors: value });
         } catch (error) {
           console.error("[useSetShowSubjectColors] Failed to update preference:", error);
+          toast.error("Einstellung konnte nicht gespeichert werden", {
+            description: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })();
+    },
+    [updatePreferences],
+  );
+}
+
+export function useAnimationsEnabled() {
+  const { preferences } = useUserPreferences();
+  return preferences.animationsEnabled;
+}
+
+export function useSetAnimationsEnabled() {
+  const { updatePreferences } = useUserPreferences();
+  return useCallback(
+    (value: boolean) => {
+      // Fire-and-forget pattern with error handling
+      void (async () => {
+        try {
+          await updatePreferences({ animationsEnabled: value });
+        } catch (error) {
+          console.error("[useSetAnimationsEnabled] Failed to update preference:", error);
           toast.error("Einstellung konnte nicht gespeichert werden", {
             description: error instanceof Error ? error.message : String(error),
           });

@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
+import { useIsAnimated } from "@/components/AnimationProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +51,7 @@ export default function ManageClass() {
   const { user } = useUser();
   const router = useRouter();
   const setKlasse = useSetClass();
+  const anim = useIsAnimated();
 
   const convexClasses = useQuery(api.classes.listClassesWithStats, {});
   const createClassMutation = useMutation(api.classes.createClass);
@@ -157,12 +160,23 @@ export default function ManageClass() {
         </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4 min-w-0 pb-4 md:pb-6">
-          {classes.map((cls) => (
-            <li key={cls.class_id} className="group min-w-0">
-              <Link
-                href={`/klassen/${cls.class_id}`}
-                className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
-              >                
+          <AnimatePresence>
+            {classes.map((cls, index) => {
+              const delay = Math.min(index * 0.05, 0.2);
+              return (
+              <motion.li
+                key={cls.class_id}
+                className="group min-w-0"
+                layout={anim}
+                initial={anim ? { opacity: 0, y: 16 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                exit={anim ? { opacity: 0, x: -20, scale: 0.95 } : undefined}
+                transition={anim ? { duration: 0.3, ease: "easeOut", delay } : { duration: 0 }}
+              >
+                <Link
+                  href={`/klassen/${cls.class_id}`}
+                  className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
+                >                
                 <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
                   <School className="h-6 w-6 text-foreground" />
                 </div>
@@ -211,8 +225,10 @@ export default function ManageClass() {
                   <LogOut className="h-4 w-4 text-destructive" />
                 </Button>
               </Link>
-            </li>
-          ))}
+            </motion.li>
+            );
+            })}
+          </AnimatePresence>
         </ul>
       )}
 

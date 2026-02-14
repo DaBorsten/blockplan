@@ -20,5 +20,9 @@
   },
   "chat.tools.terminal.autoApprove": {
     "bun": true
+  },
+  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "files.associations": {
+    "*.css": "tailwindcss"
   }
 }
