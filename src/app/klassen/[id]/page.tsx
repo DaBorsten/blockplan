@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { AnimatePresence, motion } from "motion/react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useIsAnimated } from "@/components/AnimationProvider";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
@@ -353,6 +353,30 @@ export default function ClassMembersPage() {
     return sections;
   }, [weeks]);
 
+  type FlatRow =
+    | { kind: "header"; section: string }
+    | { kind: "item"; week: Week };
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const flatRows = useMemo<FlatRow[]>(() => {
+    const rows: FlatRow[] = [];
+    for (const [section, items] of groupedWeeks) {
+      rows.push({ kind: "header", section });
+      for (const week of items) {
+        rows.push({ kind: "item", week });
+      }
+    }
+    return rows;
+  }, [groupedWeeks]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: flatRows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: (i) => (flatRows[i].kind === "header" ? 52 : 76),
+    overscan: 10,
+  });
+
   // Confirmation dialog for remove/leave actions (top-level in component scope)
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingTarget, setPendingTarget] = useState<Member | null>(null);
@@ -532,7 +556,7 @@ export default function ClassMembersPage() {
           </Tabs>
         </div>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 min-w-0">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 min-w-0">
         {activeTab === "mitglieder" && (
           <div
             role="tabpanel"
@@ -652,85 +676,90 @@ export default function ClassMembersPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 min-w-0">
-                {groupedWeeks.map(([section, items]) => (
-                  <section key={section} className="min-w-0">
-                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                      {section}
-                    </h3>
-                    <ul className="grid gap-3 min-w-0 pb-4 md:pb-6">
-                      <AnimatePresence mode="popLayout">
-                        {items.map((week, index) => (
-                          <motion.li
-                            key={week.id}
-                            className="block min-w-0"
-                            layout={anim}
-                            initial={anim ? { opacity: 0, y: 16 } : false}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={
-                              anim
-                                ? { opacity: 0, x: -20, scale: 0.95 }
-                                : undefined
-                            }
-                            transition={
-                              anim
-                                ? {
-                                    duration: 0.3,
-                                    ease: "easeOut",
-                                    delay: index * 0.04,
-                                  }
-                                : { duration: 0 }
-                            }
-                          >
-                            <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm min-w-0">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div
-                                  className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border select-none font-semibold text-sm shrink-0"
-                                  aria-hidden
-                                >
-                                  {week.title
-                                    ? (week.title.trim().split(/\s+/)[0] || "W").slice(0, 3)
-                                    : "W"}
-                                </div>
-                                <span
-                                  className="text-sm font-medium truncate min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 rounded-sm"
-                                  title={week.title}
-                                >
-                                  {week.title}
-                                </span>
+              <div
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const row = flatRows[virtualRow.index];
+                  const isFirstRow = virtualRow.index === 0;
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      {row.kind === "header" ? (
+                        <div
+                          style={{
+                            paddingTop: isFirstRow ? 0 : 24,
+                            paddingBottom: 8,
+                          }}
+                        >
+                          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                            {row.section}
+                          </h3>
+                        </div>
+                      ) : (
+                        <div className="pb-3 min-w-0">
+                          <div className="flex items-center justify-between gap-4 p-3 rounded-lg border bg-card/60 border-border shadow-sm min-w-0">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div
+                                className="flex h-10 w-10 items-center justify-center rounded-md bg-sidebar-accent text-sidebar-accent-foreground border border-border select-none font-semibold text-sm shrink-0"
+                                aria-hidden
+                              >
+                                {row.week.title
+                                  ? (row.week.title.trim().split(/\s+/)[0] || "W").slice(0, 3)
+                                  : "W"}
                               </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <Button
-                                  onClick={() =>
-                                    handleWeekEdit(week.id, week.title)
-                                  }
-                                  variant="outline"
-                                  size={isMobile ? "icon" : "sm"}
-                                  aria-label={`Woche "${week.title}" bearbeiten`}
-                                >
-                                  <PencilLine className="w-4 h-4" />
-                                  <span className="hidden md:inline">
-                                    Bearbeiten
-                                  </span>
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  onClick={() => openWeekDelete(week)}
-                                  size={isMobile ? "icon" : "sm"}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  <span className="hidden md:inline">
-                                    Löschen
-                                  </span>
-                                </Button>
-                              </div>
+                              <span
+                                className="text-sm font-medium truncate min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-2 rounded-sm"
+                                title={row.week.title}
+                              >
+                                {row.week.title}
+                              </span>
                             </div>
-                          </motion.li>
-                        ))}
-                      </AnimatePresence>
-                    </ul>
-                  </section>
-                ))}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                onClick={() =>
+                                  handleWeekEdit(row.week.id, row.week.title)
+                                }
+                                variant="outline"
+                                size={isMobile ? "icon" : "sm"}
+                                aria-label={`Woche "${row.week.title}" bearbeiten`}
+                              >
+                                <PencilLine className="w-4 h-4" />
+                                <span className="hidden md:inline">
+                                  Bearbeiten
+                                </span>
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                onClick={() => openWeekDelete(row.week)}
+                                size={isMobile ? "icon" : "sm"}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                <span className="hidden md:inline">
+                                  Löschen
+                                </span>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -194,6 +194,7 @@ export default function TimetablePage() {
   // Track if user already modified current dialog content to avoid overwriting while typing
   const userTouchedRef = useRef(false);
   const wasOpenRef = useRef(false);
+  const editNotesInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!isEditNotesModalOpen) return;
@@ -229,14 +230,7 @@ export default function TimetablePage() {
     const current = activeNotes ?? "";
     if (incoming === current) return;
     setActiveNotes(incoming);
-    setEditNotes(incoming);
   }, [liveEntry, isEditNotesModalOpen, activeClickedLesson, activeNotes]);
-
-  // Notizen-Dialog-Logik
-  const [editNotes, setEditNotes] = useState<string | null>(null);
-  useEffect(() => {
-    setEditNotes(activeNotes);
-  }, [activeNotes]);
 
   const [isSavingClassNotes, setIsSavingClassNotes] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -248,7 +242,7 @@ export default function TimetablePage() {
     try {
       await updateLessonNotes({
         lessonId: activeClickedLesson.id as Id<"timetables">,
-        notes: editNotes ?? undefined,
+        notes: editNotesInputRef.current?.value ?? undefined,
       });
       toast.success("Notizen gespeichert.");
       setIsEditNotesModalOpen(false);
@@ -637,7 +631,7 @@ export default function TimetablePage() {
           <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
-              getNotes={() => editNotes ?? ""}
+              getNotes={() => editNotesInputRef.current?.value ?? ""}
               onOpenClassNotes={handleOpenClassNotes}
             />
           </ButtonGroup>
@@ -652,7 +646,7 @@ export default function TimetablePage() {
           <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
-              getNotes={() => editNotes ?? ""}
+              getNotes={() => editNotesInputRef.current?.value ?? ""}
               onOpenClassNotes={handleOpenClassNotes}
             />
           </ButtonGroup>
@@ -674,13 +668,11 @@ export default function TimetablePage() {
             <DialogTitle>Notizen bearbeiten</DialogTitle>
           </DialogHeader>
           <Textarea
-            value={editNotes ?? ""}
-            onChange={(e) => {
-              const next = e.target.value;
-              if (next !== (editNotes ?? "")) {
-                userTouchedRef.current = true;
-                setEditNotes(e.target.value);
-              }
+            ref={editNotesInputRef}
+            key={`${activeClickedLesson?.id ?? ""}-${activeNotes ?? ""}`}
+            defaultValue={activeNotes ?? ""}
+            onChange={() => {
+              userTouchedRef.current = true;
             }}
             onKeyDown={(e) => {
               if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {

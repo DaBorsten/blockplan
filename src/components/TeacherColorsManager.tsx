@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -54,7 +54,6 @@ interface Props {
 export function TeacherColorsManager({ classId }: Props) {
   const isMobile = useIsMobile();
   const anim = useIsAnimated();
-  const isInitialMountRef = useRef(true);
   const colorsData = useQuery(
     api.teacherColors.listTeacherColors,
     classId ? { classId: classId as Id<"classes"> } : "skip",
@@ -91,7 +90,6 @@ export function TeacherColorsManager({ classId }: Props) {
         _editing: false,
       })),
     );
-    isInitialMountRef.current = false;
   }, [colorsData]);
 
   function addRow() {
@@ -227,7 +225,7 @@ export function TeacherColorsManager({ classId }: Props) {
                           ? {
                               duration: 0.3,
                               ease: "easeOut",
-                              delay: isInitialMountRef.current ? idx * 0.04 : 0,
+                              delay: idx * 0.04,
                             }
                           : { duration: 0 }
                       }
