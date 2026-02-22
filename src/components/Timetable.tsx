@@ -613,14 +613,11 @@ export function Timetable({
                           } border-gray-500 dark:border-gray-600`}
                           style={{ scrollSnapAlign: "start", height: rowHeight, maxHeight: rowHeight }}
                         >
-                          <motion.div
+                          <div
                             key={weekID || "empty"}
                             className="flex gap-1 flex-nowrap items-stretch h-full"
-                            initial={anim ? { opacity: 0 } : false}
-                            animate={{ opacity: 1 }}
-                            transition={anim ? { duration: 0.4, delay: hourDelay + dayIndex * 0.03, ease: "easeOut" } : { duration: 0 }}
                           >
-                            <AnimatePresence mode="popLayout" initial={false}>
+                            <AnimatePresence mode="popLayout">
                               {lessons.length > 0 ? (
                                 lessons.map((lesson, idx) => {
                               const { base: baseColor, subject: subjectColor } =
@@ -671,7 +668,7 @@ export function Timetable({
                                   initial={anim ? { opacity: 0, x: groupX } : false}
                                   animate={{ opacity: 1, x: 0 }}
                                   exit={anim ? { opacity: 0, x: groupX } : undefined}
-                                  transition={anim ? { type: "spring", duration: 0.45, bounce: 0.15 } : { duration: 0 }}
+                                  transition={anim ? { type: "spring", duration: 0.45, bounce: 0.15, delay: didGroupChange ? 0 : hourDelay + dayIndex * 0.03 } : { duration: 0 }}
                                   // Data-Attribute für benutzerdefinierte Tab-Reihenfolge
                                   data-day={day}
                                   data-hour={hour}
@@ -768,17 +765,17 @@ export function Timetable({
                             <motion.div
                               key="empty-placeholder"
                               className="h-full w-full flex items-center justify-center text-muted-foreground select-none"
-                              initial={anim ? { opacity: 0 } : false}
+                              initial={false}
                               animate={{ opacity: 1 }}
                               exit={anim ? { opacity: 0 } : undefined}
-                              transition={anim ? { duration: 0.3 } : { duration: 0 }}
+                              transition={{ duration: 0 }}
                               aria-label="Keine Stunde"
                             >
                               -
                             </motion.div>
                           )}
                             </AnimatePresence>
-                          </motion.div>
+                          </div>
                         </td>
                       );
                     })}
