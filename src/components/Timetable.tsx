@@ -117,6 +117,21 @@ export function Timetable({
   const didGroupChangeNow = prevGroup !== null && prevGroup !== group;
   const didGroupChange = groupChangeActive || didGroupChangeNow;
 
+  // Navigation direction: +1 when going to a higher group number, -1 otherwise.
+  // Stored in state so it persists after prevGroup catches up (setTimeout).
+  const [lastDirection, setLastDirection] = useState<{ dir: 1 | -1; forGroup: number | null }>({ dir: 1, forGroup: null });
+  // Adjust direction during render when group transitions (React "adjusting state" pattern).
+  if (prevGroup !== null && prevGroup !== group && lastDirection.forGroup !== group) {
+    setLastDirection({ dir: group > prevGroup ? 1 : -1, forGroup: group });
+  }
+  // When group just changed, compute direction from the live prevGroup value;
+  // otherwise fall back to the last persisted direction (still valid during animation).
+  const slideDirection: 1 | -1 =
+    prevGroup !== null && prevGroup !== group
+      ? group > prevGroup ? 1 : -1
+      : lastDirection.dir;
+  const slideX = didGroupChange ? slideDirection * 25 : 0;
+
   // After render, persist the flag and schedule cleanup
   useEffect(() => {
     if (didGroupChangeNow) {
@@ -138,12 +153,14 @@ export function Timetable({
       if (groupChangeActivationRef.current) {
         clearTimeout(groupChangeActivationRef.current);
       }
-      if (groupChangeTimerRef.current) {
-        clearTimeout(groupChangeTimerRef.current);
-      }
+      // groupChangeTimerRef is intentionally NOT cancelled here: the effect re-runs
+      // when prevGroup catches up (didGroupChangeNow → false), and clearing this timer
+      // at that point would cancel the 600ms setGroupChangeActive(false) call, leaving
+      // groupChangeActive stuck at true. Rapid group changes are handled by the
+      // clearTimeout inside if(didGroupChangeNow) above.
       if (prevGroupUpdateRef.current) clearTimeout(prevGroupUpdateRef.current);
     };
-  }, [group, didGroupChangeNow]);
+  }, [group, didGroupChangeNow, prevGroup]);
 
   // Always fetch ALL groups to avoid re-fetch flash on group switch.
   // Client-side filtering is done in timeTableData below.
@@ -194,6 +211,35 @@ export function Timetable({
       }));
     });
   }, [timetableRaw, group]);
+
+  // Which cells actually change content between prevGroup and group.
+  // Stable across re-renders during the animation window (state persists the last computed set).
+  const [changedCellsState, setChangedCellsState] = useState<{
+    forGroup: number | null;
+    forPrevGroup: number | null;
+    cells: Set<string>;
+  }>({ forGroup: null, forPrevGroup: null, cells: new Set() });
+  // Adjust during render when a new group transition is detected (React "adjusting state" pattern).
+  if (
+    timetableRaw &&
+    prevGroup !== null &&
+    prevGroup !== group &&
+    (changedCellsState.forGroup !== group || changedCellsState.forPrevGroup !== prevGroup)
+  ) {
+    const prevExpansion = groupExpansionMap[prevGroup] ?? [prevGroup];
+    const currExpansion = groupExpansionMap[group] ?? [group];
+    const changed = new Set<string>();
+    for (const entry of (timetableRaw as unknown as TimetableEntry[])) {
+      const entryGroups: number[] = Array.isArray(entry.groups) ? (entry.groups as number[]) : [];
+      const prevSig = entryGroups.filter(g => prevExpansion.includes(g)).sort().join(",");
+      const currSig = entryGroups.filter(g => currExpansion.includes(g)).sort().join(",");
+      if (prevSig !== currSig) {
+        changed.add(`${entry.day}-${entry.hour}`);
+      }
+    }
+    setChangedCellsState({ forGroup: group, forPrevGroup: prevGroup, cells: changed });
+  }
+  const changedCells = changedCellsState.cells;
 
   // layout constants
   const TIME_COL_PX = 72;
@@ -604,6 +650,7 @@ export function Timetable({
                         (h) => h.hour === hour,
                       );
                       const lessons = hourData?.lessons ?? [];
+                      const cellChanged = didGroupChange && changedCells.has(`${day}-${hour}`);
 
                       return (
                         <td
@@ -613,11 +660,16 @@ export function Timetable({
                           } border-gray-500 dark:border-gray-600`}
                           style={{ scrollSnapAlign: "start", height: rowHeight, maxHeight: rowHeight }}
                         >
-                          <div
-                            key={weekID || "empty"}
-                            className="flex gap-1 flex-nowrap items-stretch h-full"
-                          >
+                          <div className="relative overflow-hidden flex gap-1 flex-nowrap items-stretch h-full">
                             <AnimatePresence mode="popLayout">
+                              <motion.div
+                                key={`${day}-${hour}-${group}`}
+                                className="flex gap-1 flex-nowrap items-stretch h-full w-full"
+                                initial={anim && cellChanged ? { opacity: 0, x: slideX } : false}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={anim && cellChanged ? { opacity: 0, x: -slideX } : undefined}
+                                transition={anim && cellChanged ? { type: "spring", duration: 0.4, bounce: 0.1 } : { duration: 0 }}
+                              >
                               {lessons.length > 0 ? (
                                 lessons.map((lesson, idx) => {
                               const { base: baseColor, subject: subjectColor } =
@@ -657,18 +709,12 @@ export function Timetable({
                                   defaultBackground,
                               );
 
-                              const groupX = didGroupChange
-                                ? (lesson.group === 2 ? -25 : lesson.group === 3 ? 25 : 0)
-                                : 0;
-
                               return (
                                 <motion.button
                                   key={`${lesson.id}-${lesson.group}`}
-                                  layout={anim && didGroupChange}
-                                  initial={anim ? { opacity: 0, x: groupX } : false}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={anim ? { opacity: 0, x: groupX } : undefined}
-                                  transition={anim ? { type: "spring", duration: 0.45, bounce: 0.15, delay: didGroupChange ? 0 : hourDelay + dayIndex * 0.03 } : { duration: 0 }}
+                                  initial={anim && !didGroupChange ? { opacity: 0 } : false}
+                                  animate={{ opacity: 1 }}
+                                  transition={anim && !didGroupChange ? { type: "spring", duration: 0.45, bounce: 0.15, delay: hourDelay + dayIndex * 0.03 } : { duration: 0 }}
                                   // Data-Attribute für benutzerdefinierte Tab-Reihenfolge
                                   data-day={day}
                                   data-hour={hour}
@@ -762,18 +808,14 @@ export function Timetable({
                               );
                             })
                           ) : (
-                            <motion.div
-                              key="empty-placeholder"
+                            <div
                               className="h-full w-full flex items-center justify-center text-muted-foreground select-none"
-                              initial={false}
-                              animate={{ opacity: 1 }}
-                              exit={anim ? { opacity: 0 } : undefined}
-                              transition={{ duration: 0 }}
                               aria-label="Keine Stunde"
                             >
                               -
-                            </motion.div>
+                            </div>
                           )}
+                              </motion.div>
                             </AnimatePresence>
                           </div>
                         </td>
