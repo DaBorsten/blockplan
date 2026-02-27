@@ -6,19 +6,20 @@ import { ThemeToaster } from "@/components/ThemeToaster";
 import { AppShell } from "@/components/AppShell";
 import { ClerkThemingProvider } from "@/components/ClerkThemingProvider";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
-  preload: true,
+  preload: true
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
-  preload: true,
+  preload: true
 });
 
 export const metadata: Metadata = {
@@ -39,17 +40,17 @@ export const metadata: Metadata = {
         url: "/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Stundenplan mit Notizen | Blockplan",
-      },
-    ],
+        alt: "Stundenplan mit Notizen | Blockplan"
+      }
+    ]
   },
   alternates: { canonical: "/" },
   icons: {
     icon: [{ url: "/favicon.ico", sizes: "48x48" }],
     shortcut: "/favicon.ico",
     apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }
+    ]
   },
   appleWebApp: {
     title: "Blockplan",
@@ -58,13 +59,13 @@ export const metadata: Metadata = {
     startupImage: {
       url: "/apple-touch-icon.png",
       media:
-        "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)",
-    },
-  },
+        "(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+    }
+  }
 };
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
@@ -79,14 +80,16 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <ClerkThemingProvider>
-            <ConvexClientProvider>
-              <AppShell>
-                <ThemeToaster />
-                {children}
-              </AppShell>
-            </ConvexClientProvider>
-          </ClerkThemingProvider>
+          <TooltipProvider>
+            <ClerkThemingProvider>
+              <ConvexClientProvider>
+                <AppShell>
+                  <ThemeToaster />
+                  {children}
+                </AppShell>
+              </ConvexClientProvider>
+            </ClerkThemingProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

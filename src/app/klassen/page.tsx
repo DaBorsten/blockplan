@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
@@ -26,7 +26,7 @@ import { ROUTE_KLASSEN_BEITRETEN } from "@/constants/routes";
 import { Spinner } from "@/components/ui/spinner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 type ClassItem = {
   class_id: string;
@@ -43,7 +43,7 @@ export default function ManageClass() {
   // Leave dialog unified (like detail page)
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [pendingLeaveClass, setPendingLeaveClass] = useState<ClassItem | null>(
-    null,
+    null
   );
   const [leaveLoading, setLeaveLoading] = useState(false);
   // Invite management moved to details page
@@ -73,14 +73,14 @@ export default function ManageClass() {
     }>;
     const mapped: ClassItem[] = mappedRaw.map((c) => ({
       class_id: c.class_id,
-      class_title: c.class_title,
+      class_title: c.class_title
     }));
     setClasses(mapped);
     // Directly map stats from the query result
     const statsList: ClassStats[] = mappedRaw.map((c) => ({
       class_id: c.class_id,
       weeks: c.weeks ?? 0,
-      members: c.members ?? 0,
+      members: c.members ?? 0
     }));
     // Replace local stats state (keeping existing shape)
     setStats(statsList);
@@ -109,7 +109,7 @@ export default function ManageClass() {
       toast.success("Klasse erfolgreich erstellt");
     } catch (e) {
       toast.error(
-        e instanceof Error ? e.message : "Fehler beim Erstellen der Klasse",
+        e instanceof Error ? e.message : "Fehler beim Erstellen der Klasse"
       );
     } finally {
       setCreateLoading(false);
@@ -164,69 +164,84 @@ export default function ManageClass() {
             {classes.map((cls, index) => {
               const delay = Math.min(index * 0.05, 0.2);
               return (
-              <motion.li
-                key={cls.class_id}
-                className="group min-w-0"
-                layout={anim}
-                initial={anim ? { opacity: 0, y: 16 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                exit={anim ? { opacity: 0, x: -20, scale: 0.95 } : undefined}
-                transition={anim ? { duration: 0.3, ease: "easeOut", delay } : { duration: 0 }}
-              >
-                <Link
-                  href={`/klassen/${cls.class_id}`}
-                  className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
-                >                
-                <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
-                  <School className="h-6 w-6 text-foreground" />
-                </div>
-
-                <div className="relative flex-1 min-w-0">
-                  <h3 className="font-semibold text-base truncate mb-2" title={cls.class_title}>
-                    {cls.class_title}
-                  </h3>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {statsLoading && !statsMap[cls.class_id] ? (
-                      <span className="text-xs text-muted-foreground animate-pulse">Lädt…</span>
-                    ) : (
-                      (() => {
-                        const st = statsMap[cls.class_id];
-                        if (!st) return <span className="text-xs text-muted-foreground">-</span>;
-                        return (
-                          <>
-                            <Badge className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                              <Calendar className="h-3 w-3" />
-                              {st.weeks} {st.weeks === 1 ? "Woche" : "Wochen"}
-                            </Badge>
-                            <Badge className="gap-1 bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300/90">
-                              <Users className="h-3 w-3" />
-                              {st.members} {st.members === 1 ? "Mitglied" : "Mitglieder"}
-                            </Badge>
-                          </>
-                        );
-                      })()
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative shrink-0 bg-destructive/10 hover:bg-destructive/20! cursor-pointer"
-                  title={`Klasse ${cls.class_title} verlassen`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setPendingLeaveClass(cls);
-                    setLeaveOpen(true);
-                  }}
-                  asChild={false}
+                <motion.li
+                  key={cls.class_id}
+                  className="group min-w-0"
+                  layout={anim}
+                  initial={anim ? { opacity: 0, y: 16 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={anim ? { opacity: 0, x: -20, scale: 0.95 } : undefined}
+                  transition={
+                    anim
+                      ? { duration: 0.3, ease: "easeOut", delay }
+                      : { duration: 0 }
+                  }
                 >
-                  <LogOut className="h-4 w-4 text-destructive" />
-                </Button>
-              </Link>
-            </motion.li>
-            );
+                  <Link
+                    href={`/klassen/${cls.class_id}`}
+                    className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
+                  >
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
+                      <School className="h-6 w-6 text-foreground" />
+                    </div>
+
+                    <div className="relative flex-1 min-w-0">
+                      <h3
+                        className="font-semibold text-base truncate mb-2"
+                        title={cls.class_title}
+                      >
+                        {cls.class_title}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {statsLoading && !statsMap[cls.class_id] ? (
+                          <span className="text-xs text-muted-foreground animate-pulse">
+                            Lädt…
+                          </span>
+                        ) : (
+                          (() => {
+                            const st = statsMap[cls.class_id];
+                            if (!st)
+                              return (
+                                <span className="text-xs text-muted-foreground">
+                                  -
+                                </span>
+                              );
+                            return (
+                              <>
+                                <Badge className="gap-1 bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                  <Calendar className="h-3 w-3" />
+                                  {st.weeks}{" "}
+                                  {st.weeks === 1 ? "Woche" : "Wochen"}
+                                </Badge>
+                                <Badge className="gap-1 bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300/90">
+                                  <Users className="h-3 w-3" />
+                                  {st.members}{" "}
+                                  {st.members === 1 ? "Mitglied" : "Mitglieder"}
+                                </Badge>
+                              </>
+                            );
+                          })()
+                        )}
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="relative shrink-0 bg-destructive/10 hover:bg-destructive/20! cursor-pointer"
+                      title={`Klasse ${cls.class_title} verlassen`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPendingLeaveClass(cls);
+                        setLeaveOpen(true);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </Link>
+                </motion.li>
+              );
             })}
           </AnimatePresence>
         </ul>
@@ -260,7 +275,6 @@ export default function ManageClass() {
                 }
               }}
               placeholder="Klassentitel"
-              autoFocus
             />
           </div>
           <DialogFooter className="flex-row gap-2 justify-end">
@@ -331,18 +345,18 @@ export default function ManageClass() {
                 try {
                   const result = await removeOrLeaveMutation({
                     classId: pendingLeaveClass.class_id as Id<"classes">,
-                    targetUserId: meQuery.id as Id<"users">,
+                    targetUserId: meQuery.id as Id<"users">
                   });
                   if (currentClassId === pendingLeaveClass.class_id) {
                     setKlasse(null);
                   }
                   if (result?.deletedClass) {
                     toast.success(
-                      `Klasse "${pendingLeaveClass.class_title}" gelöscht`,
+                      `Klasse "${pendingLeaveClass.class_title}" gelöscht`
                     );
                   } else {
                     toast.success(
-                      `Klasse "${pendingLeaveClass.class_title}" verlassen`,
+                      `Klasse "${pendingLeaveClass.class_title}" verlassen`
                     );
                   }
                   setLeaveOpen(false);
@@ -353,7 +367,7 @@ export default function ManageClass() {
                   toast.error(
                     e instanceof Error
                       ? e.message
-                      : "Fehler beim Verlassen der Klasse",
+                      : "Fehler beim Verlassen der Klasse"
                   );
                 } finally {
                   setLeaveLoading(false);

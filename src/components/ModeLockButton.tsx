@@ -6,7 +6,7 @@ import { Pencil, PencilOff } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
-  TooltipTrigger,
+  TooltipTrigger
 } from "@/components/ui/tooltip";
 
 export function ModeLockButton() {
@@ -14,24 +14,26 @@ export function ModeLockButton() {
   const isEditable = mode === "notes";
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={toggleMode}
-          aria-label={
-            isEditable
-              ? "Bearbeitung deaktivieren (nur kopieren)"
-              : "Bearbeiten aktivieren"
-          }
-        >
-          {isEditable ? (
-            <PencilOff className="h-4 w-4" />
-          ) : (
-            <Pencil className="h-4 w-4" />
-          )}
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleMode}
+            aria-label={
+              isEditable
+                ? "Bearbeitung deaktivieren (nur kopieren)"
+                : "Bearbeiten aktivieren"
+            }
+          >
+            {isEditable ? (
+              <PencilOff className="h-4 w-4" />
+            ) : (
+              <Pencil className="h-4 w-4" />
+            )}
+          </Button>
+        }
+      />
       <TooltipContent>
         {isEditable ? "Bearbeiten deaktivieren" : "Bearbeiten aktivieren"}
       </TooltipContent>

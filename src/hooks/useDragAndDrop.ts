@@ -1,4 +1,5 @@
-import { useState, useCallback, DragEvent } from "react";
+import { useState, useCallback } from "react";
+import type { DragEvent } from "react";
 
 export function useDragAndDrop() {
   const [isDragOverFileList, setIsDragOverFileList] = useState(false);

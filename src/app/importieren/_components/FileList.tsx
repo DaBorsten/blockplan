@@ -5,7 +5,7 @@ import { FileDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useIsAnimated } from "@/components/AnimationProvider";
 import { cn } from "@/lib/utils";
-import {DragEvent} from "react";
+import type {DragEvent} from "react";
 
 type FileListProps = {
   files: Array<{ id: string; file: File; name: string; displayName: string }>;
@@ -44,7 +44,7 @@ export function FileList({
   return (
     <div
       className={cn(
-        "relative scrollable flex-1 w-full flex flex-col gap-2 p-4 min-h-0 border-2 border-dashed rounded-xl overflow-y-auto overflow-hidden transition-colors duration-200",
+        "relative scrollable flex-1 w-full flex flex-col gap-2 p-4 min-h-0 border-2 border-dashed rounded-xl overflow-y-auto transition-colors duration-200",
         isDragOver ? "border-primary bg-primary/5" : "border-border",
         isLoading ? "opacity-60 pointer-events-none" : ""
       )}

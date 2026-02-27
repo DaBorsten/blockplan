@@ -25,8 +25,8 @@ export function PreferencesMigration() {
 
     // Check if preferences are already set in the database
     // If they are explicitly set (not undefined), skip migration
-    const dbHasPreferences = 
-      currentPreferences.autoLatestWeek !== undefined || 
+    const dbHasPreferences =
+      currentPreferences.autoLatestWeek !== undefined ||
       currentPreferences.showSubjectColors !== undefined;
 
     if (dbHasPreferences) {
@@ -37,28 +37,38 @@ export function PreferencesMigration() {
     // Try to read old localStorage values
     try {
       const preferencesStorage = localStorage.getItem("preferences-storage");
-      
+
       if (preferencesStorage) {
         const parsed = JSON.parse(preferencesStorage);
         const state = parsed?.state;
-        
+
         if (state && typeof state === "object") {
           const autoLatestWeek = state.autoLatestWeek;
           const showSubjectColors = state.showSubjectColors;
-          
+
           // Migrate to database only if we have actual values
-          if (typeof autoLatestWeek === "boolean" || typeof showSubjectColors === "boolean") {
+          if (
+            typeof autoLatestWeek === "boolean" ||
+            typeof showSubjectColors === "boolean"
+          ) {
             // Mark as run synchronously BEFORE starting the async operation
             // to prevent double execution if the effect re-runs
             hasRun.current = true;
-            
+
             void updatePreferences({
-              autoLatestWeek: typeof autoLatestWeek === "boolean" ? autoLatestWeek : undefined,
-              showSubjectColors: typeof showSubjectColors === "boolean" ? showSubjectColors : undefined,
-            }).then(() => {
-              console.log("[PreferencesMigration] Successfully migrated preferences to database");
+              autoLatestWeek:
+                typeof autoLatestWeek === "boolean"
+                  ? autoLatestWeek
+                  : undefined,
+              showSubjectColors:
+                typeof showSubjectColors === "boolean"
+                  ? showSubjectColors
+                  : undefined
             }).catch((error) => {
-              console.error("[PreferencesMigration] Failed to migrate preferences:", error);
+              console.error(
+                "[PreferencesMigration] Failed to migrate preferences:",
+                error
+              );
             });
           } else {
             // No values to migrate, mark as done

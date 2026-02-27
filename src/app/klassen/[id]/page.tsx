@@ -3,7 +3,6 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useIsAnimated } from "@/components/AnimationProvider";
 import { useParams, useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +22,7 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
 import {
   Trash2,
@@ -35,7 +34,7 @@ import {
   Users,
   SearchIcon,
   UserRoundX,
-  PencilLine,
+  PencilLine
 } from "lucide-react";
 import { TeacherColorsManager } from "@/components/TeacherColorsManager";
 import { useQuery, useMutation, useConvex } from "convex/react";
@@ -67,11 +66,10 @@ export default function ClassMembersPage() {
   const classIdQuery = id || null;
   const convex = useConvex();
   const isMobile = useIsMobile();
-  const anim = useIsAnimated();
 
   // Access control: pre-check to avoid throwing in live queries
   const [access, setAccess] = useState<"unknown" | "granted" | "denied">(
-    "unknown",
+    "unknown"
   );
 
   useEffect(() => {
@@ -85,7 +83,7 @@ export default function ClassMembersPage() {
       try {
         // Call a cheap query to validate access. We use getClass which will throw FORBIDDEN for non-members.
         await convex.query(api.classes.getClass, {
-          classId: classIdQuery as Id<"classes">,
+          classId: classIdQuery as Id<"classes">
         });
         if (!cancelled) setAccess("granted");
       } catch {
@@ -109,11 +107,11 @@ export default function ClassMembersPage() {
   const shouldSubscribe = !!classIdQuery && access === "granted";
   const membersData = useQuery(
     api.classes.listMembers,
-    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip",
+    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip"
   );
   const classMeta = useQuery(
     api.classes.getClass,
-    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip",
+    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip"
   );
   const members = membersData?.members || [];
   const currentRole = membersData?.currentRole || null;
@@ -129,7 +127,7 @@ export default function ClassMembersPage() {
   // Invitations state now powered by Convex live query
   const invites = useQuery(
     api.invitations.listInvitations,
-    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip",
+    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip"
   );
   const createInvitation = useMutation(api.invitations.createInvitation);
   const deleteInvitation = useMutation(api.invitations.deleteInvitation);
@@ -137,7 +135,7 @@ export default function ClassMembersPage() {
   type Week = { id: string; title: string };
   const weeksRaw = useQuery(
     api.weeks.listWeeks,
-    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip",
+    shouldSubscribe ? { classId: classIdQuery as Id<"classes"> } : "skip"
   );
   const weeksLoading = weeksRaw === undefined && shouldSubscribe;
   const weeks: Week[] = useMemo(() => weeksRaw || [], [weeksRaw]);
@@ -172,7 +170,7 @@ export default function ClassMembersPage() {
     try {
       await renameClass({
         classId: classIdQuery as Id<"classes">,
-        newTitle: trimmed,
+        newTitle: trimmed
       });
       setEditOpen(false);
       setClassTitle(trimmed);
@@ -195,16 +193,16 @@ export default function ClassMembersPage() {
           "6h": 6 * 60 * 60 * 1000,
           "12h": 12 * 60 * 60 * 1000,
           "1d": 24 * 60 * 60 * 1000,
-          "7d": 7 * 24 * 60 * 60 * 1000,
+          "7d": 7 * 24 * 60 * 60 * 1000
         };
         expirationISO = new Date(
-          now + addMs[expiryPreset as Exclude<ExpiryPreset, "never">],
+          now + addMs[expiryPreset as Exclude<ExpiryPreset, "never">]
         ).toISOString();
       }
       await createInvitation({
         classId: classIdQuery as Id<"classes">,
         expires: expiryPreset !== "never",
-        expirationISO,
+        expirationISO
       });
       toast.success("Einladung erstellt");
     } catch (e) {
@@ -268,7 +266,7 @@ export default function ClassMembersPage() {
     try {
       const res = await removeOrLeaveMutation({
         classId: classIdQuery as Id<"classes">,
-        targetUserId: target.user_id as Id<"users">,
+        targetUserId: target.user_id as Id<"users">
       });
       if (user?.id === target.user_id) {
         if (res?.deletedClass) {
@@ -291,12 +289,12 @@ export default function ClassMembersPage() {
       await updateMemberRole({
         classId: classIdQuery as Id<"classes">,
         targetUserId: target.user_id as unknown as Id<"users">,
-        role,
+        role
       });
       toast.success("Rolle erfolgreich geändert");
     } catch (e) {
       toast.error(
-        e instanceof Error ? e.message : "Rollenänderung fehlgeschlagen",
+        e instanceof Error ? e.message : "Rollenänderung fehlgeschlagen"
       );
     }
   };
@@ -320,15 +318,16 @@ export default function ClassMembersPage() {
     const sections: Array<[string, Week[]]> = Object.entries(map);
     const extractionCache = new Map<string, { grade: number; kw: number }>();
     const getExtracted = (s: string) => {
-      if (!extractionCache.has(s)) {
-        const gradeMatch = s.match(/^(\d{1,2})/);
-        const kwMatch = s.match(/KW\s*(\d{1,3})/i) || s.match(/KW(\d{1,3})/i);
-        extractionCache.set(s, {
-          grade: gradeMatch ? parseInt(gradeMatch[1], 10) : -Infinity,
-          kw: kwMatch ? parseInt(kwMatch[1], 10) : -Infinity,
-        });
-      }
-      return extractionCache.get(s)!;
+      const cached = extractionCache.get(s);
+      if (cached) return cached;
+      const gradeMatch = s.match(/^(\d{1,2})/);
+      const kwMatch = s.match(/KW\s*(\d{1,3})/i) || s.match(/KW(\d{1,3})/i);
+      const value = {
+        grade: gradeMatch ? parseInt(gradeMatch[1], 10) : -Infinity,
+        kw: kwMatch ? parseInt(kwMatch[1], 10) : -Infinity
+      };
+      extractionCache.set(s, value);
+      return value;
     };
     sections.sort((a, b) => {
       const ea = getExtracted(a[0]);
@@ -374,7 +373,7 @@ export default function ClassMembersPage() {
     count: flatRows.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: (i) => (flatRows[i].kind === "header" ? 52 : 76),
-    overscan: 10,
+    overscan: 10
   });
 
   // Confirmation dialog for remove/leave actions (top-level in component scope)
@@ -424,7 +423,7 @@ export default function ClassMembersPage() {
     try {
       await renameWeekMutation({
         weekId: weekEditId as Id<"weeks">,
-        newTitle: trimmed,
+        newTitle: trimmed
       });
       setWeekEditOpen(false);
       setWeekEditId(null);
@@ -432,7 +431,7 @@ export default function ClassMembersPage() {
       toast.success("Woche erfolgreich umbenannt");
     } catch (e) {
       toast.error(
-        e instanceof Error ? e.message : "Fehler beim Umbenennen der Woche",
+        e instanceof Error ? e.message : "Fehler beim Umbenennen der Woche"
       );
     }
   };
@@ -443,7 +442,7 @@ export default function ClassMembersPage() {
       toast.success("Woche erfolgreich gelöscht");
     } catch (e) {
       toast.error(
-        e instanceof Error ? e.message : "Fehler beim Löschen der Woche",
+        e instanceof Error ? e.message : "Fehler beim Löschen der Woche"
       );
     }
   };
@@ -556,7 +555,10 @@ export default function ClassMembersPage() {
           </Tabs>
         </div>
       </div>
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 min-w-0">
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 min-w-0"
+      >
         {activeTab === "mitglieder" && (
           <div
             role="tabpanel"
@@ -619,6 +621,7 @@ export default function ClassMembersPage() {
                         {currentRole === "owner" && m.role !== "owner" && (
                           <Select
                             value={m.role === "admin" ? "admin" : "member"}
+                            items={{ member: "Mitglied", admin: "Admin" }}
                             onValueChange={(val) => {
                               if (val === m.role) return;
                               changeRole(m, val as "admin" | "member");
@@ -627,7 +630,10 @@ export default function ClassMembersPage() {
                             <SelectTrigger className="h-8 w-27.5 text-sm">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="min-w-(--radix-select-trigger-width) w-(--radix-select-trigger-width)">
+                            <SelectContent
+                              alignItemWithTrigger={false}
+                              className="min-w-(--anchor-width) w-(--anchor-width)"
+                            >
                               <SelectItem value="member">Mitglied</SelectItem>
                               <SelectItem value="admin">Admin</SelectItem>
                             </SelectContent>
@@ -680,7 +686,7 @@ export default function ClassMembersPage() {
                 style={{
                   height: `${rowVirtualizer.getTotalSize()}px`,
                   width: "100%",
-                  position: "relative",
+                  position: "relative"
                 }}
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -696,14 +702,14 @@ export default function ClassMembersPage() {
                         top: 0,
                         left: 0,
                         width: "100%",
-                        transform: `translateY(${virtualRow.start}px)`,
+                        transform: `translateY(${virtualRow.start}px)`
                       }}
                     >
                       {row.kind === "header" ? (
                         <div
                           style={{
                             paddingTop: isFirstRow ? 0 : 24,
-                            paddingBottom: 8,
+                            paddingBottom: 8
                           }}
                         >
                           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
@@ -719,7 +725,10 @@ export default function ClassMembersPage() {
                                 aria-hidden
                               >
                                 {row.week.title
-                                  ? (row.week.title.trim().split(/\s+/)[0] || "W").slice(0, 3)
+                                  ? (
+                                      row.week.title.trim().split(/\s+/)[0] ||
+                                      "W"
+                                    ).slice(0, 3)
                                   : "W"}
                               </div>
                               <span
@@ -843,7 +852,6 @@ export default function ClassMembersPage() {
               onChange={(e) => setWeekDeleteConfirm(e.target.value)}
               placeholder={pendingWeek?.title || "Wochentitel"}
               aria-label="Wochennamen zur Bestätigung eingeben"
-              autoFocus
             />
             <p className="text-xs text-muted-foreground">
               Zu tippen:{" "}
@@ -905,12 +913,31 @@ export default function ClassMembersPage() {
                 <p className="font-medium">Ablaufzeit</p>
                 <Select
                   value={expiryPreset}
-                  onValueChange={(v: ExpiryPreset) => setExpiryPreset(v)}
+                  onValueChange={(v) => {
+                    if (v) setExpiryPreset(v as ExpiryPreset);
+                  }}
                 >
-                  <SelectTrigger aria-label="Ablaufzeit auswählen">
-                    <SelectValue placeholder="Ablauf" />
+                  <SelectTrigger
+                    aria-label="Ablaufzeit auswählen"
+                    size="sm"
+                    className="w-36"
+                  >
+                    <SelectValue>
+                      {(v: string | null) => {
+                        const labels: Record<string, string> = {
+                          "30m": "30 Minuten",
+                          "1h": "1 Stunde",
+                          "6h": "6 Stunden",
+                          "12h": "12 Stunden",
+                          "1d": "1 Tag",
+                          "7d": "7 Tage",
+                          never: "Nie"
+                        };
+                        return v ? (labels[v] ?? v) : "Ablauf";
+                      }}
+                    </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent alignItemWithTrigger={false}>
                     <SelectItem value="30m">30 Minuten</SelectItem>
                     <SelectItem value="1h">1 Stunde</SelectItem>
                     <SelectItem value="6h">6 Stunden</SelectItem>
@@ -1058,7 +1085,6 @@ export default function ClassMembersPage() {
                 classDeleteConfirm.trim().toLowerCase() !==
                 (classTitle || "").trim().toLowerCase()
               }
-              autoFocus
             />
             <p className="text-xs text-muted-foreground">
               Zu tippen:{" "}
@@ -1101,7 +1127,7 @@ export default function ClassMembersPage() {
                   router.replace("/klassen");
                 } catch (e) {
                   toast.error(
-                    e instanceof Error ? e.message : "Löschen fehlgeschlagen",
+                    e instanceof Error ? e.message : "Löschen fehlgeschlagen"
                   );
                 }
               }}
@@ -1192,7 +1218,6 @@ export default function ClassMembersPage() {
                 }
               }}
               placeholder="Neuer Wochenname"
-              autoFocus
             />
           </div>
           <DialogFooter className="flex-row gap-2 justify-end">

@@ -1,12 +1,12 @@
 import { hourToTimeMap } from "@/constants/hourToTimeMap";
-import { Lesson, LessonForImport } from "@/types/timetableData";
+import type { Lesson, LessonForImport } from "@/types/timetableData";
 
 type LessonWithHour = LessonForImport & { hour: number };
 
 // Funktion zur Erkennung von Doppelstunden für eine bestimmte Gruppe
 function hasDoubleLessonForGroup(
   lessons: Lesson[] | LessonWithHour[],
-  group: number,
+  group: number
 ): boolean {
   const lesson3 = lessons.find((l) => l.hour === 3 && l.group === group);
   const lesson4 = lessons.find((l) => l.hour === 4 && l.group === group);
@@ -22,7 +22,7 @@ function hasDoubleLessonForGroup(
 export function getTimeForHour(
   hour: number,
   currentLesson: Lesson | LessonForImport,
-  allLessonsForDay: Lesson[] | LessonWithHour[],
+  allLessonsForDay: Lesson[] | LessonWithHour[]
 ): { start: string; end: string } {
   // Wenn es Stunde 3 ist und für diese Gruppe eine Doppelstunde zwischen 3-4 existiert
   if (
@@ -46,10 +46,10 @@ export function getTimesForTimetable(
     }[];
   }[],
   currentDayIndex: number,
-  hour: number,
+  hour: number
 ) {
   const hourData = groupedByDay[currentDayIndex]?.hours.find(
-    (h) => h.hour === hour,
+    (h) => h.hour === hour
   );
 
   const getOrderedUniqueTimes = (timeType: "startTime" | "endTime") => {

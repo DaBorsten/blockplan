@@ -139,7 +139,6 @@ export function FinalizeProfile() {
                     onChange={(e) => setNickname(e.target.value)}
                     placeholder="Anzeigename"
                     maxLength={32}
-                    autoFocus
                     disabled={loading}
                     className="w-full max-w-sm"
                   />

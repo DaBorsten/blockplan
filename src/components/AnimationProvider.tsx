@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode, createContext, useContext } from "react";
+import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
 import { useAnimationsEnabled } from "@/hooks/usePreferences";
 
 const AnimationsContext = createContext<boolean | undefined>(undefined);

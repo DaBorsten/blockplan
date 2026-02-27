@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef, useMemo, ReactNode } from "react";
+import { useEffect, useRef, useMemo } from "react";
+import type { ReactNode } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useCurrentClass, useSetClass } from "@/store/useClassStore";
@@ -16,7 +17,11 @@ export function StoresValidityGuard({ children }: { children: ReactNode }) {
   // Phase 1: Klassenvalidierung - nur Berechnungen
   const { isValidClass, classValidated, shouldResetClass } = useMemo(() => {
     if (!classesSafe) {
-      return { isValidClass: false, classValidated: false, shouldResetClass: false };
+      return {
+        isValidClass: false,
+        classValidated: false,
+        shouldResetClass: false
+      };
     }
     const validClassIds = new Set(classesSafe.classes.map((c) => c.class_id));
     const isValidClass = classId ? validClassIds.has(classId) : false;
@@ -26,7 +31,7 @@ export function StoresValidityGuard({ children }: { children: ReactNode }) {
 
   const weeksRaw = useQuery(
     api.weeks.listWeeks,
-    classValidated && isValidClass && classId ? { classId } : "skip",
+    classValidated && isValidClass && classId ? { classId } : "skip"
   );
 
   const shouldResetWeek = useMemo(() => {
@@ -52,7 +57,14 @@ export function StoresValidityGuard({ children }: { children: ReactNode }) {
     if (shouldResetWeek) return false;
 
     return true;
-  }, [classValidated, isValidClass, classId, weeksRaw, shouldResetClass, shouldResetWeek]);
+  }, [
+    classValidated,
+    isValidClass,
+    classId,
+    weeksRaw,
+    shouldResetClass,
+    shouldResetWeek
+  ]);
 
   const classInvalidRef = useRef(false);
   const weekInvalidRef = useRef(false);

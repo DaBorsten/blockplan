@@ -77,13 +77,13 @@ const securityHeaders = [
       base-uri 'self';
     `
       .replace(/\s{2,}/g, " ")
-      .trim(),
-  },
+      .trim()
+  }
 ];
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: __dirname,
+    root: __dirname
   },
   reactCompiler: true,
   typedRoutes: true,
@@ -92,27 +92,17 @@ const nextConfig: NextConfig = {
     browserDebugInfoInTerminal: true,
     optimizeCss: true,
     typedEnv: true,
-    optimizePackageImports: [
-      "lucide-react",
-      "react-icons",
-      "@radix-ui/react-accordion",
-      "@radix-ui/react-dialog",
-      "@radix-ui/react-dropdown-menu",
-      "@radix-ui/react-popover",
-      "@radix-ui/react-scroll-area",
-      "@radix-ui/react-select",
-      "@radix-ui/react-tabs",
-    ],
+    optimizePackageImports: ["lucide-react", "react-icons"]
   },
   ...(isDevelopment && {
-    allowedDevOrigins: [localIP],
+    allowedDevOrigins: [localIP]
   }),
   async headers() {
     return [
       {
         source: "/(.*)",
-        headers: securityHeaders,
-      },
+        headers: securityHeaders
+      }
     ];
   },
   async rewrites() {
@@ -121,10 +111,10 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/convex/:path*",
-        destination: "http://127.0.0.1:3210/:path*",
-      },
+        destination: "http://127.0.0.1:3210/:path*"
+      }
     ];
-  },
+  }
 };
 
 export default nextConfig;

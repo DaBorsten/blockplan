@@ -19,7 +19,7 @@ import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 import { ROUTE_STUNDENPLAN } from "@/constants/routes";
 import { parseAsString, useQueryState } from "nuqs";
 import { useClassStore } from "@/store/useClassStore";
-import { Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 export default function ClassJoinPage() {
   // Code direkt mit nuqs aus Query-Param (?code=) synchronisieren

@@ -1,4 +1,4 @@
-import { Group } from "@/types/group";
+import type { Group } from "@/types/group";
 
 export type Lesson = {
   id: string;

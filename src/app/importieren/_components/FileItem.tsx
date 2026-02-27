@@ -130,7 +130,6 @@ export function FileItem({
                 }
               }
             }}
-            autoFocus
             disabled={isLoading}
           />
           <DialogFooter>

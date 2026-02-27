@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import { useIsAnimated } from "@/components/AnimationProvider";
 // nuqs hooks for query params
-import { Lesson } from "@/types/timetableData";
+import type { Lesson } from "@/types/timetableData";
 import { useCurrentWeek } from "@/store/useWeekStore";
 import { useCurrentGroup } from "@/store/useGroupStore";
 import { useCurrentClass } from "@/store/useClassStore";
@@ -631,8 +631,8 @@ export function Timetable({
                               let iconColor: string | undefined;
 
                               if (hasCustomColor) {
-                                const dark = isColorDark(baseColor!);
-                                inlineStyle = { background: baseColor! };
+                                const dark = isColorDark(baseColor);
+                                inlineStyle = { background: baseColor };
                                 textColorClass = dark
                                   ? "text-white"
                                   : "text-black";

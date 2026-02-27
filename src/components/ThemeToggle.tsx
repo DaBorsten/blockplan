@@ -5,41 +5,57 @@ import { useTheme } from "next-themes";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+
+const themeOptions = [
+  { value: "light", label: "Hell", icon: <Sun className="h-4 w-4" /> },
+  { value: "dark", label: "Dunkel", icon: <Moon className="h-4 w-4" /> },
+  { value: "system", label: "System", icon: <Laptop className="h-4 w-4" /> },
+];
 
 export function ModeToggle() {
   const { setTheme, theme } = useTheme();
+  const current = themeOptions.find((o) => o.value === (theme ?? "system"));
 
   return (
     <Select
       value={theme ?? "system"}
-      onValueChange={(val: string) => setTheme(val)}
+      onValueChange={(val) => {
+        if (val) setTheme(val);
+      }}
     >
       <SelectTrigger aria-label="Theme wählen" className="w-35">
-        <SelectValue placeholder="Theme" className="flex items-center gap-2" />
+        <span className="inline-flex items-center gap-2">
+          {current?.icon}
+          {current?.label}
+        </span>
       </SelectTrigger>
       <SelectContent
-        className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width) p-0"
+        className="w-(--anchor-width) min-w-(--anchor-width)"
         align="start"
+        side="bottom"
+        alignItemWithTrigger={false}
       >
-        <SelectItem value="light" className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2">
-            <Sun className="h-4 w-4" /> Hell
-          </span>
-        </SelectItem>
-        <SelectItem value="dark" className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2">
-            <Moon className="h-4 w-4" /> Dunkel
-          </span>
-        </SelectItem>
-        <SelectItem value="system" className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2">
-            <Laptop className="h-4 w-4" /> System
-          </span>
-        </SelectItem>
+        <SelectGroup>
+          <SelectItem value="light">
+            <span className="inline-flex items-center gap-2">
+              <Sun className="h-4 w-4" /> Hell
+            </span>
+          </SelectItem>
+          <SelectItem value="dark">
+            <span className="inline-flex items-center gap-2">
+              <Moon className="h-4 w-4" /> Dunkel
+            </span>
+          </SelectItem>
+          <SelectItem value="system">
+            <span className="inline-flex items-center gap-2">
+              <Laptop className="h-4 w-4" /> System
+            </span>
+          </SelectItem>
+        </SelectGroup>
       </SelectContent>
     </Select>
   );

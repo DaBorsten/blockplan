@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { NoteItem } from "@/components/NoteItem";
-import { Lesson } from "@/types/timetableData";
+import type { Lesson } from "@/types/timetableData";
 import { toast } from "sonner";
 import { useClassStore } from "@/store/useClassStore";
 import { useAutoLatestWeek } from "@/hooks/usePreferences";
@@ -61,14 +61,12 @@ function NotesTabContent({
   return (
     <TabsContent value={type} className="mt-4 flex-1 min-h-0 flex flex-col">
       <Accordion
-        type="single"
-        collapsible
-        defaultValue={`${type}-active`}
+        defaultValue={[`${type}-active`]}
         className="w-full flex-1 min-h-0 flex flex-col overflow-hidden"
       >
         <AccordionItem
           value={`${type}-active`}
-          className="data-[state=open]:flex-1 data-[state=open]:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-state=open]]:flex-1 [&>[data-slot=accordion-content][data-state=open]]:flex [&>[data-slot=accordion-content][data-state=open]]:flex-col [&>[data-slot=accordion-content][data-state=open]]:min-h-0"
+          className="data-open:flex-1 data-open:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-open]]:flex-1 [&>[data-slot=accordion-content][data-open]]:flex [&>[data-slot=accordion-content][data-open]]:flex-col [&>[data-slot=accordion-content][data-open]]:min-h-0"
         >
           <AccordionTrigger>Aktiv</AccordionTrigger>
           <AccordionContent className="pb-0! flex-1 min-h-0">
@@ -88,7 +86,7 @@ function NotesTabContent({
                 </div>
               ) : (
                 <ScrollArea className="flex-1 h-0 pr-1">
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 pb-2">
                     {activeNotes.map((item) => (
                       <NoteItem
                         key={item.id}
@@ -107,7 +105,7 @@ function NotesTabContent({
         </AccordionItem>
         <AccordionItem
           value={`${type}-archived`}
-          className="data-[state=open]:flex-1 data-[state=open]:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-state=open]]:flex-1 [&>[data-slot=accordion-content][data-state=open]]:flex [&>[data-slot=accordion-content][data-state=open]]:flex-col [&>[data-slot=accordion-content][data-state=open]]:min-h-0"
+          className="data-open:flex-1 data-open:min-h-0 flex flex-col [&>[data-slot=accordion-content][data-open]]:flex-1 [&>[data-slot=accordion-content][data-open]]:flex [&>[data-slot=accordion-content][data-open]]:flex-col [&>[data-slot=accordion-content][data-open]]:min-h-0"
         >
           <AccordionTrigger>Archiviert</AccordionTrigger>
           <AccordionContent className="pb-0! flex-1 min-h-0">
@@ -117,7 +115,7 @@ function NotesTabContent({
               </div>
             ) : (
               <ScrollArea className="h-full pr-1">
-                <ul className="space-y-2">
+                <ul className="space-y-2 pb-2">
                   {archivedNotes.map((item) => (
                     <NoteItem
                       key={item.id}
@@ -631,8 +629,8 @@ export default function TimetablePage() {
           <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
-              getNotes={() => editNotesInputRef.current?.value ?? ""}
-              onOpenClassNotes={handleOpenClassNotes}
+              getNotesAction={() => editNotesInputRef.current?.value ?? ""}
+              onOpenClassNotesAction={handleOpenClassNotes}
             />
           </ButtonGroup>
         </div>
@@ -646,8 +644,8 @@ export default function TimetablePage() {
           <ButtonGroup>
             <ModeLockButton />
             <NotesActionsDropdown
-              getNotes={() => editNotesInputRef.current?.value ?? ""}
-              onOpenClassNotes={handleOpenClassNotes}
+              getNotesAction={() => editNotesInputRef.current?.value ?? ""}
+              onOpenClassNotesAction={handleOpenClassNotes}
             />
           </ButtonGroup>
         </div>

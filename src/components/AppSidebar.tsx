@@ -11,7 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
+  useSidebar
 } from "@/components/ui/sidebar";
 
 import { Calendar, CloudDownload, School, Settings } from "lucide-react";
@@ -25,29 +25,29 @@ import {
   ROUTE_STUNDENPLAN,
   ROUTE_KLASSEN,
   ROUTE_IMPORTIEREN,
-  ROUTE_EINSTELLUNGEN,
+  ROUTE_EINSTELLUNGEN
 } from "@/constants/routes";
 const items = [
   {
     title: "Stundenplan",
     url: ROUTE_STUNDENPLAN,
-    icon: Calendar,
+    icon: Calendar
   },
   {
     title: "Klassen",
     url: ROUTE_KLASSEN,
-    icon: School,
+    icon: School
   },
   {
     title: "Importieren",
     url: ROUTE_IMPORTIEREN,
-    icon: CloudDownload,
+    icon: CloudDownload
   },
   {
     title: "Einstellungen",
     url: ROUTE_EINSTELLUNGEN,
-    icon: Settings,
-  },
+    icon: Settings
+  }
 ];
 
 export function AppSidebar() {
@@ -70,15 +70,19 @@ export function AppSidebar() {
                   pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={active} size="lg">
-                      <Link
-                        href={item.url}
-                        onClick={() => setOpenMobile(false)}
-                      >
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
+                    <SidebarMenuButton
+                      isActive={active}
+                      size="lg"
+                      render={
+                        <Link
+                          href={item.url}
+                          onClick={() => setOpenMobile(false)}
+                        >
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      }
+                    />
                   </SidebarMenuItem>
                 );
               })}
@@ -90,45 +94,48 @@ export function AppSidebar() {
         <SidebarMenu>
           {githubRepo && (
             <SidebarMenuItem>
-              <SidebarMenuButton asChild size="lg">
-                <a
-                  href={githubRepo}
-                  onClick={() => setOpenMobile(false)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="GitHub Repository (öffnet in neuem Tab)"
-                >
-                  <SiGithub className="h-5 w-5" />
-                  <span>GitHub</span>
-                </a>
-              </SidebarMenuButton>
+              <SidebarMenuButton
+                size="lg"
+                render={
+                  <a
+                    href={githubRepo}
+                    onClick={() => setOpenMobile(false)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub Repository (öffnet in neuem Tab)"
+                  >
+                    <SiGithub className="h-5 w-5" />
+                    <span>GitHub</span>
+                  </a>
+                }
+              />
             </SidebarMenuItem>
           )}
           <SidebarMenuItem>
             <SidebarMenuButton
-              asChild
               isActive={pathname === "/datenschutzhinweis"}
               size="lg"
-            >
-              <Link
-                href="/datenschutzhinweis"
-                onClick={() => setOpenMobile(false)}
-              >
-                <span>Datenschutzhinweis</span>
-              </Link>
-            </SidebarMenuButton>
+              render={
+                <Link
+                  href="/datenschutzhinweis"
+                  onClick={() => setOpenMobile(false)}
+                >
+                  <span>Datenschutzhinweis</span>
+                </Link>
+              }
+            />
           </SidebarMenuItem>
           <SidebarMenuItem>
             {" "}
             <SidebarMenuButton
-              asChild
               isActive={pathname === "/impressum"}
               size="lg"
-            >
-              <Link href="/impressum" onClick={() => setOpenMobile(false)}>
-                <span>Impressum</span>
-              </Link>
-            </SidebarMenuButton>
+              render={
+                <Link href="/impressum" onClick={() => setOpenMobile(false)}>
+                  <span>Impressum</span>
+                </Link>
+              }
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

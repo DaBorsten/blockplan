@@ -5,15 +5,15 @@ import {
   SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "@/components/ui/select";
-import { Group, Groups } from "@/types/group";
+import type { Group, Groups } from "@/types/group";
 import { useCurrentGroup, useSetGroup } from "@/store/useGroupStore";
 
 const options: Groups = [
   { label: "Alle", value: 1 },
   { label: "Teil A", value: 2 },
-  { label: "Teil B", value: 3 },
+  { label: "Teil B", value: 3 }
 ];
 
 export function GroupSelection() {
@@ -30,16 +30,13 @@ export function GroupSelection() {
     >
       <SelectTrigger
         aria-label="Gruppenauswahl"
-        className="
-          w-auto 
-          h-auto"
+        className="min-w-24 h-auto"
       >
-        <SelectValue placeholder="Wählen" />
+        <SelectValue>
+          {options.find((o) => o.value === group)?.label ?? "Wählen"}
+        </SelectValue>
       </SelectTrigger>
-      <SelectContent
-        align="center"
-        className="min-w-(--radix-select-trigger-width)"
-      >
+      <SelectContent align="center" alignItemWithTrigger={false}>
         <SelectGroup>
           {options.map((opt) => (
             <SelectItem key={opt.value} value={String(opt.value)}>

@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +14,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
+  SelectTrigger
 } from "@/components/ui/select";
 // Convex
 import { useQuery, useMutation } from "convex/react";
@@ -27,7 +26,7 @@ import { Calendar, Users2, Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 type Props = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChangeAction: (open: boolean) => void;
   // initial target week from URL (can be changed in dialog)
   targetWeekId: string;
   classId: string;
@@ -37,19 +36,19 @@ type Props = {
 const groupOptions: { label: string; value: Group }[] = [
   { label: "Alle", value: 1 },
   { label: "Gruppe A", value: 2 },
-  { label: "Gruppe B", value: 3 },
+  { label: "Gruppe B", value: 3 }
 ];
 
 export function NotesTransferDialog({
   open,
-  onOpenChange,
+  onOpenChangeAction: onOpenChange,
   targetWeekId,
   classId,
-  initialGroup,
+  initialGroup
 }: Props) {
   const classWeeks = useQuery(
     api.weeks.listWeeks,
-    open && classId ? { classId: classId as Id<"classes"> } : "skip",
+    open && classId ? { classId: classId as Id<"classes"> } : "skip"
   );
   const weeks = useMemo(() => {
     if (!classWeeks) return [] as { label: string; value: string }[];
@@ -57,14 +56,14 @@ export function NotesTransferDialog({
       .map((w) => ({
         label: w.title,
         value: w.id as string,
-        createdAt: w.createdAt,
+        createdAt: w.createdAt
       }))
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return mapped;
   }, [classWeeks]);
   const [sourceWeekId, setSourceWeekId] = useState<string | null>(null);
   const [targetWeekIdState, setTargetWeekIdState] = useState<string | null>(
-    null,
+    null
   );
   const [group, setGroup] = useState<Group>(1);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
@@ -96,7 +95,7 @@ export function NotesTransferDialog({
       !!targetWeekIdState &&
       !!group &&
       sourceWeekId !== targetWeekIdState,
-    [sourceWeekId, targetWeekIdState, group],
+    [sourceWeekId, targetWeekIdState, group]
   );
 
   const preview = useQuery(
@@ -104,10 +103,10 @@ export function NotesTransferDialog({
     open && canPreview
       ? {
           sourceWeekId: sourceWeekId as Id<"weeks">,
-          targetWeekId: targetWeekIdState! as Id<"weeks">,
-          group: group,
+          targetWeekId: targetWeekIdState as Id<"weeks">,
+          group: group
         }
-      : "skip",
+      : "skip"
   );
   useEffect(() => {
     if (!canPreview) {
@@ -132,7 +131,7 @@ export function NotesTransferDialog({
       const res = await transferMutation({
         sourceWeekId: sourceWeekId as Id<"weeks">,
         targetWeekId: targetWeekIdState as Id<"weeks">,
-        group,
+        group
       });
       const count = res.updatedCount ?? 0;
       toast.success(`${count} Notizen übertragen.`);
@@ -147,7 +146,7 @@ export function NotesTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-130">
         <DialogHeader>
           <DialogTitle>Notizen übertragen</DialogTitle>
           <p className="text-sm text-muted-foreground">
@@ -161,24 +160,28 @@ export function NotesTransferDialog({
                 <Calendar className="h-4 w-4 opacity-70" /> Quelle (Woche)
               </label>
               <Select
-                value={sourceWeekId ?? undefined}
+                value={sourceWeekId ?? ""}
                 onValueChange={(v) => setSourceWeekId(v)}
                 disabled={loadingWeeks}
               >
                 <SelectTrigger
                   disabled={loadingWeeks}
                   className="
-                    w-full 
+                    w-full
                     truncate"
                   aria-label="Quellwoche auswählen"
                 >
-                  <SelectValue
-                    placeholder={
-                      loadingWeeks ? "Lade Wochen..." : "Woche wählen"
-                    }
-                  />
+                  <span className="flex-1 truncate text-left text-sm">
+                    {loadingWeeks
+                      ? "Lade Wochen..."
+                      : (weeks.find((w) => w.value === sourceWeekId)?.label ??
+                        "Woche wählen")}
+                  </span>
                 </SelectTrigger>
-                <SelectContent className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)">
+                <SelectContent
+                  className="w-(--anchor-width) min-w-(--anchor-width) max-h-48"
+                  alignItemWithTrigger={false}
+                >
                   <SelectGroup>
                     {weeks.map((w) => (
                       <SelectItem key={w.value} value={w.value}>
@@ -194,7 +197,7 @@ export function NotesTransferDialog({
                 <Calendar className="h-4 w-4 opacity-70" /> Ziel (Woche)
               </label>
               <Select
-                value={targetWeekIdState ?? undefined}
+                value={targetWeekIdState ?? ""}
                 onValueChange={(v) => setTargetWeekIdState(v)}
                 disabled={loadingWeeks}
               >
@@ -205,13 +208,17 @@ export function NotesTransferDialog({
                     truncate"
                   aria-label="Ziel Woche auswählen"
                 >
-                  <SelectValue
-                    placeholder={
-                      loadingWeeks ? "Lade Wochen..." : "Woche wählen"
-                    }
-                  />
+                  <span className="flex-1 truncate text-left text-sm">
+                    {loadingWeeks
+                      ? "Lade Wochen..."
+                      : (weeks.find((w) => w.value === targetWeekIdState)
+                          ?.label ?? "Woche wählen")}
+                  </span>
                 </SelectTrigger>
-                <SelectContent className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)">
+                <SelectContent
+                  className="w-(--anchor-width) min-w-(--anchor-width) max-h-48"
+                  alignItemWithTrigger={false}
+                >
                   <SelectGroup>
                     {weeks.map((w) => (
                       <SelectItem key={w.value} value={w.value}>
@@ -247,11 +254,15 @@ export function NotesTransferDialog({
               }}
             >
               <SelectTrigger className="w-full overflow-hidden text-ellipsis">
-                <SelectValue placeholder="Gruppe wählen" />
+                <span className="flex-1 truncate text-left text-sm">
+                  {groupOptions.find((o) => String(o.value) === String(group))
+                    ?.label ?? "Gruppe wählen"}
+                </span>
               </SelectTrigger>
               <SelectContent
                 align="end"
-                className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
+                className="w-(--anchor-width) min-w-(--anchor-width)"
+                alignItemWithTrigger={false}
               >
                 <SelectGroup>
                   {groupOptions.map((opt) => (

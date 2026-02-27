@@ -5,7 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Copy, Send, Ellipsis, LucideNotebookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,14 @@ import { api } from "@/../convex/_generated/api";
 import type { Id } from "@/../convex/_generated/dataModel";
 
 type Props = {
-  getNotes: () => string | null | undefined;
-  onOpenClassNotes?: () => void;
+  getNotesAction: () => string | null | undefined;
+  onOpenClassNotesAction?: () => void;
 };
 
-export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
+export function NotesActionsDropdown({
+  getNotesAction,
+  onOpenClassNotesAction
+}: Props) {
   useModeStore();
   const weekID = useCurrentWeek();
   const classID = useCurrentClass();
@@ -36,7 +39,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
     api.notes.getWeekNotes,
     weekID && initialGroup != null
       ? { weekId: weekID as Id<"weeks">, group: Number(initialGroup) }
-      : "skip",
+      : "skip"
   );
 
   const handleCopy = async () => {
@@ -64,7 +67,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
           subject: n.subject?.trim() ?? "",
           teacher: n.teacher?.trim() ?? "",
           notes: n.notes?.trim() ?? "",
-          groups: n.groups ?? [],
+          groups: n.groups ?? []
         }))
         .filter((e) => e.notes);
       if (!entries.length) {
@@ -79,7 +82,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
       }
       const compareEntries = (
         a: (typeof entries)[0],
-        b: (typeof entries)[0],
+        b: (typeof entries)[0]
       ) => {
         if (a.hour !== b.hour) return a.hour - b.hour;
 
@@ -100,7 +103,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
       const dayOrder = allDays.filter((d) => byDay.has(d));
       const out: string[] = [];
       for (const d of dayOrder) {
-        const list = byDay.get(d)!;
+        const list = byDay.get(d);
         if (!list) continue;
         if (!list.length) continue;
         out.push(`${d}:`);
@@ -129,7 +132,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
     }
 
     // Fallback: copy current notes
-    const notes = (getNotes() ?? "").trim();
+    const notes = (getNotesAction() ?? "").trim();
     if (!notes) {
       toast.message("Keine Notizen vorhanden");
       return;
@@ -151,28 +154,34 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size={"icon"} aria-label="Notizen Aktionen">
-            <Ellipsis />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={handleCopy} disabled={!weekID}>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size={"icon"}
+              aria-label="Notizen Aktionen"
+            >
+              <Ellipsis />
+            </Button>
+          }
+        />
+        <DropdownMenuContent align="end" className="w-auto max-w-56">
+          <DropdownMenuItem onClick={handleCopy} disabled={!weekID}>
             <Copy className="mr-2" />
             Notizen kopieren
           </DropdownMenuItem>
           <DropdownMenuItem
-            onSelect={handleTransfer}
+            onClick={handleTransfer}
             disabled={!weekID || !classID}
           >
             <Send className="mr-2" />
             Notizen übertragen
           </DropdownMenuItem>
-          {onOpenClassNotes && (
+          {onOpenClassNotesAction && (
             <DropdownMenuItem
-              onSelect={() => {
+              onClick={() => {
                 if (!classID) return;
-                onOpenClassNotes?.();
+                onOpenClassNotesAction?.();
               }}
               disabled={!classID}
             >
@@ -186,7 +195,7 @@ export function NotesActionsDropdown({ getNotes, onOpenClassNotes }: Props) {
       {weekID && classID && (
         <NotesTransferDialog
           open={openTransfer}
-          onOpenChange={setOpenTransfer}
+          onOpenChangeAction={setOpenTransfer}
           targetWeekId={weekID}
           classId={classID}
           initialGroup={initialGroup}

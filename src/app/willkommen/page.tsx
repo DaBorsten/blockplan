@@ -15,7 +15,7 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 
 export default function WelcomePage() {
@@ -46,7 +46,7 @@ export default function WelcomePage() {
     } catch (error) {
       toast.error(
         "Fehler beim Speichern des Anzeigenamens.",
-        error instanceof Error ? { description: error.message } : undefined,
+        error instanceof Error ? { description: error.message } : undefined
       );
     } finally {
       setLoading(false);
@@ -85,7 +85,6 @@ export default function WelcomePage() {
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Anzeigename"
                   maxLength={32}
-                  autoFocus
                   disabled={loading}
                   className="w-full max-w-sm"
                 />
