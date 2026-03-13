@@ -33,6 +33,12 @@ Use `vercel env pull --help` for help.
 
 If you want to use Docker for hosting Convex locally, you can follow this [Tutorial](https://stack.convex.dev/self-hosted-develop-and-deploy).
 
+To update to the latest Convex image:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
 Convex and Next.js run in separate processes:
 
 - Terminal A

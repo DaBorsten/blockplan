@@ -33,9 +33,17 @@ function resolveConvexClientUrl(url: string): string {
 
 const convex = new ConvexReactClient(resolveConvexClientUrl(convexUrl));
 
+const useAuthWithTemplate: typeof useAuth = () => {
+  const auth = useAuth();
+  return {
+    ...auth,
+    getToken: (opts) => auth.getToken({ ...opts, template: "convex" })
+  };
+};
+
 export function ConvexClientProvider({ children }: { children: ReactNode }) {
   return (
-    <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+    <ConvexProviderWithClerk client={convex} useAuth={useAuthWithTemplate}>
       {children}
     </ConvexProviderWithClerk>
   );

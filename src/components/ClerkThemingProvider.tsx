@@ -15,7 +15,13 @@ export function ClerkThemingProvider({ children }: Props) {
   const baseTheme = resolvedTheme === "dark" ? dark : shadcn;
 
   return (
-    <ClerkProvider appearance={{ baseTheme }} localization={deDE}>
+    <ClerkProvider
+      appearance={{
+        baseTheme,
+        variables: { colorModalBackdrop: "rgba(0,0,0,0.5)" }
+      }}
+      localization={deDE}
+    >
       {children}
     </ClerkProvider>
   );
