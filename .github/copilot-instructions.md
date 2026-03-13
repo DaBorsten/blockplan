@@ -1,162 +1,68 @@
-# Blockplan - AI Coding Agent Instructions
+# context-mode — MANDATORY routing rules
 
-## Architecture Overview
+You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
 
-**Stack**: Next.js 16 (App Router) + React 19 + Convex (realtime backend) + Clerk (auth) + TailwindCSS v4 + shadcn/ui + Bun
+## BLOCKED commands — do NOT attempt these
 
-**Data Flow**: 
-- Frontend → Convex queries/mutations (live reactive, no REST)
-- Authentication: Clerk sessions → Convex (`CLERK_JWT_ISSUER_DOMAIN` in `convex/auth.config.ts`)
-- State: Zustand stores with localStorage persistence (`useClassStore`, `useWeekStore`, `useGroupStore`)
-- Migration: Legacy Turso/libSQL removed — all data access via Convex
+### curl / wget — BLOCKED
 
-## Critical Development Patterns
+Any terminal command containing `curl` or `wget` will be intercepted and blocked. Do NOT retry.
+Instead use:
 
-### Running the Project
-Always run **two terminals** in parallel:
-```bash
-bun run dev          # Terminal A: Next.js dev server
-bun run convex       # Terminal B: Convex backend sync
-```
+- `ctx_fetch_and_index(url, source)` to fetch and index web pages
+- `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
 
-Testing & quality checks:
-```bash
-bun test             # Run all unit tests (Bun native test runner)
-bun test --watch     # Watch mode for TDD
-bun x tsc --noEmit   # Type checking (no lint/build needed)
-bun x eslint .       # Linting
-```
+### Inline HTTP — BLOCKED
 
-### Convex Data Layer (Primary Pattern)
+Any terminal command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` will be intercepted and blocked. Do NOT retry with terminal.
+Instead use:
 
-**Auth Helper Pattern** - Every file defines `getCurrentUser`:
-```typescript
-// In convex/*.ts files
-async function getCurrentUser(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("UNAUTHENTICATED");
-  const user = await ctx.db.query("users")
-    .withIndex("by_token", q => q.eq("tokenIdentifier", identity.tokenIdentifier))
-    .unique();
-  if (!user) throw new Error("USER_NOT_INITIALIZED");
-  return user;
-}
-```
+- `ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
 
-**Permission Patterns** - Use shared helpers from `convex/classes.ts`:
-```typescript
-// Check membership
-const membership = await getMembership(ctx, classId);
-if (!membership) throw new ConvexError("Nicht berechtigt");
+### WebFetch / fetch — BLOCKED
 
-// Require specific role
-await requireClassRole(ctx, classId, ["owner", "admin"]);
-```
+Direct web fetching tools are blocked. Use the sandbox equivalent.
+Instead use:
 
-**Frontend Integration**:
-```typescript
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/../convex/_generated/api";
+- `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` to query the indexed content
 
-// Reactive query (auto-updates on DB changes)
-const weeks = useQuery(api.weeks.listWeeks, { classId });
+## REDIRECTED tools — use sandbox equivalents
 
-// Mutation
-const createWeek = useMutation(api.weeks.createWeek);
-await createWeek({ classId, title: "KW 42" });
-```
+### Terminal / run_in_terminal (>20 lines output)
 
-### State Management (Zustand)
+Terminal is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
+For everything else, use:
 
-**Cross-Store Communication** - Stores can call each other:
-```typescript
-// useClassStore.ts
-setClass: (id) => {
-  if (currentClassId !== id) {
-    set({ classId: id });
-    useWeekStore.getState().clearWeek(); // cascade reset
-  }
-}
-```
+- `ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
+- `ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
 
-**Persistence Keys**:
-- `useClassStore`: `"class-storage"` → stores `classId`
-- `useWeekStore`: `"week-storage"` → stores `weekId`
-- `useGroupStore`: `"group-storage"` → stores group number (1/2/3)
+### read_file (for analysis)
 
-**Validation Guard** - `StoresValidityGuard` validates stored IDs against DB:
-- Resets invalid `classId` if class deleted/access revoked
-- Resets invalid `weekId` if week deleted
-- Blocks render until validation complete
+If you are reading a file to **edit** it → read_file is correct (edit needs content in context).
+If you are reading to **analyze, explore, or summarize** → use `ctx_execute_file(path, language, code)` instead. Only your printed summary enters context.
 
-### Authentication Flow
+### grep / search (large results)
 
-1. **Middleware** (`src/middleware-cors.ts` - no `src/middleware.ts` exists): Clerk protects routes
-2. **First Login**: `/willkommen` → `initUser` mutation creates Convex user with nickname
-3. **User Matching**: Clerk `tokenIdentifier` = `${CLERK_JWT_ISSUER_DOMAIN}|<clerkUserId>`
-4. **Guards**: `StoresValidityGuard` in `SignedInWrapper` ensures user exists before app access
+Search results can flood context. Use `ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
 
-### Component Architecture
+## Tool selection hierarchy
 
-**Layout Hierarchy**:
-```
-app/layout.tsx (root)
-├─ SignedInWrapper (authenticated users)
-│  ├─ SidebarProvider + AppSidebar
-│  ├─ StoresValidityGuard (validates class/week IDs)
-│  └─ [protected pages]
-└─ PublicPageWrapper (unauthenticated)
-   └─ [public pages: /, /impressum, /datenschutzhinweis]
-```
+1. **GATHER**: `ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
+2. **FOLLOW-UP**: `ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
+3. **PROCESSING**: `ctx_execute(language, code)` | `ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
+4. **WEB**: `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
+5. **INDEX**: `ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
 
-**Client Components** - Most components use `"use client"`:
-- Pages: `src/app/*/page.tsx`
-- Interactive UI: `src/components/`
-- shadcn/ui components: `src/components/ui/`
+## Output constraints
 
-### Schema & Relationships
+- Keep responses under 500 words.
+- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
+- When indexing content, use descriptive source labels so others can `ctx_search(source: "label")` later.
 
-From `convex/schema.ts`:
-```
-users (nickname, tokenIdentifier)
-  ↓
-user_classes (role: owner/admin/member) → classes (title, owner_id)
-  ↓
-weeks (title) → timetables (day, hour, subject, teacher, room)
-  ↓
-groups (groupNumber) — for A/B week timetable splits
-```
+## ctx commands
 
-**Roles**: owner > admin > member (permissions cascade)
-
-## Project-Specific Conventions
-
-### Error Handling
-- Convex: `throw new ConvexError("German user message")` for client-facing errors
-- Auth errors: `UNAUTHENTICATED`, `USER_NOT_INITIALIZED`, `FORBIDDEN`
-- Use German for user-facing messages, English for system errors
-
-### Testing
-- Tests live next to source: `*.test.ts` files
-- Example: `src/utils/colorDark.test.ts`, `src/store/useClassStore.test.ts`
-- Use Bun's test API: `import { describe, test, expect } from "bun:test"`
-- Test cross-store interactions (e.g., `useClassStore` resetting `useWeekStore`)
-
-### Path Aliases
-- `@/` → `src/` (configured in `tsconfig.json`)
-- Convex imports: `@/../convex/_generated/api` (relative due to monorepo structure)
-
-### Security Headers
-`next.config.ts` includes strict CSP for Clerk domains, Convex endpoints, and development tools
-
-## Key Files Reference
-
-- **Schema**: `convex/schema.ts` - complete DB structure
-- **Auth Config**: `convex/auth.config.ts` - Clerk integration
-- **Stores**: `src/store/use*.ts` - state management with persistence
-- **Guards**: `src/components/StoresValidityGuard.tsx` - ID validation logic
-- **Helpers**: `convex/classes.ts` - `getCurrentUser`, `getMembership`, `requireClassRole`
-
-## Migration Notes
-
-⚠️ **No more REST API routes** - `src/app/api/**` deprecated (except webhooks). All new features use Convex queries/mutations. Check `convex/` folder before creating new data access patterns.
+| Command       | Action                                                                                |
+| ------------- | ------------------------------------------------------------------------------------- |
+| `ctx stats`   | Call the `ctx_stats` MCP tool and display the full output verbatim                    |
+| `ctx doctor`  | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist  |
+| `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
