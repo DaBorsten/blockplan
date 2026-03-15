@@ -53,7 +53,6 @@ export function WeekSelectionCombobox() {
         render={
           <Button
             variant="outline"
-            role="combobox"
             className="w-30 justify-between flex items-center gap-2 min-w-0"
           >
             <span

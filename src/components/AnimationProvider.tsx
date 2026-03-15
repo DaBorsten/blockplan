@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useAnimationsEnabled } from "@/hooks/usePreferences";
 
@@ -19,14 +19,33 @@ export const useIsAnimated = () => {
   return value;
 };
 
+function useReducedMotion() {
+  const [prefersReduced, setPrefersReduced] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  return prefersReduced;
+}
+
 /**
  * Provides the animation-enabled flag to all child components via context.
+ * Respects both the user preference and the OS-level prefers-reduced-motion setting.
  */
 export function AnimationProvider({ children }: { children: ReactNode }) {
   const enabled = useAnimationsEnabled();
+  const prefersReduced = useReducedMotion();
 
   return (
-    <AnimationsContext.Provider value={enabled}>
+    <AnimationsContext.Provider value={enabled && !prefersReduced}>
       {children}
     </AnimationsContext.Provider>
   );
