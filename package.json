@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "test": "bun test",
-    "test:watch": "bun test --watch"
+    "test:watch": "bun test --watch",
+    "react-doctor": "bunx -y react-doctor@latest . --verbose"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
