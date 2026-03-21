@@ -87,9 +87,11 @@ const nextConfig: NextConfig = {
   },
   reactCompiler: true,
   typedRoutes: true,
+  logging: {
+    browserToTerminal: true
+  },
   experimental: {
     proxyPrefetch: "flexible",
-    browserDebugInfoInTerminal: true,
     optimizeCss: true,
     typedEnv: true,
     optimizePackageImports: ["lucide-react", "react-icons"]
