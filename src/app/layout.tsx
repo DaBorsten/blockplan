@@ -83,10 +83,8 @@ export default function RootLayout({
           <TooltipProvider>
             <ClerkThemingProvider>
               <ConvexClientProvider>
-                <AppShell>
-                  <ThemeToaster />
-                  {children}
-                </AppShell>
+                <AppShell>{children}</AppShell>
+                <ThemeToaster />
               </ConvexClientProvider>
             </ClerkThemingProvider>
           </TooltipProvider>
