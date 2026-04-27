@@ -17,9 +17,10 @@ import { AnimationProvider } from "@/components/AnimationProvider";
 
 interface Props {
   children: ReactNode;
+  className?: string;
 }
 
-export function SignedInWrapper({ children }: Props) {
+export function SignedInWrapper({ children, className }: Props) {
   const pathname = usePathname();
   const isPublicRoute = [...PUBLIC_ROUTES].some(
     (route) =>
@@ -44,9 +45,9 @@ export function SignedInWrapper({ children }: Props) {
       <NuqsAdapter>
         <PreferencesMigration />
         <AnimationProvider>
-          <SidebarProvider>
+          <SidebarProvider style={{ minHeight: 0 }} className={className}>
             <AppSidebar />
-            <SidebarInset className="flex flex-col h-dvh">
+            <SidebarInset className="flex flex-col flex-1 min-h-0">
               <StoresValidityGuard>
                 <header
                   className="flex shrink-0 items-center justify-between px-4 md:px-6 sticky top-0 z-10 bg-background gap-4 h-16"
@@ -59,7 +60,7 @@ export function SignedInWrapper({ children }: Props) {
                   <div className="flex-1" />
                   <ClerkUserButton />
                 </header>
-                <main id="main" className="flex-1 min-h-0">
+                <main id="main" className="flex-1 min-h-0 overflow-y-auto">
                   {children}
                 </main>
               </StoresValidityGuard>

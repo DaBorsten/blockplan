@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation";
 import { Public } from "@/components/Public";
 import { PUBLIC_ROUTES } from "@/lib/routes";
 
-export function PublicPageWrapper({ children }: { children: React.ReactNode }) {
+export function PublicPageWrapper({ children, className }: { children: React.ReactNode; className?: string }) {
   const pathname = usePathname();
   if (PUBLIC_ROUTES.has(pathname)) {
-    return <Public>{children}</Public>;
+    return <Public className={className}>{children}</Public>;
   }
-  return <>{children}</>;
+  return <div className={className}>{children}</div>;
 }

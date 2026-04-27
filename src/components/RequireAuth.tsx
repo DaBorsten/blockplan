@@ -7,7 +7,7 @@ export function RequireAuth() {
   const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
 
   return (
-    <div className="min-h-dvh flex flex-col">
+    <div className="flex flex-col flex-1">
       <div className="flex flex-1 flex-col items-center justify-center gap-6 py-20 text-center">
         <div className="space-y-2 max-w-md px-4">
           <h1 className="text-2xl font-semibold tracking-tight">

@@ -7,7 +7,7 @@ import { useIsAnimated } from "@/components/AnimationProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { School, LogOut, SearchIcon, Calendar, Users } from "lucide-react";
+import { School, LogOut, SearchIcon, Calendar, Users, Ellipsis, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CopyAllWeeksDialog } from "@/components/CopyAllWeeksDialog";
 
 type ClassItem = {
   class_id: string;
@@ -46,6 +53,8 @@ export default function ManageClass() {
     null
   );
   const [leaveLoading, setLeaveLoading] = useState(false);
+  const [copyWeeksOpen, setCopyWeeksOpen] = useState(false);
+  const [copyWeeksClassId, setCopyWeeksClassId] = useState<string | null>(null);
   // Invite management moved to details page
 
   const { user } = useUser();
@@ -166,7 +175,7 @@ export default function ManageClass() {
               return (
                 <motion.li
                   key={cls.class_id}
-                  className="group min-w-0"
+                  className="group min-w-0 flex items-center rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
                   layout={anim}
                   initial={anim ? { opacity: 0, y: 16 } : false}
                   animate={{ opacity: 1, y: 0 }}
@@ -179,7 +188,7 @@ export default function ManageClass() {
                 >
                   <Link
                     href={`/klassen/${cls.class_id}`}
-                    className="flex w-full min-w-0 max-w-full items-center gap-4 p-4 rounded-xl border bg-card hover:bg-card-foreground/5 transition-colors relative overflow-hidden"
+                    className="flex flex-1 min-w-0 items-center gap-4 p-4"
                   >
                     <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted ring-1 ring-border">
                       <School className="h-6 w-6 text-foreground" />
@@ -224,22 +233,47 @@ export default function ManageClass() {
                         )}
                       </div>
                     </div>
+                  </Link>
 
+                  <div className="shrink-0 flex gap-1 pr-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="cursor-pointer hover:bg-card-foreground/10"
+                            title="Weitere Aktionen"
+                          />
+                        }
+                      >
+                        <Ellipsis className="h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-auto max-w-56">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setCopyWeeksClassId(cls.class_id);
+                            setCopyWeeksOpen(true);
+                          }}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          Notizen aller Wochen kopieren
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      className="relative shrink-0 bg-destructive/10 hover:bg-destructive/20! cursor-pointer"
+                      className="bg-destructive/10 hover:bg-destructive/20! cursor-pointer"
                       title={`Klasse ${cls.class_title} verlassen`}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onClick={() => {
                         setPendingLeaveClass(cls);
                         setLeaveOpen(true);
                       }}
                     >
                       <LogOut className="h-4 w-4 text-destructive" />
                     </Button>
-                  </Link>
+                  </div>
                 </motion.li>
               );
             })}
@@ -297,6 +331,18 @@ export default function ManageClass() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Copy all weeks dialog */}
+      {copyWeeksClassId && (
+        <CopyAllWeeksDialog
+          open={copyWeeksOpen}
+          onOpenChange={(o) => {
+            setCopyWeeksOpen(o);
+            if (!o) setCopyWeeksClassId(null);
+          }}
+          classId={copyWeeksClassId}
+        />
+      )}
 
       {/* Unified leave dialog */}
       <Dialog

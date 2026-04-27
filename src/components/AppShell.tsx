@@ -11,6 +11,7 @@ import { FinalizeProfile } from "./FinalizeProfile";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { PROTECTED_PATH_PREFIXES } from "@/constants/routes";
+import { NewsBanner } from "@/components/NewsBanner";
 
 function isProtectedPath(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -37,15 +38,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   if (isPublicRoute) {
-    return <PublicPageWrapper>{children}</PublicPageWrapper>;
+    return (
+      <div className="min-h-dvh flex flex-col">
+        <NewsBanner />
+        <PublicPageWrapper className="flex-1 flex flex-col">{children}</PublicPageWrapper>
+      </div>
+    );
   }
 
   if (!isSignedIn) {
-    // Protected route but user not authenticated
     return (
-      <PublicPageWrapper>
-        <RequireAuth />
-      </PublicPageWrapper>
+      <div className="min-h-dvh flex flex-col">
+        <NewsBanner />
+        <PublicPageWrapper className="flex-1 flex flex-col">
+          <RequireAuth />
+        </PublicPageWrapper>
+      </div>
     );
   }
 
@@ -61,11 +69,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (isSignedIn && !hasNickname && isProtectedPath(pathname)) {
     return (
-      <PublicPageWrapper>
-        <FinalizeProfile />
-      </PublicPageWrapper>
+      <div className="min-h-dvh flex flex-col">
+        <NewsBanner />
+        <PublicPageWrapper className="flex-1 flex flex-col">
+          <FinalizeProfile />
+        </PublicPageWrapper>
+      </div>
     );
   }
 
-  return <SignedInWrapper>{children}</SignedInWrapper>;
+  return (
+    <div className="flex flex-col h-dvh overflow-hidden">
+      <NewsBanner />
+      <SignedInWrapper className="flex-1 min-h-0">{children}</SignedInWrapper>
+    </div>
+  );
 }

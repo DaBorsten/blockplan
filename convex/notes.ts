@@ -84,6 +84,68 @@ export const getWeekNotes = query({
   },
 });
 
+// Query: get notes for multiple weeks of a class
+export const getAllWeeksNotes = query({
+  args: {
+    classId: v.id("classes"),
+    weekIds: v.array(v.id("weeks")),
+    group: v.number(),
+  },
+  handler: async (ctx, { classId, weekIds, group }) => {
+    const member = await getMembership(ctx, classId);
+    if (!member) throw new Error("Nicht berechtigt");
+    const groupIds = resolveGroupIds(group);
+    const result: Array<{
+      weekId: Id<"weeks">;
+      weekTitle: string;
+      notes: Array<{
+        day: string;
+        hour: number;
+        subject: string;
+        teacher: string;
+        notes: string | null;
+        groups: number[];
+      }>;
+    }> = [];
+    for (const weekId of weekIds) {
+      const week = await ctx.db.get(weekId);
+      if (!week || week.class_id !== classId) continue;
+      const entries = await ctx.db
+        .query("timetables")
+        .withIndex("by_week", (q) => q.eq("week_id", weekId))
+        .collect();
+      const weekNotes: Array<{
+        day: string;
+        hour: number;
+        subject: string;
+        teacher: string;
+        notes: string | null;
+        groups: number[];
+      }> = [];
+      for (const e of entries) {
+        if (!e.notes || !e.notes.trim()) continue;
+        const groups = await ctx.db
+          .query("groups")
+          .withIndex("by_timetable", (q) => q.eq("timetable_id", e._id))
+          .collect();
+        const groupNums = groups.map((g) => g.groupNumber);
+        if (groupNums.some((g) => groupIds.includes(g))) {
+          weekNotes.push({
+            day: e.day,
+            hour: e.hour,
+            subject: e.subject,
+            teacher: e.teacher,
+            notes: e.notes,
+            groups: groupNums,
+          });
+        }
+      }
+      result.push({ weekId, weekTitle: week.title, notes: weekNotes });
+    }
+    return result;
+  },
+});
+
 // Mutation: update single lesson notes
 export const updateLessonNotes = mutation({
   args: {
@@ -126,11 +188,12 @@ export const getClassNotes = query({
     if (noteType !== undefined && archived !== undefined) {
       const notes = await ctx.db
         .query("notes")
-        .withIndex("by_class_type_archived", (q) => 
+        .withIndex("by_class_type_archived", (q) =>
           q.eq("class_id", classId).eq("note_type", noteType)
         )
-        .filter((q) => 
-          archived 
+        // eslint-disable-next-line @convex-dev/no-filter-in-query
+        .filter((q) =>
+          archived
             ? q.neq(q.field("archived_at"), undefined)
             : q.eq(q.field("archived_at"), undefined)
         )
@@ -155,8 +218,9 @@ export const getClassNotes = query({
       const notes = await ctx.db
         .query("notes")
         .withIndex("by_class_archived", (q) => q.eq("class_id", classId))
-        .filter((q) => 
-          archived 
+        // eslint-disable-next-line @convex-dev/no-filter-in-query
+        .filter((q) =>
+          archived
             ? q.neq(q.field("archived_at"), undefined)
             : q.eq(q.field("archived_at"), undefined)
         )
@@ -279,6 +343,7 @@ export const listWeeksForNotesImport = query({
       const weekEntries = await ctx.db
         .query("timetables")
         .withIndex("by_week", (q) => q.eq("week_id", weekId))
+        // eslint-disable-next-line @convex-dev/no-filter-in-query
         .filter((q) => q.neq(q.field("notes"), undefined))
         .collect();
       allEntries.push(...weekEntries);

@@ -9,9 +9,10 @@ import { Authenticated, Unauthenticated } from "convex/react";
 
 interface Props {
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Public({ children }: Props) {
+export function Public({ children, className }: Props) {
   const githubRepo = process.env.NEXT_PUBLIC_GITHUB_REPO ?? "";
 
   return (
@@ -23,7 +24,7 @@ export function Public({ children }: Props) {
       >
         Zum Inhalt springen
       </a>
-      <div className="min-h-dvh flex flex-col">
+      <div className={`flex flex-col flex-1${className ? ` ${className}` : ""}`}>
         <header className="flex items-center justify-between px-6 py-4 md:px-8">
           <Link
             href="/"
